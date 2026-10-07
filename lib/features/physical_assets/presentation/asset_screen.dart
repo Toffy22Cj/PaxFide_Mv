@@ -206,9 +206,16 @@ class _AssetScreenState extends State<AssetScreen> {
                   title: const Text('Estado'),
                   subtitle: Text(lifecycleLabel(a.lifecycleStatus)),
                 ),
-                ListTile(title: const Text('Cantidad'), subtitle: Text('${a.quantity} ${a.unitOfMeasure}')),
-                ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef)),
-                ListTile(title: const Text('Ubicación actual'), subtitle: Text(a.currentLocation)),
+                ListTile(
+                  title: const Text('Cantidad'),
+                  subtitle: Text([a.quantity, a.unitOfMeasure].whereType<String>().join(' ').ifEmpty('—')),
+                ),
+                ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef ?? '—')),
+                ListTile(
+                  key: const Key('asset.location'),
+                  title: const Text('Ubicación actual'),
+                  subtitle: Text(a.currentLocation ?? 'Sin ubicación registrada'),
+                ),
               ],
             ),
           ),
@@ -218,4 +225,8 @@ class _AssetScreenState extends State<AssetScreen> {
       ),
     );
   }
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
