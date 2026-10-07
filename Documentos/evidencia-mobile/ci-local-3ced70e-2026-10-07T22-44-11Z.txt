@@ -1,0 +1,113 @@
+# CI local — scripts/ci-local.sh (paxfide-mobile)
+commit:   3ced70e36f779dda96336c28aca359b990b7cd9e
+rama:     fix/mobile-correccion-d2-d3-d8
+inicio:   2026-10-07T22:44:11Z
+fin:      2026-10-07T22:44:28Z
+comandos: flutter analyze ; flutter test --reporter expanded
+salida:   analyze=0 test=0
+
+## Versiones
+📎
+Flutter 3.47.5 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 6a19cca564 (3 weeks ago) • 2026-09-17 14:13:22 -0400
+Engine • hash ab598368592da0064197e2bc15c7f5b0a2c6bb1f (revision af7e796e16) (21 days ago) • 2026-09-16 18:35:09.000Z
+Tools • Dart 3.13.4 • DevTools 2.60.0
+
+## flutter analyze (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Resolving dependencies...
+Downloading packages...
+  cupertino_icons 1.0.9 (2.0.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  vector_math 2.4.0 (2.4.3 available)
+Got dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing PaxFide_Mv...                                         
+No issues found! (ran in 9.3s)
+
+## flutter test (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Resolving dependencies...
+Downloading packages...
+  cupertino_icons 1.0.9 (2.0.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  vector_math 2.4.0 (2.4.3 available)
+Got dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart
+00:00 +0: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) activo → /assets/:assetRef, autenticada
+00:00 +1: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) convocatoria → /c/:publicCode, pública
+00:00 +2: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento → /tracking SIN el código (nunca va en una URL)
+00:00 +3: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento sin código → /tracking
+00:00 +4: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas host desconocido
+00:00 +5: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas esquema distinto del canónico
+00:00 +6: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas sin origen canónico configurado, nada se aprueba
+00:00 +7: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas ruta desconocida o fija que no es payload de QR
+00:00 +8: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas parámetro inválido
+00:00 +9: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas texto que no es URL
+00:00 +10: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta aprobada con la versión actual es válida
+00:00 +11: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: schemaVersion desconocida → inválido
+00:00 +12: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta no aprobada (incluida /campaigns) → inválido
+00:00 +13: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: transitorias nunca se restauran
+00:00 +14: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: parámetros que no corresponden a la ruta → inválido
+00:00 +15: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ida y vuelta por JSON; JSON corrupto → null
+00:00 +16: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: pública → permitir (no espera sesión)
+00:00 +17: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: /login → esperar
+00:00 +18: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: autenticada → esperar
+00:00 +19: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: no aprobada → esperar (fallback al resolver)
+00:00 +20: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: pública → permitir (no espera sesión)
+00:00 +21: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: /login → esperar
+00:00 +22: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: autenticada → esperar
+00:00 +23: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: no aprobada → esperar (fallback al resolver)
+00:00 +24: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: pública y autenticada → permitir
+00:00 +25: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: /login y no aprobada → /home
+00:00 +26: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: pública y /login → permitir
+00:00 +27: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: autenticada y no aprobada → /login
+00:00 +28: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes idempotencia: el destino de un redirect siempre se permite (sin bucles)
+00:00 +29: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes negativa: una ruta pública nunca espera ni se redirige
+00:00 +30: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes negativa: /campaigns nunca se permite en ningún estado de sesión
+00:00 +31: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes /register se comporta como /login (transitoria de auth)
+00:00 +32: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +33: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) seguimiento: el código nunca forma parte de una ruta aprobada
+00:00 +34: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) transitorias de auth
+00:00 +35: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) autenticadas
+00:00 +36: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) parámetros estructuralmente inválidos → no aprobada
+00:00 +37: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) desconocidas y diferidas → no aprobada
+00:01 +38: /home/user/PaxFide_Mv/test/features/physical_assets/asset_reconciler_test.dart: estado observado = esperado → ACKNOWLEDGED, con un único GET
+00:01 +39: /home/user/PaxFide_Mv/test/features/physical_assets/asset_reconciler_test.dart: estado distinto → sigue AMBIGUOUS y nunca reenvía el comando
+00:01 +40: /home/user/PaxFide_Mv/test/features/physical_assets/asset_reconciler_test.dart: 403/error → sigue AMBIGUOUS
+00:01 +41: /home/user/PaxFide_Mv/test/features/physical_assets/asset_reconciler_test.dart: negativa: una entrada que no es AMBIGUOUS no se consulta ni se toca
+00:01 +42: /home/user/PaxFide_Mv/test/features/physical_assets/action_resolver_test.dart: REGISTERED→Dispatch, DISPATCHED→Receive, RECEIVED→Deliver, DELIVERED→solo lectura
+00:01 +43: /home/user/PaxFide_Mv/test/features/physical_assets/action_resolver_test.dart: DEPLETED (existe en el backend) → solo lectura
+00:01 +44: /home/user/PaxFide_Mv/test/features/physical_assets/action_resolver_test.dart: valor del backend → enum; desconocido → null y solo lectura
+00:01 +45: /home/user/PaxFide_Mv/test/features/physical_assets/action_resolver_test.dart: estado esperado tras cada acción (para reconciliar AMBIGUOUS)
+00:01 +46: /home/user/PaxFide_Mv/test/architecture/dependency_direction_test.dart: hay código que auditar
+00:01 +47: /home/user/PaxFide_Mv/test/architecture/dependency_direction_test.dart: core no importa app ni features
+00:01 +48: /home/user/PaxFide_Mv/test/architecture/dependency_direction_test.dart: data no importa domain ni presentation; domain no importa presentation
+00:01 +49: /home/user/PaxFide_Mv/test/architecture/dependency_direction_test.dart: ninguna capa de features importa app/ salvo presentation
+00:01 +50: /home/user/PaxFide_Mv/test/architecture/dependency_direction_test.dart: D3: nadie decodifica el JWT (sin base64 sobre el token)
+00:02 +51: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:02 +52: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: negativa: IN_FLIGHT nunca vuelve a PENDING al arrancar
+00:02 +53: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2 no toca otros estados
+00:02 +54: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2 aplica a las entradas de todas las cuentas (sin enviarlas)
+00:02 +55: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: OutboxItem guarda el accountId que lo creó (H2)
+00:02 +56: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: T-1: 401 con JWT limpia el TokenStore y cierra la sesión
+00:02 +57: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: negativa: el 401 de seguimiento nunca modifica la sesión
+00:02 +58: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: negativa: 401 sin credencial, 403 y 404 no tocan la sesión
+00:02 +59: All tests passed!
+
+## sha256 de las dos salidas
+analyze: 6db674766a0a2f3f7bdb1de06c6974e46892ec5fc3d5fb196713531276560590
+test:    2676719ac194d166c171e8353b931477909b25345ef182a8af9cc06709d3c098
