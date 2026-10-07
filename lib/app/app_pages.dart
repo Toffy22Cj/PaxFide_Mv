@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/campaigns/presentation/campaign_public_screen.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
+import '../features/prediction/presentation/prediction_screen.dart';
 import '../features/tracking/presentation/tracking_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/physical_assets/presentation/asset_screen.dart';
@@ -30,6 +31,8 @@ Widget buildPage(BuildContext context, String location) {
       return const TrackingScreen();
     case AppRoutes.donations:
       return const MyDonationsScreen();
+    case AppRoutes.prediction:
+      return const PredictionScreen();
   }
   final params = AppRoutes.paramsOf(location) ?? const {};
   final assetRef = params['assetRef'];
