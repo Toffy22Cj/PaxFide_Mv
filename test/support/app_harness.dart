@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:paxfide_mobile/app/app_config.dart';
+import 'package:paxfide_mobile/app/app_services.dart';
+import 'package:paxfide_mobile/app/bootstrap.dart';
+import 'package:paxfide_mobile/app/navigation_restore_state.dart';
+import 'package:paxfide_mobile/app/paxfide_app.dart';
+import 'package:paxfide_mobile/core/network/api_response.dart';
+
+import 'fakes.dart';
+
+const testOrigin = 'https://paxfide.example';
+
+ApiResponse meResponse({List<String> roles = const ['EMPLOYEE'], String? org = 'org-1', String account = 'acc-1'}) =>
+    ApiResponse(
+      statusCode: 200,
+      data: {'accountId': account, 'organizationId': ?org, 'roles': roles},
+    );
+
+/// Arranca la app completa con un `ApiClient` falso y almacenamiento en memoria.
+class AppHarness {
+  AppHarness() {
+    services = buildServices(
+      config: AppConfig(apiBaseUrl: Uri.parse('http://api.test/api/v1'), publicOrigin: AppConfig.originOf(testOrigin)),
+      secureStore: secure,
+      apiClientFactory: (tokens, handler) => api..authHandler = handler,
+    );
+  }
+
+  final secure = InMemorySecureKeyValueStore();
+  final api = FakeApiClient();
+  late final AppServices services;
+
+  void saveToken(String token) => secure.values['paxfide.session.jwt'] = token;
+
+  void saveNavigation(String route, [Map<String, String> params = const {}]) =>
+      secure.values['paxfide.navigation.restore'] = NavigationRestoreState(
+        route: route,
+        allowedParams: params,
+        schemaVersion: NavigationRestoreState.currentSchemaVersion,
+      ).toJson();
+
+  /// Monta la app y arranca (restauración + sesión). [beforeSession] corre con la sesión aún sin resolver.
+  Future<void> start(WidgetTester tester, {Future<void> Function()? beforeSession}) async {
+    await tester.pumpWidget(PaxFideApp(services: services));
+    await services.router.loadRestorable();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500)); // termina la transición de páginas
+    if (beforeSession != null) await beforeSession();
+    await services.session.restore();
+    await tester.pumpAndSettle();
+  }
+
+  String? get location => services.router.currentLocation;
+
+  Future<void> login(WidgetTester tester, {List<String> roles = const ['EMPLOYEE']}) async {
+    api.enqueue(const ApiResponse(statusCode: 200, data: {'token': 'jwt-1'}));
+    api.enqueue(meResponse(roles: roles));
+    await tester.enterText(find.byKey(const Key('login.email')), 'empleado@demo');
+    await tester.enterText(find.byKey(const Key('login.password')), 'pw');
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pumpAndSettle();
+  }
+}
