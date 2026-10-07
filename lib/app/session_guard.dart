@@ -2,39 +2,27 @@ import '../features/auth/domain/session_state.dart';
 import 'app_routes.dart';
 
 /// Resultado de la evaluación del guard de sesión (ADR-043 D8).
-enum GuardDecisionType {
-  allow,
-  redirect,
-  wait,
-}
+enum GuardDecisionType { allow, redirect, wait }
 
 class GuardDecision {
   final GuardDecisionType type;
   final String? redirectRoute;
 
-  const GuardDecision.allow()
-      : type = GuardDecisionType.allow,
-        redirectRoute = null;
+  const GuardDecision.allow() : type = GuardDecisionType.allow, redirectRoute = null;
 
-  const GuardDecision.redirect(this.redirectRoute)
-      : type = GuardDecisionType.redirect;
+  const GuardDecision.redirect(this.redirectRoute) : type = GuardDecisionType.redirect;
 
-  const GuardDecision.wait()
-      : type = GuardDecisionType.wait,
-        redirectRoute = null;
+  const GuardDecision.wait() : type = GuardDecisionType.wait, redirectRoute = null;
 }
 
 /// Guard de sesión estricto (ADR-043 D8, front-fase1.md §10).
-/// 
+///
 /// Solo conoce SessionState y RouteCategory.
 /// Invariante: Nunca consulta roles, Outbox, ni peticiones HTTP.
 class SessionGuard {
   const SessionGuard();
 
-  GuardDecision evaluate({
-    required SessionState session,
-    required RouteCategory category,
-  }) {
+  GuardDecision evaluate({required SessionState session, required RouteCategory category}) {
     switch (session.status) {
       // Fila 1: UNKNOWN / RESTORING
       case SessionStatus.unknown:

@@ -82,3 +82,17 @@ Comando usado: `git grep -i -E 'escrow|finanzas|retiro|bolsa|certificad|galer|95
 | A-4 | `api-contract-matrix.md` §4b: el QR de seguimiento lleva `/tracking/{trackingCode}`. El encargo: el código nunca va en una URL | El parser acepta ese formato (puede haber QR impresos) pero **descarta** el código y abre `/tracking`; la app nunca genera QR de seguimiento. Anotado en `solicitudes-backend.md` (S-03) |
 | A-5 | El host canónico de los enlaces no está fijado (D9 R5) y el repositorio web no está accesible desde esta sesión | Host por configuración de compilación (DDM-03); anotado en `solicitudes-backend.md` |
 | A-6 | ADR-043 vive también en `Toffy22Cj/Donaciones` (solo lectura) y allí sigue PROPUESTO | Se aprobó la copia de este repo; anotado en `solicitudes-backend.md` (S-01) para que alguien con permiso sincronice |
+
+## 6. Estado tras el bloque de corrección (`fix/mobile-correccion-d2-d3-d8`)
+
+| Fila de §2 | Hecho |
+|---|---|
+| D2 sentido de dependencias | `ambiguous_reconciler.dart` sale de `core` y pasa a `features/physical_assets/domain/asset_reconciler.dart`. Nuevo test `test/architecture/dependency_direction_test.dart` que lee los `import` y falla si `core` importa features o si una capa importa a otra en sentido contrario (comprobado con dos mutaciones: ambas lo hacen fallar) |
+| `LifecycleStatus` | `DEPLETED` añadido; valor desconocido → solo lectura |
+| D4 errores | Transporte: `ConnectionNotEstablishedException` (determinista, la petición no salió), `NetworkTimeoutException` y `ConnectionInterruptedException` (ambiguas). HTTP: se conserva el código real; `ConflictException` (409) añadida |
+| D6 + H2 | `OutboxItem` lleva `accountId` y deja de conocer el dominio (`kind`, `resourceRef`, `path`) |
+| D7 | `NavigationRestoreState` valida `schemaVersion`, ruta del árbol, que no sea transitoria y que los parámetros sean exactamente los de la ruta; JSON corrupto → descartado |
+| D8 | `/tracking` sin parámetro; forma exacta de cada ruta; `/register` y `/prediction` añadidas |
+| D9 | Origen canónico obligatorio (DDM-03); solo los tres payloads; el código de seguimiento se descarta |
+| Plantilla | `main.dart` del contador y su test quitados |
+| Lints | Los 4 avisos de la línea base corregidos |

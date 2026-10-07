@@ -2,9 +2,8 @@ import 'asset_action.dart';
 import 'lifecycle_status.dart';
 
 /// Resuelve la acción disponible según el estado del ciclo de vida (ADR-043 D2, §9).
-/// 
-/// IMPORTANTE: ActionResolver NO es autorización (P7).
-/// Deriva qué acción mostrar en la interfaz; la autoridad de ejecución
+///
+/// IMPORTANTE: ActionResolver NO es autorización (P7). Deriva qué acción mostrar; la autoridad de ejecución
 /// reside exclusivamente en el backend.
 class ActionResolver {
   const ActionResolver();
@@ -18,7 +17,14 @@ class ActionResolver {
       case LifecycleStatus.received:
         return AssetAction.deliver;
       case LifecycleStatus.delivered:
+      case LifecycleStatus.depleted:
         return AssetAction.readOnly;
     }
+  }
+
+  /// Desde el valor del backend; un valor desconocido no tiene acción (solo lectura).
+  AssetAction resolveWire(String? wire) {
+    final status = LifecycleStatus.fromWire(wire);
+    return status == null ? AssetAction.readOnly : resolve(status);
   }
 }
