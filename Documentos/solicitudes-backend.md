@@ -1,0 +1,9 @@
+# Solicitudes al backend (`Toffy22Cj/Donaciones`)
+
+**Qué es:** lo que `paxfide-mobile` necesita del backend y no puede hacer por sí mismo (el backend es de solo lectura para este encargo). Cada entrada: qué, por qué y qué pantalla bloquea. Ninguna se ha implementado en el cliente con datos inventados mientras tanto.
+
+| id | Fecha UTC | Qué | Por qué | Qué bloquea en móvil | Estado |
+|---|---|---|---|---|---|
+| S-01 | 2026-10-07T22:35Z | Sincronizar `Documentos/ADR-043-frontend-movil-paxfide-mobile.md` con la copia APROBADA de este repo (estado y §0). Marcar como histórica la copia corta de `Documentos/front-fase1.md` (§1–§10) o sustituirla por la cerrada (§1–§17) | Dos copias del ADR con estados distintos (PROPUESTO / APROBADO) y dos `front-fase1.md` distintos (condición 5 de §7 del ADR) | Nada (documental) | Abierta |
+| S-02 | 2026-10-07T22:35Z | Fijar el **origen canónico** de los enlaces (esquema + host) que usan web y QR, y publicarlo en la matriz §4b | D9 R5 no lo fija; la app lo recibe por configuración de compilación (DDM-03) y rechaza cualquier otro host | Escanear y generar QR funcionan solo si se compila con `PAXFIDE_PUBLIC_BASE_URL`. Sin App Links / Universal Links verificados, los enlaces del sistema no abren la app | Abierta |
+| S-03 | 2026-10-07T22:35Z | Actualizar `api-contract-matrix.md` §4b: el QR de seguimiento ya no debe llevar el código en la URL (decisión de la web) | La matriz sigue diciendo `/tracking/{trackingCode}` | Nada: la app descarta el código si llega en un enlace y nunca genera QR de seguimiento | Abierta |
