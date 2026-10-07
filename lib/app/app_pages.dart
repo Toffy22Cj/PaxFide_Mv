@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/physical_assets/presentation/operator_screen.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
@@ -16,6 +17,8 @@ Widget buildPage(BuildContext context, String location) {
       return const RegisterScreen();
     case AppRoutes.home:
       return const HomeScreen();
+    case AppRoutes.operator:
+      return const OperatorScreen();
   }
   final category = AppRoutes.categorize(location);
   const notYet = MessageView(icon: Icons.construction, title: 'Esta pantalla todavía no está disponible.');

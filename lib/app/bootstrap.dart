@@ -1,4 +1,3 @@
-
 import '../core/network/api_client.dart';
 import '../core/network/auth_response_handler.dart';
 import '../core/network/http_api_client.dart';
@@ -12,6 +11,7 @@ import 'app_pages.dart';
 import 'app_services.dart';
 import 'navigation_store.dart';
 import 'pending_intent.dart';
+import 'qr_scanner_sheet.dart';
 import 'router/app_router_delegate.dart';
 
 /// Construye las dependencias. [apiClientFactory] permite inyectar un `ApiClient` falso en los tests.
@@ -19,6 +19,7 @@ AppServices buildServices({
   required AppConfig config,
   required SecureKeyValueStore secureStore,
   ApiClient Function(TokenStore tokenStore, AuthResponseHandler handler)? apiClientFactory,
+  QrScannerBuilder qrScannerBuilder = defaultQrScanner,
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
@@ -34,6 +35,7 @@ AppServices buildServices({
     session: session,
     authApi: authApi,
     pendingIntents: PendingIntentHolder(),
+    qrScannerBuilder: qrScannerBuilder,
   );
   services.router = AppRouterDelegate(
     session: session,

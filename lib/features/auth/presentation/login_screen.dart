@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
+import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import 'auth_layout.dart';
@@ -103,6 +104,12 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: _sending ? null : () => services.router.push(AppRoutes.tracking),
               child: const Text('Seguir una donación con su código'),
+            ),
+            TextButton.icon(
+              key: const Key('login.scan'),
+              onPressed: _sending ? null : () => scanQr(context),
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Escanear un código QR'),
             ),
           ],
         ),

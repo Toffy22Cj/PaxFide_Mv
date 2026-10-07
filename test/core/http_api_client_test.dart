@@ -112,7 +112,11 @@ void main() {
       r.response.statusCode = 401;
       await r.response.close();
     };
-    await client.get('/donations/tracking', headers: {'Authorization': 'Bearer c'}, credentialMode: CredentialMode.tracking);
+    await client.get(
+      '/donations/tracking',
+      headers: {'Authorization': 'Bearer c'},
+      credentialMode: CredentialMode.tracking,
+    );
     expect(await tokens.readToken(), 'el-jwt');
     expect(loggedOut, 0);
   });

@@ -12,7 +12,11 @@ import '../../support/fakes.dart';
 
 const me = ApiResponse(
   statusCode: 200,
-  data: {'accountId': 'acc-1', 'organizationId': 'org-1', 'roles': ['EMPLOYEE']},
+  data: {
+    'accountId': 'acc-1',
+    'organizationId': 'org-1',
+    'roles': ['EMPLOYEE'],
+  },
 );
 
 void main() {

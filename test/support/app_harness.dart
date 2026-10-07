@@ -12,10 +12,7 @@ import 'fakes.dart';
 const testOrigin = 'https://paxfide.example';
 
 ApiResponse meResponse({List<String> roles = const ['EMPLOYEE'], String? org = 'org-1', String account = 'acc-1'}) =>
-    ApiResponse(
-      statusCode: 200,
-      data: {'accountId': account, 'organizationId': ?org, 'roles': roles},
-    );
+    ApiResponse(statusCode: 200, data: {'accountId': account, 'organizationId': ?org, 'roles': roles});
 
 /// Arranca la app completa con un `ApiClient` falso y almacenamiento en memoria.
 class AppHarness {
@@ -24,10 +21,14 @@ class AppHarness {
       config: AppConfig(apiBaseUrl: Uri.parse('http://api.test/api/v1'), publicOrigin: AppConfig.originOf(testOrigin)),
       secureStore: secure,
       apiClientFactory: (tokens, handler) => api..authHandler = handler,
+      qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),
     );
   }
 
   final secure = InMemorySecureKeyValueStore();
+
+  /// Lo que "leerá" la cámara falsa en el próximo escaneo.
+  String? nextScan;
   final api = FakeApiClient();
   late final AppServices services;
 
@@ -61,4 +62,25 @@ class AppHarness {
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
   }
+}
+
+class _FakeScanner extends StatefulWidget {
+  const _FakeScanner({required this.code, required this.onCode});
+  final String? code;
+  final ValueChanged<String> onCode;
+
+  @override
+  State<_FakeScanner> createState() => _FakeScannerState();
+}
+
+class _FakeScannerState extends State<_FakeScanner> {
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.code;
+    if (code != null) WidgetsBinding.instance.addPostFrameCallback((_) => widget.onCode(code));
+  }
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(color: Colors.black);
 }

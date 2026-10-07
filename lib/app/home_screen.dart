@@ -4,6 +4,7 @@ import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 import 'app_shell.dart';
+import 'qr_scanner_sheet.dart';
 
 /// `/home`. Con `/me` disponible, las entradas se representan según la cuenta (sustituye la regla provisional (i)
 /// de §12, ver DDM-09). Sin cifras ni listas: no hay datos que mostrar aquí.
@@ -30,6 +31,12 @@ class HomeScreen extends StatelessWidget {
                 title: 'Mis donaciones',
                 subtitle: 'Las donaciones hechas con esta cuenta',
                 onTap: () => services.router.go(AppRoutes.donations),
+              ),
+              _Entry(
+                icon: Icons.qr_code_scanner,
+                title: 'Escanear un código QR',
+                subtitle: 'Convocatoria, seguimiento o activo',
+                onTap: () => scanQr(context),
               ),
               _Entry(
                 icon: Icons.search,
