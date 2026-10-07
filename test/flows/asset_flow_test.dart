@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
@@ -195,5 +196,24 @@ void main() {
     expect(await consumed, isTrue);
     expect(h.location, '/c/PUB1');
     expect(posts(), isEmpty);
+  });
+
+  testWidgets('QR del activo: misma URL que la web (origen + /assets/{assetRef})', (tester) async {
+    await openAsset(tester);
+    await tester.tap(find.byKey(const Key('asset.qr')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('qr.image')), findsOneWidget);
+    expect(find.text('$testOrigin/assets/A-1'), findsOneWidget);
+    expect(tester.widget(find.byKey(const Key('qr.image'))), isA<QrImageView>());
+  });
+
+  testWidgets('sin acceso al activo (403) no se ofrece su QR', (tester) async {
+    h = AppHarness();
+    h.api.routes['GET /physical-assets/A-1'] = (_) => const ApiResponse(statusCode: 403);
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse()));
+    h.services.router.push('/assets/A-1');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('asset.qr')), findsNothing);
   });
 }
