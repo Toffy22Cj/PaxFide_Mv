@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/physical_assets/presentation/asset_screen.dart';
 import '../features/physical_assets/presentation/operator_screen.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
@@ -20,6 +21,9 @@ Widget buildPage(BuildContext context, String location) {
     case AppRoutes.operator:
       return const OperatorScreen();
   }
+  final params = AppRoutes.paramsOf(location) ?? const {};
+  final assetRef = params['assetRef'];
+  if (assetRef != null) return AssetScreen(key: ValueKey(assetRef), assetRef: assetRef);
   final category = AppRoutes.categorize(location);
   const notYet = MessageView(icon: Icons.construction, title: 'Esta pantalla todavía no está disponible.');
   if (category == RouteCategory.authenticated) {
