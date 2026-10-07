@@ -62,6 +62,7 @@ class AppHarness {
   /// Monta la app y arranca (restauración + sesión). [beforeSession] corre con la sesión aún sin resolver.
   Future<void> start(WidgetTester tester, {Future<void> Function()? beforeSession}) async {
     await tester.pumpWidget(PaxFideApp(services: services));
+    await runOutboxRecovery(services);
     await services.router.loadRestorable();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500)); // termina la transición de páginas

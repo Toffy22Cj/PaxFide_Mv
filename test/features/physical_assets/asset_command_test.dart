@@ -6,7 +6,7 @@ import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_action.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_command.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/command_id.dart';
-import 'package:paxfide_mobile/features/physical_assets/domain/command_outcome.dart';
+import 'package:paxfide_mobile/core/offline/command_outcome.dart';
 
 void main() {
   group('Command-Id', () {

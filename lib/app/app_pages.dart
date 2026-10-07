@@ -4,6 +4,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/physical_assets/presentation/asset_screen.dart';
 import '../features/physical_assets/presentation/operator_screen.dart';
+import '../features/physical_assets/presentation/pending_operations_screen.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
@@ -20,6 +21,8 @@ Widget buildPage(BuildContext context, String location) {
       return const HomeScreen();
     case AppRoutes.operator:
       return const OperatorScreen();
+    case AppRoutes.operatorPending:
+      return const PendingOperationsScreen();
   }
   final params = AppRoutes.paramsOf(location) ?? const {};
   final assetRef = params['assetRef'];

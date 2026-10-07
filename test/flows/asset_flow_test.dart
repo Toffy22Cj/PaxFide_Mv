@@ -95,8 +95,10 @@ void main() {
     expect(post.body, {'carrierRef': 'transportista-1'});
     expect(post.credentialMode, CredentialMode.jwt);
     expect(post.headers['Command-Id'], matches(RegExp(r'^[0-9a-f-]{36}$')));
-    expect(find.text('Despachar: confirmada'), findsOneWidget);
     expect(find.text('Despachado'), findsOneWidget);
+    // ACKNOWLEDGED es terminal: se retira del Outbox.
+    expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+    expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
   });
 
   testWidgets('timeout → "no pudimos confirmar"; Verificar estado primero; nunca reintenta solo', (tester) async {
@@ -104,9 +106,8 @@ void main() {
     h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const NetworkTimeoutException();
     await fillDispatch(tester);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('asset.ambiguous')), findsOneWidget);
-    expect(find.text('Despachar: no pudimos confirmar la operación'), findsOneWidget);
-    expect(find.byKey(const Key('asset.verify')), findsOneWidget);
+    expect(find.textContaining('No pudimos confirmar la operación'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Verificar estado'), findsOneWidget);
     // Mientras está AMBIGUOUS no se ofrece la acción original.
     expect(find.byKey(const Key('asset.action')), findsNothing);
 
@@ -114,9 +115,11 @@ void main() {
     expect(posts().length, 1, reason: 'AMBIGUOUS nunca se reintenta automáticamente');
 
     status = 'DISPATCHED';
-    await tap(tester, find.byKey(const Key('asset.verify')));
+    await tap(tester, find.widgetWithText(FilledButton, 'Verificar estado'));
     await tester.pumpAndSettle();
-    expect(find.text('Despachar: confirmada'), findsOneWidget);
+    expect(find.textContaining('No pudimos confirmar'), findsNothing);
+    expect(find.text('Despachado'), findsOneWidget);
+    expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
     expect(posts().length, 1, reason: 'verificar es un GET, no un reenvío');
   });
 
@@ -125,9 +128,9 @@ void main() {
     h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const NetworkTimeoutException();
     await fillDispatch(tester);
     await tester.pumpAndSettle();
-    await tap(tester, find.byKey(const Key('asset.verify')));
+    await tap(tester, find.widgetWithText(FilledButton, 'Verificar estado'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('asset.ambiguous')), findsOneWidget);
+    expect(find.textContaining('No pudimos confirmar'), findsOneWidget);
   });
 
   testWidgets('reintento manual de AMBIGUOUS → mismo Command-Id', (tester) async {
@@ -137,7 +140,7 @@ void main() {
         n++ == 0 ? const NetworkTimeoutException() : const ApiResponse(statusCode: 200, data: {});
     await fillDispatch(tester);
     await tester.pumpAndSettle();
-    await tap(tester, find.byKey(const Key('asset.retrySame')));
+    await tap(tester, find.widgetWithText(TextButton, 'Reintentar'));
     await tester.pumpAndSettle();
     final ids = posts().map((c) => c.headers['Command-Id']).toList();
     expect(ids.length, 2);
@@ -149,7 +152,7 @@ void main() {
     h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const ApiResponse(statusCode: 409);
     await fillDispatch(tester);
     await tester.pumpAndSettle();
-    expect(find.text('Despachar: el servidor la rechazó'), findsOneWidget);
+    expect(find.textContaining('El servidor la rechazó'), findsOneWidget);
     expect(find.text('Reintentar'), findsNothing, reason: 'FAILED no se reintenta con el mismo Command-Id');
     await tap(tester, find.text('Nueva operación'));
     await tester.pumpAndSettle();
