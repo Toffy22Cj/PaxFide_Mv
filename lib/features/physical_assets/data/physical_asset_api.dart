@@ -4,23 +4,26 @@ import '../../../core/network/api_response.dart';
 import '../../../core/network/credential_mode.dart';
 
 /// `GET /physical-assets/{assetRef}` (matriz §4b). Sin `donorRef`, fondos ni genealogía: no vienen.
+///
+/// Solo `assetRef` y `lifecycleStatus` son obligatorios en el cliente: el backend omite los nulos y, por ejemplo,
+/// un activo `DISPATCHED` no trae `currentLocation` (comprobado contra el backend real; S-05).
 class PhysicalAssetDto {
   const PhysicalAssetDto({
     required this.assetRef,
     required this.lifecycleStatus,
-    required this.currentCustodianRef,
-    required this.currentLocation,
-    required this.quantity,
-    required this.unitOfMeasure,
+    this.currentCustodianRef,
+    this.currentLocation,
+    this.quantity,
+    this.unitOfMeasure,
     this.campaignRef,
   });
 
   final String assetRef;
   final String lifecycleStatus;
-  final String currentCustodianRef;
-  final String currentLocation;
-  final String quantity;
-  final String unitOfMeasure;
+  final String? currentCustodianRef;
+  final String? currentLocation;
+  final String? quantity;
+  final String? unitOfMeasure;
   final String? campaignRef;
 
   static PhysicalAssetDto fromJson(Map<String, dynamic> j) {
@@ -30,14 +33,16 @@ class PhysicalAssetDto {
       return v;
     }
 
+    String? opt(String k) => j[k] is String ? j[k] as String : null;
+
     return PhysicalAssetDto(
       assetRef: req('assetRef'),
       lifecycleStatus: req('lifecycleStatus'),
-      currentCustodianRef: req('currentCustodianRef'),
-      currentLocation: req('currentLocation'),
-      quantity: req('quantity'),
-      unitOfMeasure: req('unitOfMeasure'),
-      campaignRef: j['campaignRef'] is String ? j['campaignRef'] as String : null,
+      currentCustodianRef: opt('currentCustodianRef'),
+      currentLocation: opt('currentLocation'),
+      quantity: opt('quantity'),
+      unitOfMeasure: opt('unitOfMeasure'),
+      campaignRef: opt('campaignRef'),
     );
   }
 }
