@@ -39,6 +39,22 @@ class AppHarness {
           },
         );
       }
+      if (call.method == 'GET' && call.path.startsWith('/public/campaigns/')) {
+        if (call.path.endsWith('/narrative')) {
+          return const ApiResponse(statusCode: 202, data: {'status': 'PENDING'});
+        }
+        return const ApiResponse(
+          statusCode: 200,
+          data: {
+            'organizationName': 'Org',
+            'title': 'Convocatoria',
+            'status': 'OPEN',
+            'startDate': '2026-10-01T00:00:00Z',
+            'endDate': '2026-12-01T00:00:00Z',
+            'acceptedDonationTypes': ['MONETARY'],
+          },
+        );
+      }
       return null;
     };
   }
