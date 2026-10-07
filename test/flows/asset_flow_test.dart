@@ -216,4 +216,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('asset.qr')), findsNothing);
   });
+
+  testWidgets('DISPATCHED sin currentLocation (forma real del backend) → se muestra y ofrece Recibir', (tester) async {
+    h = AppHarness();
+    h.api.routes['GET /physical-assets/A-1'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'assetRef': 'A-1',
+        'lifecycleStatus': 'DISPATCHED',
+        'currentCustodianRef': 'transportista-1',
+        'quantity': '1.0000',
+        'unitOfMeasure': 'UNITS',
+      },
+    );
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse()));
+    h.services.router.push('/assets/A-1');
+    await tester.pumpAndSettle();
+    expect(find.text('Despachado'), findsOneWidget);
+    expect(find.text('Sin ubicación registrada'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
+  });
 }
