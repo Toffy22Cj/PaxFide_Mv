@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_routes.dart';
+import '../../../app/pending_intent.dart';
+import '../../../app/qr_scanner_sheet.dart';
 import '../data/login_gateway.dart';
 import '../data/session_controller.dart';
 
@@ -21,10 +24,14 @@ class LoginScreen extends StatefulWidget {
   final LoginGateway loginGateway;
   final SessionController session;
 
+  /// La intención de un deep link desaparece si el login falla (D9 R2, DDM-12).
+  final PendingIntentHolder? pendingIntents;
+
   const LoginScreen({
     super.key,
     required this.loginGateway,
     required this.session,
+    this.pendingIntents,
   });
 
   @override
@@ -62,17 +69,20 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
     } catch (_) {
+      widget.pendingIntents?.clear();
       if (mounted) setState(() => _state = LoginUiState.networkError);
       return;
     }
 
     if (!mounted) return;
+    if (result is! LoginSucceeded) widget.pendingIntents?.clear();
 
     switch (result) {
       case LoginSucceeded(:final token):
         final established = await widget.session.establish(token);
         if (!mounted) return;
         // Con éxito el guard sustituye esta pantalla por /home.
+        if (established != EstablishResult.authenticated) widget.pendingIntents?.clear();
         setState(() => _state = established == EstablishResult.authenticated
             ? LoginUiState.initial
             : LoginUiState.invalidCredentials);
@@ -285,6 +295,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   : const Text('Entrar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
             ),
           ),
+          const SizedBox(height: 18),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              TextButton(
+                key: const Key('login-register'),
+                onPressed: () => Navigator.of(context).pushNamed(AppRoutes.register),
+                child: const Text('Crear cuenta'),
+              ),
+              TextButton(
+                key: const Key('login-tracking'),
+                onPressed: () => Navigator.of(context).pushNamed(AppRoutes.tracking),
+                child: const Text('Consultar seguimiento'),
+              ),
+              TextButton.icon(
+                key: const Key('login-scan'),
+                onPressed: () => scanQr(context),
+                icon: const Icon(Icons.qr_code_scanner, size: 18),
+                label: const Text('Escanear QR'),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -302,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       LoginUiState.unavailable => (
           'login-unavailable',
-          'El inicio de sesión no está disponible en esta versión de la app.',
+          'El inicio de sesión no está disponible: la app no tiene configurado el servidor.',
         ),
       LoginUiState.initial || LoginUiState.loading => ('', ''),
     };

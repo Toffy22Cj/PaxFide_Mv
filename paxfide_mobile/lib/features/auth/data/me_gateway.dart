@@ -1,5 +1,4 @@
 import '../domain/principal.dart';
-import 'login_gateway.dart';
 
 /// Resultado de consultar `GET /api/v1/me`.
 ///
@@ -25,7 +24,7 @@ class MeNetworkError extends MeResult {
   const MeNetworkError();
 }
 
-/// No hay cliente HTTP de `/me` en esta versión.
+/// La app no puede consultar `/me` (compilada sin servidor configurado).
 class MeUnavailable extends MeResult {
   const MeUnavailable();
 }
@@ -35,7 +34,7 @@ abstract class MeGateway {
   Future<MeResult> fetch(String token);
 }
 
-/// Implementación por defecto: sin cliente HTTP, no se simula nada.
+/// Sin servidor configurado: no se simula nada.
 class UnavailableMeGateway implements MeGateway {
   const UnavailableMeGateway();
 
@@ -74,5 +73,3 @@ class DevFakeMeGateway implements MeGateway {
   Future<MeResult> fetch(String token) async => MeSucceeded(principal);
 }
 
-MeGateway defaultMeGateway() =>
-    kFakeAuthEnabled ? DevFakeMeGateway.fromEnvironment() : const UnavailableMeGateway();

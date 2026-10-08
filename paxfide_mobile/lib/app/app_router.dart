@@ -4,6 +4,7 @@ import '../features/auth/data/session_controller.dart';
 import '../features/auth/domain/session_state.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
+import 'pending_intent.dart';
 import 'session_guard.dart';
 
 /// Construye la pantalla de una ruta aprobada a partir de su match.
@@ -20,15 +21,19 @@ class AppRouter {
   final SessionController session;
   final SessionGuard guard;
 
+  /// Intención de un deep link autenticado abierto sin sesión (D9 R2).
+  final PendingIntentHolder pendingIntents;
+
   /// Pantallas implementadas, por patrón del árbol (p. ej. `/assets/:assetRef`).
   /// Una ruta aprobada sin entrada aquí muestra [UnavailableScreenView].
   final Map<String, ScreenBuilder> screens;
 
-  const AppRouter({
+  AppRouter({
     required this.session,
     required this.screens,
+    PendingIntentHolder? pendingIntents,
     this.guard = const SessionGuard(),
-  });
+  }) : pendingIntents = pendingIntents ?? PendingIntentHolder();
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? AppRoutes.home;
@@ -84,7 +89,15 @@ class _RouteGateState extends State<RouteGate> {
             _scheduledRedirect = null;
             return const SessionWaitingView();
           case GuardDecisionType.redirect:
-            _scheduleRedirect(context, decision.redirectRoute ?? AppRoutes.home);
+            var target = decision.redirectRoute ?? AppRoutes.home;
+            // R2: tras un login correcto se consume una única vez la
+            // intención del deep link que llevó al login.
+            if (target == AppRoutes.home &&
+                widget.match.category == RouteCategory.authTransitory &&
+                _scheduledRedirect == null) {
+              target = widget.router.pendingIntents.take()?.route ?? target;
+            }
+            _scheduleRedirect(context, target);
             return const SessionWaitingView();
         }
       },

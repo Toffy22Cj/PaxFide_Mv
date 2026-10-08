@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
+import '../../../app/qr_scanner_sheet.dart';
 import '../../auth/data/session_controller.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_state.dart';
+import '../../campaigns/presentation/campaign_list_view.dart';
+import '../../donations/presentation/my_donations_view.dart';
 
 /// Secciones de `/home`. Cuáles se muestran depende del [Principal] de
 /// `GET /me` (ADR-043 §0, A3); mostrarlas no es autorización (P7).
@@ -32,9 +35,9 @@ enum HomeSection {
 
 /// Pantalla de `/home` (ADR-043 D8, D10).
 ///
-/// Sin cliente HTTP en esta versión: cada sección explica qué mostrará y
-/// declara que aún no está disponible. No muestra datos inventados ni botones
-/// que aparenten acciones.
+/// Convocatorias y donaciones se cargan del backend dentro de la propia
+/// sección; seguimiento, operaciones y predicción abren su ruta del árbol.
+/// No muestra datos inventados.
 class HomeScreen extends StatefulWidget {
   final SessionController session;
 
@@ -101,7 +104,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final colors = _HomeColors(dark: _isDarkMode);
 
-    return Scaffold(
+    return Theme(
+      data: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: _accent,
+          brightness: _isDarkMode ? Brightness.dark : Brightness.light,
+          surface: colors.surface,
+        ),
+        cardTheme: CardThemeData(
+          color: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: colors.border),
+          ),
+        ),
+        useMaterial3: true,
+      ),
+      child: Scaffold(
       backgroundColor: colors.bg,
       body: Row(
         children: [
@@ -162,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar:
           isDesktop ? null : _buildMobileBottomBar(colors, sections, section),
+      ),
     );
   }
 
@@ -178,10 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: 'Convocatorias',
           subtitle: 'Convocatorias abiertas de organizaciones verificadas: '
               'meta, lo recaudado y los tipos de donación que aceptan.',
-          body: _buildUnavailableCard(
-            c,
-            'El listado de convocatorias no está disponible en esta versión de la app.',
-          ),
+          body: const CampaignListView(),
         );
       case HomeSection.donations:
         return _buildSection(
@@ -190,14 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: 'Mis donaciones',
           subtitle: 'Tus donaciones con su convocatoria, importe, estado y, '
               'cuando los fondos se aplican, su código de seguimiento.',
-          body: _buildEntryCard(
-            c,
-            key: 'home-entry-donations',
-            icon: Icons.receipt_long_outlined,
-            title: 'Ver mis donaciones',
-            description: 'Historial de las donaciones hechas con esta cuenta.',
-            route: AppRoutes.donations,
-          ),
+          body: const MyDonationsView(),
         );
       case HomeSection.tracking:
         return _buildSection(
@@ -255,9 +266,13 @@ class _HomeScreenState extends State<HomeScreen> {
           subtitle: 'Estimación de la probabilidad de que una convocatoria '
               'alcance su meta y del porcentaje final esperado. Es una '
               'estimación, no una promesa de recaudo.',
-          body: _buildUnavailableCard(
+          body: _buildEntryCard(
             c,
-            'La predicción no está disponible en esta versión de la app.',
+            key: 'home-entry-prediction',
+            icon: Icons.insights_outlined,
+            title: 'Consultar una predicción',
+            description: 'Elige una convocatoria de tu organización.',
+            route: AppRoutes.prediction,
           ),
         );
     }
@@ -283,8 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Acceso a una ruta del árbol aprobado. Si la pantalla aún no existe, el
-  /// router muestra "no disponible en esta versión".
+  /// Acceso a una ruta del árbol aprobado.
   Widget _buildEntryCard(
     _HomeColors c, {
     required String key,
@@ -331,26 +345,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildUnavailableCard(_HomeColors c, String message) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.border),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline_rounded, size: 20, color: c.textMuted),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(message, style: TextStyle(fontSize: 13, color: c.textMuted, height: 1.4)),
-          ),
-        ],
       ),
     );
   }
@@ -418,6 +412,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           Row(
             children: [
+              IconButton(
+                key: const Key('home-scan'),
+                tooltip: 'Escanear QR',
+                icon: Icon(Icons.qr_code_scanner, color: c.textMuted, size: 20),
+                onPressed: () => scanQr(context),
+              ),
               IconButton(
                 tooltip: _isDarkMode ? 'Modo claro' : 'Modo oscuro',
                 icon: Icon(

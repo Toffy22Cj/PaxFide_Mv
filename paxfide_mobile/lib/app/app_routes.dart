@@ -1,7 +1,7 @@
 /// Categorías de rutas formalizadas en ADR-043 D8 y front-fase1.md §10.
 enum RouteCategory {
   public,
-  authTransitory, // /login
+  authTransitory, // /login, /register
   authenticated,
   notApproved, // Rutas desconocidas, parámetros inválidos o fuera de v1 (/campaigns)
 }
@@ -48,8 +48,11 @@ class AppRoutes {
   /// aprobada.
   static const String tracking = '/tracking';
 
-  // Ruta de Autenticación (Transitoria)
+  // Rutas de Autenticación (Transitorias, nunca restaurables)
   static const String login = '/login';
+
+  /// Registro de cuenta (ADR-043 §0, A4: `POST /auth/register` ya existe).
+  static const String register = '/register';
 
   // Rutas Autenticadas Aprobadas
   static const String home = '/home';
@@ -57,6 +60,11 @@ class AppRoutes {
   static const String operator = '/operator';
   static const String operatorPending = '/operator/pending';
   static const String asset = '/assets/:assetRef';
+
+  /// Predicción: única excepción de alcance para `ADMINISTRATOR` y
+  /// `REPRESENTATIVE` (ADR-043 §0, A3). El guard no lee roles: la pantalla
+  /// muestra el 403 del backend como estado.
+  static const String prediction = '/prediction';
 
   // Fuera de v1 (diferida por secuenciación contractual). No pertenece al
   // árbol: se clasifica como No aprobada.
@@ -73,6 +81,9 @@ class AppRoutes {
 
   /// Construye el path concreto de un activo.
   static String assetPath(String assetRef) => '/assets/$assetRef';
+
+  /// Construye el path concreto de una convocatoria pública.
+  static String campaignPath(String publicCode) => '/c/$publicCode';
 
   /// Clasifica un path (sin esquema ni host) contra el árbol aprobado.
   static RouteMatch match(String path) {
@@ -125,6 +136,10 @@ class AppRoutes {
           return fixed(tracking, RouteCategory.public);
         case 'login':
           return fixed(login, RouteCategory.authTransitory);
+        case 'register':
+          return fixed(register, RouteCategory.authTransitory);
+        case 'prediction':
+          return fixed(prediction, RouteCategory.authenticated);
         case 'home':
           return fixed(home, RouteCategory.authenticated);
         case 'donations':

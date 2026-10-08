@@ -1,8 +1,10 @@
 import 'package:paxfide_mobile/core/network/api_client.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/storage/outbox_store.dart';
+import 'package:paxfide_mobile/core/storage/secure_key_value_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
@@ -77,22 +79,44 @@ class FakeOutboxStore implements OutboxStore {
   }
 }
 
-/// Petición registrada por [FakeApiClient].
-class RecordedRequest {
-  final String method;
-  final String path;
-  final CredentialMode credentialMode;
-  const RecordedRequest(this.method, this.path, this.credentialMode);
-}
-
-/// ApiClient falso: devuelve la respuesta configurada o lanza el error
-/// configurado, y registra cada petición.
+/// `ApiClient` falso: devuelve respuestas o lanza excepciones programadas y
+/// registra cada llamada.
 class FakeApiClient implements ApiClient {
-  ApiResponse response;
-  Object? error;
-  final List<RecordedRequest> requests = [];
+  FakeApiClient({this.authHandler});
 
-  FakeApiClient({this.response = const ApiResponse(statusCode: 200), this.error});
+  /// Si se da, cada respuesta pasa por él, como en el cliente real (T-1).
+  AuthResponseHandler? authHandler;
+  final List<RecordedCall> calls = [];
+  final List<Object> _queue = [];
+
+  /// Respuestas por "MÉTODO ruta" (se usan si la cola está vacía).
+  final Map<String, Object Function(RecordedCall call)> routes = {};
+
+  /// Último recurso: si devuelve null, la llamada sin respuesta programada falla.
+  Object? Function(RecordedCall call)? fallback;
+
+  /// Programa la siguiente respuesta ([ApiResponse]) o excepción.
+  void enqueue(Object responseOrError) => _queue.add(responseOrError);
+
+  Future<ApiResponse> _next(RecordedCall call) async {
+    calls.add(call);
+    if (call.beforeSend != null) await call.beforeSend!();
+    final Object r;
+    if (_queue.isNotEmpty) {
+      r = _queue.removeAt(0);
+    } else if (routes.containsKey('${call.method} ${call.path}')) {
+      r = routes['${call.method} ${call.path}']!(call);
+    } else if (fallback?.call(call) case final Object f) {
+      r = f;
+    } else {
+      throw StateError('FakeApiClient: sin respuesta programada para ${call.method} ${call.path}');
+    }
+    if (r is ApiResponse) {
+      await authHandler?.handleResponse(statusCode: r.statusCode, credentialMode: call.credentialMode);
+      return r;
+    }
+    throw r;
+  }
 
   @override
   Future<ApiResponse> get(
@@ -100,11 +124,8 @@ class FakeApiClient implements ApiClient {
     Map<String, String>? queryParams,
     Map<String, String>? headers,
     required CredentialMode credentialMode,
-  }) async {
-    requests.add(RecordedRequest('GET', path, credentialMode));
-    if (error != null) throw error!;
-    return response;
-  }
+  }) =>
+      _next(RecordedCall('GET', path, headers ?? const {}, null, credentialMode, null, queryParams));
 
   @override
   Future<ApiResponse> post(
@@ -112,11 +133,34 @@ class FakeApiClient implements ApiClient {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
     required CredentialMode credentialMode,
-  }) async {
-    requests.add(RecordedRequest('POST', path, credentialMode));
-    if (error != null) throw error!;
-    return response;
-  }
+    Future<void> Function()? beforeSend,
+  }) =>
+      _next(RecordedCall('POST', path, headers ?? const {}, body, credentialMode, beforeSend));
+}
+
+class RecordedCall {
+  RecordedCall(this.method, this.path, this.headers, this.body, this.credentialMode, this.beforeSend,
+      [this.queryParams]);
+  final String method;
+  final String path;
+  final Map<String, String> headers;
+  final Map<String, dynamic>? body;
+  final CredentialMode credentialMode;
+  final Future<void> Function()? beforeSend;
+  final Map<String, String>? queryParams;
+}
+
+class InMemorySecureKeyValueStore implements SecureKeyValueStore {
+  final Map<String, String> values = {};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
 }
 
 /// LoginGateway falso con resultado configurable.
@@ -148,6 +192,9 @@ class FakeMeGateway implements MeGateway {
     return result;
   }
 }
+
+ApiResponse ok(Map<String, dynamic> data, [int status = 200]) => ApiResponse(statusCode: status, data: data);
+ApiResponse status(int code) => ApiResponse(statusCode: code);
 
 const donor = Principal(accountId: 'acc-donor');
 const fieldOperator = Principal(

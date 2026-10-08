@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ADR-043 D4: la app habla con la API por HTTP. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="paxfide_mobile"
+        android:label="PaxFide"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -20,6 +22,11 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- DDM-10: sin App Links verificados, los enlaces solo entran por el
+                 escáner interno y el único DeepLinkParser (ADR-043 D9 R1, R5). -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

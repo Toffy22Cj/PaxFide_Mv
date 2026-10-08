@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paxfide_mobile/app/paxfide_app.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/session_controller.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/shared/widgets/state_views.dart';
 
+import '../support/app_harness.dart';
 import '../support/fakes.dart';
 
 /// Flujos de navegación con dobles (nivel 3 de la estrategia de tests de
@@ -21,34 +21,9 @@ void main() {
     bool restore = true,
     Size size = const Size(400, 800),
   }) async {
-    tester.view.physicalSize = size;
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    final session = SessionController(
-      tokenStore: FakeTokenStore(token: token),
-      meGateway: FakeMeGateway(meResult),
-    );
-    await tester.pumpWidget(PaxFideApp(
-      session: session,
-      loginGateway: FakeLoginGateway(loginResult),
-      initialRoute: initialRoute,
-    ));
-    if (restore) {
-      await session.restore();
-      await tester.pumpAndSettle();
-    } else {
-      // La UI de espera anima indefinidamente: no se puede "asentar".
-      await tester.pump();
-    }
-    return session;
-  }
-
-  Future<void> fillLogin(WidgetTester tester) async {
-    await tester.enterText(find.byKey(const Key('login-email')), 'ana@correo.co');
-    await tester.enterText(find.byKey(const Key('login-password')), 'secreta');
-    await tester.tap(find.byKey(const Key('login-submit')));
-    await tester.pumpAndSettle();
+    final h = Harness(token: token, loginResult: loginResult, meResult: meResult);
+    await h.pump(tester, initialRoute: initialRoute, restore: restore, size: size);
+    return h.session;
   }
 
   group('sesión y navegación', () {
@@ -59,15 +34,9 @@ void main() {
     });
 
     testWidgets('NEGATIVA: una ruta pública no espera sesión durante UNKNOWN', (tester) async {
-      await pumpApp(tester, restore: false, initialRoute: '/c/PUB-1');
-      expect(find.byType(SessionWaitingView), findsNothing);
-      expect(find.byKey(const Key('unavailable-screen')), findsOneWidget);
-    });
-
-    testWidgets('/tracking es pública y no espera sesión', (tester) async {
       await pumpApp(tester, restore: false, initialRoute: '/tracking');
       expect(find.byType(SessionWaitingView), findsNothing);
-      expect(find.byKey(const Key('unavailable-screen')), findsOneWidget);
+      expect(find.byKey(const Key('tracking-code')), findsOneWidget);
     });
 
     testWidgets('sin token: /home → /login (Decisión B)', (tester) async {
@@ -94,7 +63,7 @@ void main() {
 
       expect(session.value, const SessionState.loggedOut());
       expect(find.byKey(const Key('login-submit')), findsOneWidget);
-      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
       expect(navigator.canPop(), isFalse);
     });
 
@@ -196,17 +165,11 @@ void main() {
     });
 
     testWidgets('reintentar el perfil muestra las secciones de su rol', (tester) async {
-      final me = FakeMeGateway(const MeNetworkError());
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-      final session = SessionController(tokenStore: FakeTokenStore(token: 't'), meGateway: me);
-      await tester.pumpWidget(PaxFideApp(session: session, loginGateway: FakeLoginGateway(const LoginUnavailable())));
-      await session.restore();
-      await tester.pumpAndSettle();
+      final h = Harness(token: 't', meResult: const MeNetworkError());
+      await h.pump(tester);
       expect(find.byKey(const Key('home-nav-operator')), findsNothing);
 
-      me.result = const MeSucceeded(fieldOperator);
+      h.meGateway.result = const MeSucceeded(fieldOperator);
       await tester.tap(find.byKey(const Key('home-profile-retry')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('home-profile-unavailable')), findsNothing);
@@ -225,7 +188,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('home-entry-operator-pending')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('unavailable-screen')), findsOneWidget);
+      expect(find.byKey(const Key('pending-empty')), findsOneWidget);
+      expect(currentRoute(tester), '/operator/pending');
     });
 
     testWidgets('seguimiento abre /tracking sin código', (tester) async {
@@ -234,14 +198,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('home-entry-tracking')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('unavailable-screen')), findsOneWidget);
-      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-      String? current;
-      navigator.popUntil((route) {
-        current ??= route.settings.name;
-        return true;
-      });
-      expect(current, '/tracking');
+      expect(find.byKey(const Key('tracking-code')), findsOneWidget);
+      expect(currentRoute(tester), '/tracking');
     });
 
     testWidgets('NEGATIVA: la home no muestra el dominio inventado ni datos escritos a mano', (tester) async {

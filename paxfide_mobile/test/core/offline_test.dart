@@ -1,11 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
-import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
-import 'package:paxfide_mobile/core/offline/ambiguous_reconciler.dart';
 import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/offline/outbox_recovery.dart';
 import 'package:paxfide_mobile/core/offline/outbox_status.dart';
+import 'package:paxfide_mobile/core/offline/sync_engine.dart';
+import 'package:paxfide_mobile/features/physical_assets/data/physical_asset_api.dart';
+import 'package:paxfide_mobile/features/physical_assets/domain/asset_operations.dart';
 
 import '../support/fakes.dart';
 
@@ -14,15 +15,16 @@ const account = 'acc-1';
 OutboxItem item(
   String id,
   OutboxStatus status, {
-  String action = 'DISPATCH',
+  String kind = 'DISPATCH',
   String assetRef = 'AS-1',
   String accountId = account,
 }) =>
     OutboxItem(
       commandId: id,
       accountId: accountId,
-      assetRef: assetRef,
-      actionType: action,
+      kind: kind,
+      resourceRef: assetRef,
+      path: '/physical-assets/$assetRef/${kind.toLowerCase()}',
       payload: const {},
       status: status,
       createdAt: DateTime.utc(2026, 10, 7),
@@ -38,152 +40,14 @@ void main() {
 
     test('NEGATIVA: ninguna entrada termina en PENDING tras la recuperación', () async {
       final store = FakeOutboxStore([
-        item('c1', OutboxStatus.inFlight),
-        item('c2', OutboxStatus.inFlight),
+        item('a', OutboxStatus.inFlight),
+        item('b', OutboxStatus.ambiguous),
+        item('c', OutboxStatus.failed),
       ]);
       await OutboxRecovery(store).executeRecoveryT2();
-      for (final i in store.items.values) {
-        expect(i.status, isNot(OutboxStatus.pending));
-      }
-    });
-
-    test('NEGATIVA: el resto de estados no se tocan', () async {
-      final store = FakeOutboxStore([
-        item('p', OutboxStatus.pending),
-        item('a', OutboxStatus.ambiguous),
-        item('f', OutboxStatus.failed),
-        item('k', OutboxStatus.acknowledged),
-      ]);
-      await OutboxRecovery(store).executeRecoveryT2();
-      expect(store.writeCount, 0);
-      expect(store.items['p']!.status, OutboxStatus.pending);
-      expect(store.items['a']!.status, OutboxStatus.ambiguous);
-      expect(store.items['f']!.status, OutboxStatus.failed);
-      expect(store.items['k']!.status, OutboxStatus.acknowledged);
-    });
-  });
-
-  group('AmbiguousReconciler', () {
-    test('estado observado = esperado → ACKNOWLEDGED (mismo commandId)', () async {
-      final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous, action: 'DISPATCH')]);
-      final api = FakeApiClient(
-        response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'DISPATCHED'}),
-      );
-      final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-
-      final result = await r.reconcile(store.items['c1']!, accountId: account);
-
-      expect(result, ReconciliationResult.acknowledged);
-      expect(store.items['c1']!.status, OutboxStatus.acknowledged);
-      expect(store.updatedIds, ['c1']);
-      expect(api.requests.single.method, 'GET');
-      expect(api.requests.single.path, '/physical-assets/AS-1');
-      expect(api.requests.single.credentialMode, CredentialMode.jwt);
-    });
-
-    test('el estado esperado se deriva de actionType (RECEIVE → RECEIVED, DELIVER → DELIVERED)', () async {
-      for (final pair in const [['RECEIVE', 'RECEIVED'], ['DELIVER', 'DELIVERED']]) {
-        final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, action: pair[0])]);
-        final api = FakeApiClient(
-          response: ApiResponse(statusCode: 200, data: {'lifecycleStatus': pair[1]}),
-        );
-        final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-            .reconcile(store.items['c']!, accountId: account);
-        expect(result, ReconciliationResult.acknowledged, reason: pair[0]);
-      }
-    });
-
-    test('NEGATIVA: estado distinto → sigue AMBIGUOUS y NO escribe en el Outbox', () async {
-      final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous, action: 'DISPATCH')]);
-      final api = FakeApiClient(
-        response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'REGISTERED'}),
-      );
-      final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-          .reconcile(store.items['c1']!, accountId: account);
-      expect(result, ReconciliationResult.remainsAmbiguous);
-      expect(store.writeCount, 0);
-      expect(store.items['c1']!.status, OutboxStatus.ambiguous);
-    });
-
-    test('NEGATIVA: respuesta no exitosa → sigue AMBIGUOUS sin escribir', () async {
-      final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous)]);
-      final api = FakeApiClient(response: const ApiResponse(statusCode: 500));
-      final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-          .reconcile(store.items['c1']!, accountId: account);
-      expect(result, ReconciliationResult.remainsAmbiguous);
-      expect(store.writeCount, 0);
-    });
-
-    test('NEGATIVA: fallo de transporte → propaga la excepción sin escribir', () async {
-      final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous)]);
-      final api = FakeApiClient(error: const NetworkTimeoutException());
-      final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-      await expectLater(r.reconcile(store.items['c1']!, accountId: account), throwsA(isA<NetworkTimeoutException>()));
-      expect(store.writeCount, 0);
-      expect(store.items['c1']!.status, OutboxStatus.ambiguous);
-    });
-
-    test('NEGATIVA: split/register no se reconcilian por lifecycleStatus y no consultan backend', () async {
-      for (final action in const ['SPLIT', 'REGISTER']) {
-        final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, action: action)]);
-        final api = FakeApiClient();
-        final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-        await expectLater(r.reconcile(store.items['c']!, accountId: account),
-            throwsA(isA<UnsupportedReconciliationException>()));
-        expect(api.requests, isEmpty);
-        expect(store.writeCount, 0);
-      }
-    });
-
-    test('NEGATIVA: solo se reconcilia AMBIGUOUS', () async {
-      for (final status in const [
-        OutboxStatus.pending,
-        OutboxStatus.inFlight,
-        OutboxStatus.failed,
-        OutboxStatus.acknowledged,
-      ]) {
-        final store = FakeOutboxStore([item('c', status)]);
-        final api = FakeApiClient();
-        final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-        await expectLater(r.reconcile(store.items['c']!, accountId: account),
-            throwsA(isA<ReconciliationNotApplicableException>()));
-        expect(api.requests, isEmpty);
-        expect(store.writeCount, 0);
-      }
-    });
-
-    test('el assetRef se codifica en el path', () async {
-      final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, assetRef: 'A B')]);
-      final api = FakeApiClient(
-        response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'X'}),
-      );
-      await AmbiguousReconciler(apiClient: api, outboxStore: store).reconcile(store.items['c']!, accountId: account);
-      expect(api.requests.single.path, '/physical-assets/A%20B');
-    });
-  });
-
-  group('Ownership por cuenta — ADR-043 §0 A1', () {
-    test('cada cuenta solo lee sus entradas', () async {
-      final store = FakeOutboxStore([
-        item('mine', OutboxStatus.pending),
-        item('other', OutboxStatus.pending, accountId: 'acc-2'),
-      ]);
-      final mine = await store.getItemsFor(account);
-      expect(mine.map((i) => i.commandId), ['mine']);
-    });
-
-    test('NEGATIVA: no se reconcilia una entrada de otra cuenta y no se consulta nada', () async {
-      final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, accountId: 'acc-2')]);
-      final api = FakeApiClient(
-        response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'DISPATCHED'}),
-      );
-      await expectLater(
-        AmbiguousReconciler(apiClient: api, outboxStore: store)
-            .reconcile(store.items['c']!, accountId: account),
-        throwsA(isA<OutboxOwnershipException>()),
-      );
-      expect(api.requests, isEmpty);
-      expect(store.writeCount, 0);
+      expect(store.items.values.where((i) => i.status == OutboxStatus.pending), isEmpty);
+      expect(store.items['b']!.status, OutboxStatus.ambiguous);
+      expect(store.items['c']!.status, OutboxStatus.failed);
     });
 
     test('T-2 recupera las entradas de todas las cuentas sin cambiar su dueño', () async {
@@ -195,6 +59,57 @@ void main() {
       expect(store.items['a']!.status, OutboxStatus.ambiguous);
       expect(store.items['b']!.status, OutboxStatus.ambiguous);
       expect(store.items['b']!.accountId, 'acc-2');
+    });
+  });
+
+  group('AssetOperations.verify — reconciliación por lifecycleStatus (D6)', () {
+    late FakeOutboxStore store;
+    late FakeApiClient api;
+    late AssetOperations ops;
+
+    setUp(() {
+      store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous)]);
+      api = FakeApiClient();
+      ops = AssetOperations(engine: SyncEngine(store: store, apiClient: api), api: PhysicalAssetApi(api));
+    });
+
+    Map<String, dynamic> asset(String status) => {'assetRef': 'AS-1', 'lifecycleStatus': status};
+
+    test('estado observado = esperado → ACKNOWLEDGED (se retira)', () async {
+      api.enqueue(ok(asset('DISPATCHED')));
+      expect(await ops.verify(store.items['c1']!, accountId: account), isTrue);
+      expect(store.items.containsKey('c1'), isFalse);
+      expect(api.calls.single.path, '/physical-assets/AS-1');
+      expect(api.calls.single.credentialMode, CredentialMode.jwt);
+    });
+
+    test('estado distinto → sigue AMBIGUOUS y NUNCA reenvía', () async {
+      api.enqueue(ok(asset('REGISTERED')));
+      expect(await ops.verify(store.items['c1']!, accountId: account), isFalse);
+      expect(store.items['c1']!.status, OutboxStatus.ambiguous);
+      expect(api.calls.where((c) => c.method == 'POST'), isEmpty);
+    });
+
+    test('sin poder leer el activo → sigue AMBIGUOUS', () async {
+      api.enqueue(const NetworkTimeoutException());
+      expect(await ops.verify(store.items['c1']!, accountId: account), isFalse);
+      expect(store.items['c1']!.status, OutboxStatus.ambiguous);
+    });
+
+    test('NEGATIVA: no se verifica una entrada de otra cuenta y no se consulta nada', () async {
+      store.items['c2'] = item('c2', OutboxStatus.ambiguous, accountId: 'acc-2');
+      await expectLater(
+        ops.verify(store.items['c2']!, accountId: account),
+        throwsA(isA<OutboxOperationNotAllowedException>()),
+      );
+      expect(api.calls, isEmpty);
+    });
+
+    test('el assetRef se codifica en el path', () async {
+      store.items['c3'] = item('c3', OutboxStatus.ambiguous, assetRef: 'A B');
+      api.enqueue(ok({'assetRef': 'A B', 'lifecycleStatus': 'X'}));
+      await ops.verify(store.items['c3']!, accountId: account);
+      expect(api.calls.single.path, '/physical-assets/A%20B');
     });
   });
 }

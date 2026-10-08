@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- DDM-14: HTTP sin cifrar solo en debug, para el backend local de la demo
+         (runbook-demo-local.md). El build de release sigue exigiendo HTTPS. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

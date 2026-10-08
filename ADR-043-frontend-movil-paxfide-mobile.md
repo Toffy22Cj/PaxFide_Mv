@@ -95,6 +95,8 @@ Restricciones que condicionan la decisión:
 
 (§5)
 
+> **Estado implementado (2026-10-08, §8):** `TokenStore` y `OutboxStore` sobre `flutter_secure_storage` (A2); el Outbox es un JSON cifrado con campo de versión y, si no se puede leer, no se sobrescribe. `CacheStore` **no existe**: cada pantalla consulta al backend al abrirse. La fila "pendiente" del `OutboxStore` queda sustituida por A2.
+
 | Store | Propósito | Tecnología |
 |---|---|---|
 | `TokenStore` | credenciales | `flutter_secure_storage` |
@@ -131,6 +133,8 @@ Reglas:
 
 (§8)
 
+> **Estado implementado (2026-10-08, §8):** `NavigationRestoreState` define y valida la estructura, pero **la persistencia de la posición no está implementada** en esta versión: al reiniciar, la app arranca en `/home` (o `/login` sin sesión). Es deuda registrada en §8.4, no un cambio de decisión.
+
 - `NavigationRestoreState{route, parámetros permitidos, schemaVersion}`: solo contexto de navegación, nunca verdad de dominio. Nunca persiste JWT, refresh, principal, roles, `lifecycleStatus`, resultado de `ActionResolver`, estado del Outbox, `PendingIntent` ni datos de Campaign/PhysicalAsset/financieros/custodia.
 - Taxonomía: pública aprobada (restaurable sin sesión), autenticada aprobada (solo con `AUTHENTICATED`), transitoria (nunca). Ruta fuera del árbol aprobado → estado inválido.
 - La restauración valida **estructura**, nunca dominio.
@@ -144,6 +148,8 @@ Reglas:
 > **Registro histórico (2026-10-07).** Esta decisión se conserva como registro. Lo que contradiga el encargo de Carlos del 2026-10-07 (§0) queda sustituido; en particular, la ruta `/tracking/:trackingCode` se sustituye por `/tracking` sin parámetro (el código nunca va en una URL).
 
 (§9, §10)
+
+> **Árbol implementado (2026-10-08, §8):** públicas `/c/:publicCode` y `/tracking` (sin parámetro); transitorias de auth `/login` y `/register` (A4); autenticadas `/home`, `/donations`, `/operator`, `/operator/pending`, `/assets/:assetRef` y `/prediction` (A3). `/register` y `/prediction` se añaden por la §0 y siguen pendientes de ratificación como cambio del árbol. `GET /public/campaigns` ya existe: el listado se muestra como **sección** de `/home`, no como ruta; reabrir `/campaigns` como ruta pública sigue pendiente de revisión del árbol.
 
 - Árbol aprobado de §9: públicas `/c/:publicCode`, `/tracking/:trackingCode`; auth `/login`; autenticadas `/home`, `/donations`, `/operator`, `/operator/pending`, `/assets/:assetRef`.
 - `/campaigns` **fuera de v1** por razón contractual (`GET /public/campaigns` PENDIENTE). Reapertura solo con contrato DEFINIDO y por revisión normal del árbol.
@@ -196,6 +202,8 @@ Reglas:
 
 > **Actualizada (2026-10-07, §0 A2):** `mobile_scanner`, `qr_flutter` y `OutboxStore` sobre `flutter_secure_storage` (JSON cifrado con versión) quedan decididos. Enrutado y estado: SDK de Flutter. Cliente HTTP: `dart:io` del SDK (DDM-04).
 
+> **Estado implementado (2026-10-08, §8):** `pubspec.yaml` declara exactamente `flutter_secure_storage`, `mobile_scanner` y `qr_flutter`. Enrutado: `Navigator` del SDK con `onGenerateRoute` y el guard de sesión. Estado: `ValueNotifier`/`ChangeNotifier` del SDK. Cliente HTTP: `HttpClient` de `dart:io`. Las filas "pendiente" y "no decididos" de la tabla quedan sustituidas.
+
 Mínimas. Cualquier dependencia no listada como "Decidido" requiere enmienda a este ADR antes de usarse (regla 3.5).
 
 | Dependencia | Tipo | Uso | Estado |
@@ -245,8 +253,8 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 - **T-1 es provisional:** cualquier `401` con JWT expulsa al usuario; sin refresh habrá re-logins en campo.
 - **La reconciliación de `AMBIGUOUS` no prueba causalidad** (D6).
 - **Decisión B:** tras re-login el usuario vuelve a `/home`, no al recurso.
-- **Ninguna acción operativa es ejecutable hoy:** formularios de comando bloqueados por contrato (D10) y, si se aprueba D11, envío bloqueado por H2.
-- **`/donations` sin flujo productor** y Golden Path del donante no implementable en v1.
+- ~~**Ninguna acción operativa es ejecutable hoy**~~ — *sustituido (2026-10-08):* `dispatch`/`receive`/`deliver` se envían por el Outbox y H2 está decidido (§0 A1).
+- ~~**`/donations` sin flujo productor**~~ — *sustituido (2026-10-08):* donar (CV-11) y `GET /account/donations` están implementados; el Golden Path del donante se recorre en la app salvo el pago, que completa el checkout simulado de la web (DDM-31).
 
 ### Divergencia deliberada con `paxfide-web` (ADR-046)
 
@@ -255,13 +263,15 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 | Comandos | Outbox persistente | Sin Outbox | Requisito offline solo en móvil |
 | Estado de navegación | `NavigationRestoreState` | La URL | Plataforma |
 | Retorno post-login | `PendingIntent` (solo deep link) | Destino en memoria para toda ruta (G-W2) | Plataforma |
-| `/tracking/:trackingCode` | En v1, con H1 abierto | Deshabilitada (404) hasta H1 | En web la URL se expone a historial, logs del servidor, `Referer` y analítica; en móvil esos canales no aplican y H1 se limita a restauración y logs locales |
+| `/tracking/:trackingCode` | ~~En v1, con H1 abierto~~ Sustituida por `/tracking` sin código (§0) | Deshabilitada (404) hasta H1 | Las dos superficies coinciden ya: el código nunca va en una URL |
 
 ### Verificación (Definition of Done)
 
 La estrategia de `front-fase1.md` §14: auditoría de salidas, tres niveles (lógica pura, estados de pantalla con `ApiClient` falso, flujos con backend falso) y las **aserciones negativas obligatorias** de §14. Evidencia: output literal del runner de tests, con el mismo estándar que Surefire en backend.
 
 Las pruebas E2E contra backend real **no** forman parte del cierre mientras los contratos consumidos sigan sin implementación: producirían falsos positivos.
+
+> **Actualizado (2026-10-08):** los contratos consumidos ya están implementados. `test/integration/backend_real_test.dart` recorre la app contra el backend real (perfil `demo-seed`); se salta sin `PAXFIDE_REAL_API`. Resultado en §8.5.
 
 ---
 
@@ -271,14 +281,14 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 
 | ID | Tema | Dueño | Efecto mientras siga abierto |
 |---|---|---|---|
-| **H1** | ¿Puede `/tracking/:trackingCode` (credencial bearer) entrar en `NavigationRestoreState`? + verificar contrato vigente (path vs. `Authorization: Bearer`) | Frontend + verificación backend | Afecta D5 y D7 |
-| **H2** | Ownership del Outbox ante cambio de cuenta (incluido logout por T-1) | Frontend | Afecta D3, D5, D6; ver D11 |
-| **N1** | Contrato "quién soy / capacidades" | Identity | `/home` provisional (D10) |
-| **N2** | `register`, `split`, `from-donation`: ¿móvil o web? | Equipo | Sin rutas ni formularios en móvil |
-| — | Contratos de `dispatch`/`receive` (CONCEPTUAL) y `deliver` (DEFINIDO, P7 pendiente) | PhysicalAsset | Formularios bloqueados (D10) |
-| — | Infraestructura de enlaces: dominio canónico, Android App Links, iOS Universal Links, dominio verificado, fallback web | Infraestructura | D9 R5 sin host; `trackingCode` expuesto a reclamación de esquema no verificado |
-| — | Creación de cuentas (donantes y empleados) | Identity | Sin origen implementable de cuentas autenticadas |
-| — | Tecnología del `OutboxStore` y dependencias no decididas (D12) | Frontend | Enmienda antes de usarlas |
+| **H1** | ~~¿Puede `/tracking/:trackingCode` entrar en `NavigationRestoreState`?~~ **Cerrado (§0):** `/tracking` no lleva código; viaja en `Authorization: Bearer` (verificado contra el backend real) | — | — |
+| **H2** | ~~Ownership del Outbox ante cambio de cuenta~~ **Cerrado (§0 A1)** e implementado: `accountId` por entrada | — | — |
+| **N1** | ~~Contrato "quién soy / capacidades"~~ **Cerrado (§0 A4):** `GET /me` | — | — |
+| **N2** | `register` de **cuentas** está en el móvil (§0 A4). `register`/`split`/`from-donation` de **activos** siguen fuera del móvil | Equipo | Sin rutas ni formularios de alta de activos en móvil |
+| — | ~~Contratos de `dispatch`/`receive`/`deliver`~~ **Cerrado (§0 A4)** e implementado | — | — |
+| — | Infraestructura de enlaces: dominio canónico, Android App Links, iOS Universal Links, dominio verificado, fallback web | Infraestructura | El origen se configura al compilar (`PAXFIDE_PUBLIC_BASE_URL`); el deep linking del sistema está desactivado y los enlaces solo entran por el escáner (§8.3) |
+| — | ~~Creación de cuentas de donante~~ **Cerrado:** `POST /auth/register`. Las de empleados las crean las invitaciones de la web (ADR-049) | — | — |
+| — | ~~Tecnología del `OutboxStore` y dependencias (D12)~~ **Cerrado (§0 A2)** | — | — |
 
 ---
 
@@ -307,6 +317,54 @@ Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revis
 
 ---
 
+## 8. Registro de implementación — versión `front_mobileV1` conectada al backend (2026-10-08)
+
+> Registro de lo construido. **No cambia ninguna decisión**: aplica la §0 y anota dónde el texto de D5–D12 o §4–§5 ya no describe el código (notas "Estado implementado" en cada decisión). Las elecciones que el ADR no fija siguen las decisiones delegadas del equipo móvil (`Documentos/decisiones-delegadas-mobile-2026-10.md` en la rama `develop` de este repositorio; DDM-xx), todas **pendientes de ratificación**.
+
+### 8.1 Qué hace la app
+
+| Superficie | Ruta | Contrato (`referencia-api-v1.md`) |
+|---|---|---|
+| Iniciar sesión | `/login` | `POST /auth/login`, después `GET /me` |
+| Crear cuenta | `/register` | `POST /auth/register` (sin `Command-Id`) |
+| Inicio | `/home` | Secciones según `/me`: convocatorias (`GET /public/campaigns`, 20 por página con "Cargar más"), mis donaciones (`GET /account/donations`), seguimiento, operaciones (`EMPLOYEE`) y predicción (`ADMINISTRATOR`/`REPRESENTATIVE`) |
+| Convocatoria | `/c/:publicCode` | `GET /public/campaigns/{publicCode}` y `/narrative`; hechos separados del relato (DDM-26); QR de la convocatoria (DDM-24) |
+| Donar | hoja sobre `/c/:publicCode` | CV-11 con `Command-Id` y JWT si hay sesión; consulta manual con `Intent-Token`; código de seguimiento mostrado una vez y nunca guardado (DDM-31, DDM-32, DDM-33, DDM-37) |
+| Mis donaciones | `/donations` y sección de `/home` | `GET /account/donations`; no muestra `intentId` ni `trackingCode` (DDM-25) |
+| Seguimiento | `/tracking` | `GET /donations/tracking`, `/narrative`, `/assets/{assetRef}/history` e `/integrity`, con el código **solo** en `Authorization`; un 401 da un único mensaje y no toca la sesión |
+| Operaciones | `/operator` | `GET /organizations/{id}/physical-assets`, escáner y referencia a mano (DDM-16) |
+| Activo | `/assets/:assetRef` | `GET /physical-assets/{assetRef}`; `dispatch`/`receive`/`deliver` por el Outbox; acción visible solo para `EMPLOYEE`; QR del activo |
+| Pendientes | `/operator/pending` | Solo el `OutboxStore` local de la cuenta; "Verificar estado" lee `GET /physical-assets/{assetRef}` |
+| Predicción | `/prediction` | `GET …/prediction` y `…/prediction/history`; etiqueta "ESTIMACIÓN" siempre visible; elección de convocatoria según DDM-38 |
+
+### 8.2 Sesión, rol y T-1
+
+- `SessionController` es el único dueño de la sesión. Con token, consulta `/me` **durante** `RESTORING` (el guard espera). `/me` con 401 aplica T-1; sin respuesta, la sesión queda `AUTHENTICATED` **sin perfil** y la home ofrece "Reintentar" (DDM-08). Nunca se deduce un rol.
+- El `Principal` (`accountId`, `organizationId?`, `roles`, `platformAuthority?`) vive solo en memoria. El login no elige rol.
+- `AuthResponseHandler` (T-1) recibe cada respuesta del cliente HTTP: un 401 con JWT limpia el token y pasa a `LOGGED_OUT`; con `tracking` o `none` no hace nada.
+- Login simulado solo con `--dart-define=PAXFIDE_FAKE_AUTH=true`; los roles salen de `PAXFIDE_FAKE_ROLES` y `PAXFIDE_FAKE_ORGANIZATION_ID`, nunca de la pantalla.
+
+### 8.3 Red, Outbox y enlaces
+
+- `HttpApiClient` (`dart:io`): conexión 10 s y respuesta 30 s (DDM-11); "no se pudo conectar" = no enviado; timeout o corte tras enviar = ambiguo. Sin `PAXFIDE_API_BASE_URL` ninguna petición sale y el login dice que no hay servidor configurado.
+- `SyncEngine`: la entrada se guarda en `PENDING` antes de enviar y pasa a `IN_FLIGHT` solo con la conexión abierta (DDM-20). 2xx → se retira; 4xx → `FAILED`; 5xx, timeout o corte → `AMBIGUOUS` (DDM-17). Sin reintentos automáticos. Descartar solo `FAILED`, con confirmación (DDM-21). Una operación sin resolver bloquea otra sobre el mismo activo (DDM-22). T-2 al arrancar.
+- Enlaces: un único `DeepLinkParser` acepta solo el origen de `PAXFIDE_PUBLIC_BASE_URL` (esquema, host y puerto; DDM-03). El escáner admite pegar el enlace (DDM-42). Un enlace autenticado sin sesión deja un `PendingIntent` en memoria que se consume tras el login y se borra si el login falla (DDM-12). El deep linking del sistema está desactivado en Android e iOS (DDM-10).
+- Android: `INTERNET` en el manifiesto; HTTP sin cifrar solo en `debug` para el backend local (DDM-14). iOS: permiso de cámara y `NSAllowsLocalNetworking`.
+
+### 8.4 Pendiente en esta versión
+
+- Persistencia de la posición de navegación (D7): no implementada.
+- `/campaigns` como ruta pública: el listado vive en `/home` (D8).
+- Sin compilar para Android ni iOS en el entorno de trabajo (no hay SDK de Android ni Xcode): verificado con `flutter analyze`, los tests y el recorrido contra el backend real.
+
+### 8.5 Verificación
+
+- `flutter analyze`: sin errores ni avisos (solo sugerencias de estilo `prefer_initializing_formals` heredadas).
+- `flutter test`: tests unitarios, de pantallas y de flujos con dobles, incluidas las aserciones negativas (sin rol elegible, código de seguimiento nunca en una ruta, cuenta ajena en el Outbox, 403 como estado de pantalla, ningún reintento automático).
+- `test/integration/backend_real_test.dart` contra el backend `Toffy22Cj/Donaciones` (`develop`, perfil `demo-seed`, anclaje en Ganache): login rechazado, roles desde `/me`, convocatorias, registro + donación + pago simulado + código de seguimiento, seguimiento con integridad `MATCH`, recibir y entregar un activo por el Outbox (y un rechazo 409 como `FAILED`), predicción con historial y T-1 con un JWT inválido: **8/8**.
+
+---
+
 ## Anexo histórico — Registros del prototipo de interfaz (2026-10-06 y 2026-10-07)
 
 > **Registro histórico, sustituido (2026-10-08).** Este anexo conserva, sin cambios, las secciones "8" y "9" que el prototipo de interfaz añadió a una copia anterior de este ADR (todavía en PROPUESTO). **No son decisiones vigentes.** Las corrigió el encargo de alineación del 2026-10-08:
@@ -319,7 +377,7 @@ Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revis
 >
 > Se mantienen el diseño adaptable del login (corte en 900 px) y la navegación adaptable de la home (corte en 1024 px).
 
-### 8. Registro de Implementación: Prototipo UI de Autenticación y Assets (2026-10-06)
+### Histórico 8 — Registro de Implementación: Prototipo UI de Autenticación y Assets (2026-10-06)
 
 > **Nota de gobernanza:** Esta adición documenta la materialización técnica de la interfaz de autenticación (`/login`) descrita en D8, sin contradecir §6 ("Identidad visual fuera de este ADR") y cumpliendo estrictamente con D12 (cero dependencias externas agregadas).
 
@@ -344,7 +402,7 @@ Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revis
 
 
 
-### 9. Registro de Implementación: Prototipo UI Responsivo de Navegación, Roles y Dashboard (2026-10-07)
+### Histórico 9 — Registro de Implementación: Prototipo UI Responsivo de Navegación, Roles y Dashboard (2026-10-07)
 
 > **Nota de gobernanza:** Este anexo documenta la implementación de la capa de presentación de `/home` y la bifurcación reactiva de roles de interfaz según D2 y D8, manteniendo estricto apego a D12 (cero dependencias externas adicionales; 100% Flutter SDK nativo).
 

@@ -21,18 +21,17 @@ class LoginNetworkError extends LoginResult {
   const LoginNetworkError();
 }
 
-/// No hay contrato HTTP de login implementado en esta versión.
+/// La app no puede hacer login (compilada sin servidor configurado).
 class LoginUnavailable extends LoginResult {
   const LoginUnavailable();
 }
 
-/// Puerto de login. La implementación HTTP real llegará cuando el contrato
-/// de autenticación esté implementado en backend.
+/// Puerto de login. Implementación real: `HttpLoginGateway`.
 abstract class LoginGateway {
   Future<LoginResult> login({required String email, required String password});
 }
 
-/// Implementación por defecto: no hay contrato, no se simula nada.
+/// Sin servidor configurado: no se simula nada.
 class UnavailableLoginGateway implements LoginGateway {
   const UnavailableLoginGateway();
 
@@ -63,6 +62,3 @@ class DevFakeLoginGateway implements LoginGateway {
 /// Bandera de build. Falsa por defecto: un build normal nunca usa el login
 /// simulado.
 const bool kFakeAuthEnabled = bool.fromEnvironment('PAXFIDE_FAKE_AUTH');
-
-LoginGateway defaultLoginGateway() =>
-    kFakeAuthEnabled ? const DevFakeLoginGateway() : const UnavailableLoginGateway();

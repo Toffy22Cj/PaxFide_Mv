@@ -1,25 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'app/app_config.dart';
+import 'app/app_services.dart';
 import 'app/paxfide_app.dart';
-import 'core/storage/in_memory_token_store.dart';
-import 'features/auth/data/login_gateway.dart';
-import 'features/auth/data/me_gateway.dart';
-import 'features/auth/data/session_controller.dart';
+import 'core/storage/secure_key_value_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final session = SessionController(
-    tokenStore: InMemoryTokenStore(),
-    meGateway: defaultMeGateway(),
+  final services = buildServices(
+    config: AppConfig.fromEnvironment(),
+    secureStore: const FlutterSecureKeyValueStore(),
   );
 
-  runApp(PaxFideApp(
-    session: session,
-    loginGateway: defaultLoginGateway(),
-  ));
+  runApp(PaxFideApp(services: services));
 
-  // G-1 (a): el router ya está activo; la restauración corre en paralelo y el
-  // guard reevalúa cuando termine.
-  session.restore();
+  // G-1 (a): el router ya está activo; T-2 y la restauración de la sesión
+  // corren en paralelo y el guard reevalúa cuando terminan.
+  startServices(services);
 }

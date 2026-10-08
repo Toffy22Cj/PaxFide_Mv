@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
+import 'package:paxfide_mobile/features/auth/data/auth_api.dart';
+import 'package:paxfide_mobile/features/auth/data/http_auth_gateways.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
 import 'package:paxfide_mobile/features/auth/domain/principal.dart';
@@ -122,11 +125,39 @@ void main() {
     });
   });
 
-  group('LoginGateway por defecto', () {
-    test('sin --dart-define, el build usa el gateway no disponible', () async {
+  group('Gateways HTTP de login y /me', () {
+    test('login 200 → token', () async {
+      final api = FakeApiClient()..enqueue(ok({'token': 'jwt'}));
+      final r = await HttpLoginGateway(AuthApi(api)).login(email: 'a@b.co', password: 'x');
+      expect(r, isA<LoginSucceeded>());
+      expect((r as LoginSucceeded).token, 'jwt');
+      expect(api.calls.single.path, '/auth/login');
+      expect(api.calls.single.credentialMode, CredentialMode.none);
+    });
+
+    test('login 401 → rechazado; 5xx o red → error de red; sin servidor → no disponible', () async {
+      Future<LoginResult> run(Object response) =>
+          HttpLoginGateway(AuthApi(FakeApiClient()..enqueue(response))).login(email: 'a@b.co', password: 'x');
+      expect(await run(status(401)), isA<LoginRejected>());
+      expect(await run(status(400)), isA<LoginRejected>());
+      expect(await run(status(500)), isA<LoginNetworkError>());
+      expect(await run(const ConnectionNotEstablishedException()), isA<LoginNetworkError>());
+      expect(await run(const ApiNotConfiguredException()), isA<LoginUnavailable>());
+    });
+
+    test('/me 200 → principal; 401 → unauthorized; red → network', () async {
+      Future<MeResult> run(Object response) => HttpMeGateway(AuthApi(FakeApiClient()..enqueue(response))).fetch('t');
+      final r = await run(ok({'accountId': 'a', 'organizationId': 'o', 'roles': ['EMPLOYEE']}));
+      expect((r as MeSucceeded).principal.isFieldOperator, isTrue);
+      expect(await run(status(401)), isA<MeUnauthorized>());
+      expect(await run(const NetworkTimeoutException()), isA<MeNetworkError>());
+      expect(await run(ok({'roles': <String>[]})), isA<MeNetworkError>());
+    });
+
+    test('sin servidor configurado: login y /me no disponibles, nada se simula', () async {
+      expect(await const UnavailableLoginGateway().login(email: 'a@b.co', password: 'x'), isA<LoginUnavailable>());
+      expect(await const UnavailableMeGateway().fetch('t'), isA<MeUnavailable>());
       expect(kFakeAuthEnabled, isFalse);
-      final r = await defaultLoginGateway().login(email: 'a@b.co', password: 'x');
-      expect(r, isA<LoginUnavailable>());
     });
   });
 
@@ -207,10 +238,6 @@ void main() {
       me.result = const MeSucceeded(donor);
       await s.reloadPrincipal();
       expect(s.value.principal, donor);
-    });
-
-    test('NEGATIVA: el gateway de /me por defecto no inventa roles', () async {
-      expect(await defaultMeGateway().fetch('t'), isA<MeUnavailable>());
     });
 
     test('Principal.fromJson: roles conocidos, desconocidos ignorados', () {
