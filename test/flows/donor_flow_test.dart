@@ -268,4 +268,24 @@ void main() {
     expect(find.text('No encontramos esta convocatoria.'), findsOneWidget);
     expect(find.byKey(const Key('campaign.qr')), findsNothing);
   });
+
+  testWidgets('mis donaciones: campaignTitle ausente (rama defensiva del backend) → "Convocatoria no disponible"', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    h.api.routes['GET /account/donations'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'intentId': 'i', 'campaignTitle': null, 'amount': '100000', 'currency': 'COP', 'status': 'PENDING'},
+        ],
+      },
+    );
+    h.services.router.go(AppRoutes.donations);
+    await tester.pumpAndSettle();
+    expect(find.text('Convocatoria no disponible'), findsOneWidget);
+    expect(find.text('1 000,00 COP'), findsOneWidget);
+  });
 }

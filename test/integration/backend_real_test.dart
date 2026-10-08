@@ -200,7 +200,7 @@ void main() {
     expect(again.$1, CommandOutcome.acknowledged);
 
     // Pago simulado: lo dispara la web de demo con el webhook firmado (fuera de la app).
-    final session = attempt.intent!.paymentRedirectUrl.split('/').last;
+    final session = attempt.intent!.paymentRedirectUrl!.split('/').last;
     final event = {
       'type': 'payment.confirmed',
       'paymentSessionId': session,

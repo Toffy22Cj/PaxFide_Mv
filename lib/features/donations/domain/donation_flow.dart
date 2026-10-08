@@ -51,7 +51,9 @@ class DonationFlow {
   Future<IntentStatus> refresh(DonationAttempt a) async {
     final i = a.intent;
     if (i == null) throw StateError('sin intención');
-    final s = await api.status(i.intentId, i.statusToken);
+    final token = i.statusToken;
+    if (token == null) throw StateError('sin statusToken: la app no puede consultar esta intención');
+    final s = await api.status(i.intentId, token);
     a.lastStatus = s;
     return s;
   }

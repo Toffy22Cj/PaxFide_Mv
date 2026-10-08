@@ -6,10 +6,14 @@ import '../../../core/network/credential_mode.dart';
 /// Respuesta de CV-11. `statusToken` es un secreto: vive solo en memoria y viaja solo en la cabecera
 /// `Intent-Token`. `paymentRedirectUrl` es la ruta del checkout simulado de la web de demo.
 class CreatedIntent {
-  const CreatedIntent({required this.intentId, required this.statusToken, required this.paymentRedirectUrl});
+  const CreatedIntent({required this.intentId, this.statusToken, this.paymentRedirectUrl});
   final String intentId;
-  final String statusToken;
-  final String paymentRedirectUrl;
+
+  /// Puede faltar (reenvío de una intención anterior a la Enmienda 3): entonces la app no puede consultar el estado.
+  final String? statusToken;
+
+  /// Solo con `GATEWAY`.
+  final String? paymentRedirectUrl;
 }
 
 class IntentStatus {
@@ -46,9 +50,14 @@ class DonationIntentApi {
   );
 
   static CreatedIntent parseCreated(Map<String, dynamic> j) {
-    final id = j['intentId'], token = j['statusToken'], url = j['paymentRedirectUrl'];
-    if (id is! String || token is! String || url is! String) throw const MalformedResponseException();
-    return CreatedIntent(intentId: id, statusToken: token, paymentRedirectUrl: url);
+    final id = j['intentId'];
+    if (id is! String || id.isEmpty) throw const MalformedResponseException();
+    final token = j['statusToken'], url = j['paymentRedirectUrl'];
+    return CreatedIntent(
+      intentId: id,
+      statusToken: token is String && token.isNotEmpty ? token : null,
+      paymentRedirectUrl: url is String && url.isNotEmpty ? url : null,
+    );
   }
 
   Future<IntentStatus> status(String intentId, String statusToken) async {

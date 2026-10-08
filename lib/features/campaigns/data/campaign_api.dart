@@ -69,7 +69,7 @@ class CampaignApi {
     final j = (await _api.get(_path(publicCode), credentialMode: CredentialMode.none)).requireData();
     if (j['title'] is! String || j['status'] is! String) throw const MalformedResponseException();
     return PublicCampaign(
-      organizationName: '${j['organizationName'] ?? ''}',
+      organizationName: j['organizationName'] is String ? j['organizationName'] as String : '',
       title: j['title'] as String,
       description: _opt(j, 'description'),
       status: j['status'] as String,
