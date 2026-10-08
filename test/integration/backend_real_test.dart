@@ -41,6 +41,7 @@ import 'package:paxfide_mobile/features/physical_assets/domain/asset_operations.
 import 'package:paxfide_mobile/features/prediction/data/prediction_api.dart';
 import 'package:paxfide_mobile/features/tracking/data/tracking_api.dart';
 import 'package:paxfide_mobile/shared/money.dart';
+import 'package:paxfide_mobile/shared/quantity.dart';
 
 import '../support/fakes.dart';
 
@@ -122,6 +123,16 @@ void main() {
     expect(donor.session.principal!.roles, isEmpty);
     expect(donor.session.principal!.showsOperatorActions, isFalse);
   });
+
+  test(
+    '1b. login con el email con espacios en los extremos y en mayúsculas (la app recorta; el backend normaliza)',
+    () async {
+      final d = Device();
+      await d.session.restore();
+      await d.session.login('  ADMINISTRADOR@Demo.PaxFide.local '.trim(), env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
+      expect(d.session.state.status, SessionStatus.authenticated);
+    },
+  );
 
   test('2. cuentas de la semilla: los roles salen de /me', () async {
     await platform.login('plataforma@demo.paxfide.local');
@@ -253,7 +264,11 @@ void main() {
 
   test('9. operador: ver el activo y DESPACHAR por el Outbox (SyncEngine + AssetOperations)', () async {
     final assets = PhysicalAssetApi(employee.api);
-    expect((await assets.get(assetRef)).lifecycleStatus, 'REGISTERED');
+    final registered = await assets.get(assetRef);
+    expect(registered.lifecycleStatus, 'REGISTERED');
+    // Cantidad real "10.0000" → "10 UNITS": sin ceros sobrantes ni redondeo.
+    expect(registered.quantity, '10.0000');
+    expect(formatQuantityWithUnit(registered.quantity, registered.unitOfMeasure), '10 UNITS');
     final engine = SyncEngine(store: SecureOutboxStore(InMemorySecureKeyValueStore()), apiClient: employee.api);
     final ops = AssetOperations(engine: engine, api: assets);
     final cmd = AssetCommand.build(AssetAction.dispatch, assetRef, {'carrierRef': 'transportista-1'})!;
@@ -332,10 +347,24 @@ void main() {
   test(
     '13. predicción real: ADMINISTRATOR y REPRESENTATIVE, kind ESTIMATE con la advertencia; EMPLOYEE → 403',
     () async {
+      // S-04: ADMINISTRATOR elige del listado de la organización; REPRESENTATIVE recibe 403 ahí.
+      final list = await PredictionApi(admin.api).organizationCampaigns(org);
+      expect(list.map((c) => c.campaignRef), contains(campaignRef));
+      await expectLater(
+        PredictionApi(representative.api).organizationCampaigns(org),
+        throwsA(isA<ForbiddenException>()),
+      );
+      await PredictionApi(representative.api).myCampaigns(); // 200 (vacío si no tiene asignaciones)
       for (final d in [admin, representative]) {
         final p = await PredictionApi(d.api).get(org, campaignRef);
         expect(p.kind, 'ESTIMATE');
         expect(p.warning, contains('datos sintéticos'));
+        // Fuera del rango de entrenamiento (recién empezada): solo el motivo, sin cifra.
+        if (p.unavailableReason == 'OUTSIDE_TRAINED_RANGE') {
+          expect(p.available, isFalse);
+          expect(p.probabilityReachTarget, isNull);
+          expect(p.estimatedFinalPctOfTarget, isNull);
+        }
       }
       final r = await employee.api.get(
         '/organizations/$org/campaigns/$campaignRef/prediction',

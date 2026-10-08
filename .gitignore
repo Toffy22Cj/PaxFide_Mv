@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Configuración local de compilación (--dart-define-from-file). Solo se versionan los ejemplos.
+/config/*.json
+!/config/*.example.json

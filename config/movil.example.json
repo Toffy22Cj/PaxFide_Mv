@@ -1,0 +1,4 @@
+{
+  "PAXFIDE_API_BASE_URL": "https://SUBDOMINIO-DEL-TUNEL-API.trycloudflare.com/api/v1",
+  "PAXFIDE_PUBLIC_BASE_URL": "https://SUBDOMINIO-DEL-TUNEL-WEB.trycloudflare.com"
+}

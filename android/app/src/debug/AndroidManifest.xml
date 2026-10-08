@@ -4,7 +4,5 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Solo en debug: el backend local del runbook-demo-local.md se sirve por http (10.0.2.2:8080).
-         Release no permite tráfico en claro. -->
-    <application android:usesCleartextTraffic="true" />
+    <!-- Sin tráfico en claro en debug (DDM-41): para un backend http se usa el sabor demo. -->
 </manifest>
