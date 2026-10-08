@@ -1,0 +1,4 @@
+# Etiquetas de test. `backend-real`: recorrido contra el backend local (test/integration); se salta sin
+# PAXFIDE_REAL_API, así que scripts/ci-local.sh no lo ejecuta.
+tags:
+  backend-real:

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Una barra: etiqueta y valor real devuelto por el backend.
+/// Una barra: etiqueta, valor real devuelto por el backend (para la proporción) y su texto ya formateado.
 class AmountBar {
-  const AmountBar(this.label, this.value);
+  const AmountBar(this.label, this.value, this.display);
   final String label;
   final num value;
+  final String display;
 }
 
 /// Barras horizontales proporcionales al mayor valor, dibujadas con `CustomPainter` (sin librerías). Solo pinta lo
 /// que recibe: sin valores, no dibuja nada.
 class AmountBars extends StatelessWidget {
-  const AmountBars({super.key, required this.bars, this.unit = ''});
+  const AmountBars({super.key, required this.bars});
 
   final List<AmountBar> bars;
-  final String unit;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class AmountBars extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${b.label}: ${b.value}${unit.isEmpty ? '' : ' $unit'}'),
+                Text('${b.label}: ${b.display}'),
                 const SizedBox(height: 2),
                 SizedBox(
                   height: 10,

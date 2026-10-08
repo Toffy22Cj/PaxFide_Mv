@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/campaigns/presentation/campaign_public_screen.dart';
+import '../features/donations/presentation/donate_sheet.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
 import '../features/prediction/presentation/prediction_screen.dart';
 import '../features/tracking/presentation/tracking_screen.dart';
@@ -38,7 +39,13 @@ Widget buildPage(BuildContext context, String location) {
   final assetRef = params['assetRef'];
   if (assetRef != null) return AssetScreen(key: ValueKey(assetRef), assetRef: assetRef);
   final publicCode = params['publicCode'];
-  if (publicCode != null) return CampaignPublicScreen(key: ValueKey(publicCode), publicCode: publicCode);
+  if (publicCode != null) {
+    return CampaignPublicScreen(
+      key: ValueKey(publicCode),
+      publicCode: publicCode,
+      actionsBuilder: (context, campaign) => donateAction(context, campaign, publicCode),
+    );
+  }
   final category = AppRoutes.categorize(location);
   const notYet = MessageView(icon: Icons.construction, title: 'Esta pantalla todavía no está disponible.');
   if (category == RouteCategory.authenticated) {

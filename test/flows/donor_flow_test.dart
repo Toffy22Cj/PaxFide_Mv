@@ -66,7 +66,9 @@ void main() {
 
     // Hechos reales y relato separados; sin ids internos.
     expect(find.text('Hechos registrados'), findsOneWidget);
-    expect(find.text('Donado: 6000000 COP'), findsOneWidget);
+    // Unidades mínimas ISO 4217 (COP, exponente 2): 6000000 → 60 000,00 COP.
+    expect(find.text('Donado: 60 000,00 COP'), findsOneWidget);
+    expect(find.text('Asignación confirmada: 50 000,00 COP'), findsOneWidget);
     expect(find.text('BLANKET · 6 UNITS'), findsOneWidget);
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);
@@ -182,7 +184,7 @@ void main() {
     h.services.router.go(AppRoutes.donations);
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.text('4000000 COP'), findsOneWidget);
+    expect(find.text('40 000,00 COP'), findsOneWidget);
     expect(find.text('Pago confirmado'), findsOneWidget);
     expect(find.textContaining('intent-interno'), findsNothing);
     expect(find.textContaining('CODIGO-DE-LA-CUENTA'), findsNothing);
@@ -233,8 +235,9 @@ void main() {
     await h.services.router.openDeepLink(h.services.deepLinkParser.parse(Uri.parse('$testOrigin/c/PUB1')));
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.text('Meta: 50000000 COP'), findsOneWidget);
-    expect(find.text('Recaudado y acreditado: 10000000 COP'), findsOneWidget);
+    expect(find.text('Meta: 500 000,00 COP'), findsOneWidget);
+    expect(find.text('Recaudado y acreditado: 100 000,00 COP'), findsOneWidget);
+    expect(find.text('Acreditado: 100 000,00 COP'), findsOneWidget);
     expect(find.text('Unidades entregadas: 6'), findsOneWidget);
     expect(find.text('Narrativa no disponible'), findsOneWidget);
     expect(
