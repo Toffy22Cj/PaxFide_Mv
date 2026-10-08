@@ -55,13 +55,13 @@ void main() {
       h.api.routes['GET /public/campaigns/$_code/narrative'] =
           (_) => ok({'status': 'PENDING', 'content': null, 'source': null, 'facts': null}, 202);
       await h.pump(tester);
-      expect(find.text('1 000 000,00 COP de 20 000 000,00 COP'), findsOneWidget);
+      expect(find.text('\$1.000.000 COP de \$20.000.000 COP'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('campaign-$_code')));
       await tester.pumpAndSettle();
       expect(currentRoute(tester), '/c/$_code');
       expect(find.byKey(const Key('campaign-detail')), findsOneWidget);
-      expect(find.text('El relato todavía se está preparando.'), findsOneWidget);
+      expect(find.text('Estamos preparando la historia de esta causa.'), findsOneWidget);
       expect(find.byKey(const Key('donate-open')), findsOneWidget);
     });
 
@@ -78,7 +78,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('donate-amount')), '1500,5');
       await tester.pump();
-      expect(find.text('Se donarán 1 500,50 COP.'), findsOneWidget);
+      expect(find.text('Vas a donar \$1.500,50 COP.'), findsOneWidget);
       await tester.tap(find.byKey(const Key('donate-submit')));
       await tester.pumpAndSettle();
 
@@ -168,7 +168,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('tracking-content')), findsOneWidget);
-      expect(find.text('Anclada y verificada'), findsOneWidget);
+      expect(find.text('Registro protegido'), findsOneWidget);
       expect(find.text('Relato'), findsOneWidget);
       for (final c in h.api.calls) {
         expect(c.credentialMode, CredentialMode.tracking);
@@ -186,7 +186,7 @@ void main() {
       await tester.enterText(find.byKey(const Key('tracking-code')), 'MALO');
       await tester.tap(find.byKey(const Key('tracking-submit')));
       await tester.pumpAndSettle();
-      expect(find.text('Código no válido o expirado.'), findsOneWidget);
+      expect(find.textContaining('Ese código no es válido'), findsOneWidget);
       expect(h.session.value, before);
       expect(h.tokenStore.clears, 0);
     });
@@ -214,7 +214,7 @@ void main() {
       expect(post.headers['Command-Id'], isNotNull);
       expect(h.outboxStore.savedIds, hasLength(1));
       expect(h.outboxStore.items, isEmpty);
-      expect(find.text('En tránsito'), findsOneWidget);
+      expect(find.text('En camino'), findsWidgets);
     });
 
     testWidgets('timeout → AMBIGUOUS persistido; "Verificar estado" lo confirma sin reenviar', (tester) async {
@@ -267,7 +267,7 @@ void main() {
           });
       await h.pump(tester, initialRoute: '/operator');
       expect(find.byKey(const Key('operator-asset-AS-1')), findsOneWidget);
-      expect(find.textContaining('en tránsito'), findsOneWidget);
+      expect(find.textContaining('En camino'), findsOneWidget);
     });
   });
 
@@ -315,7 +315,7 @@ void main() {
       await tester.tap(find.byKey(const Key('scanner-paste-open')));
       await tester.pumpAndSettle();
       expect(currentRoute(tester), '/login');
-      expect(find.textContaining('no es un enlace de PaxFide'), findsOneWidget);
+      expect(find.textContaining('no es de PaxFide'), findsOneWidget);
     });
   });
 
@@ -376,10 +376,49 @@ void main() {
       await h.pump(tester, initialRoute: '/prediction');
       await tester.tap(find.byKey(const Key('prediction-choice-C1')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('prediction-label')), findsOneWidget);
-      expect(find.text('Probabilidad estimada de alcanzar la meta: 42.0 %'), findsOneWidget);
-      expect(find.byKey(const Key('prediction-history')), findsOneWidget);
-      expect(find.textContaining('Aún no llega'), findsOneWidget);
+      expect(find.byKey(const Key('prediction-verdict')), findsOneWidget);
+      expect(find.text('42 %'), findsOneWidget);
+      expect(find.text('Podría alcanzar la meta'), findsOneWidget);
+      expect(find.textContaining('cerca del 80 % de la meta'), findsOneWidget);
+      // Ningún tecnicismo para el usuario.
+      expect(find.textContaining('modelo'), findsNothing);
+      expect(find.textContaining('sintétic'), findsNothing);
+      // Sin cortes con cifra, no se muestra el historial.
+      expect(find.byKey(const Key('prediction-history')), findsNothing);
+    });
+
+    testWidgets('al empezar la causa: explica en palabras sencillas desde cuándo habrá estimación', (tester) async {
+      final h = Harness(token: 't', meResult: const MeSucceeded(administrator));
+      final start = DateTime.now().toUtc().subtract(const Duration(days: 1));
+      final end = start.add(const Duration(days: 40));
+      h.api.routes['GET /organizations/org-1/campaigns'] = (_) => ok({
+            'items': [
+              {'campaignRef': 'C1', 'publicCode': 'PUB1', 'title': 'Abrigo', 'status': 'OPEN'},
+            ],
+          });
+      h.api.routes['GET /organizations/org-1/campaigns/C1/prediction'] = (_) => ok({
+            'kind': 'ESTIMATE',
+            'modelVersion': 'v1',
+            'warning': 'x',
+            'available': false,
+            'unavailableReason': 'OUTSIDE_TRAINED_RANGE',
+            'unavailableText': 'texto técnico del backend',
+            'asOf': '2026-10-08T00:00:00Z',
+          });
+      h.api.routes['GET /organizations/org-1/campaigns/C1/prediction/history'] = (_) => status(500);
+      h.api.routes['GET /public/campaigns/PUB1'] = (_) => ok({
+            ..._campaign(),
+            'startDate': start.toIso8601String(),
+            'endDate': end.toIso8601String(),
+          });
+      await h.pump(tester, initialRoute: '/prediction');
+      await tester.tap(find.byKey(const Key('prediction-choice-C1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Todavía es pronto para estimar'), findsOneWidget);
+      expect(find.textContaining('Podremos estimar a partir del'), findsOneWidget);
+      expect(find.textContaining('texto técnico'), findsNothing);
+      expect(find.text('Lo recaudado hasta hoy'), findsOneWidget);
+      expect(find.text('Tiempo de la causa'), findsOneWidget);
     });
 
     testWidgets('NEGATIVA: un donante no ve la predicción', (tester) async {

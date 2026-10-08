@@ -3,16 +3,16 @@ import '../core/errors/app_exceptions.dart';
 /// Mensaje para el usuario. Nunca incluye datos de la petición (URL, tokens, cuerpos).
 String describeError(Object error) {
   if (error is ApiNotConfiguredException) {
-    return 'La app no tiene configurada la dirección del servidor (PAXFIDE_API_BASE_URL).';
+    return 'La app no está conectada a ningún servidor.';
   }
-  if (error is ConnectionNotEstablishedException) return 'Sin conexión con el servidor. No se envió nada.';
-  if (error is TransportException) return 'No pudimos confirmar la respuesta del servidor.';
-  if (error is UnauthorizedException) return 'Tu sesión no es válida. Vuelve a entrar.';
+  if (error is ConnectionNotEstablishedException) return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
+  if (error is TransportException) return 'Se cortó la conexión. Inténtalo de nuevo.';
+  if (error is UnauthorizedException) return 'Tu sesión terminó. Vuelve a entrar.';
   if (error is ForbiddenException) return 'Tu cuenta no tiene acceso a esto.';
   if (error is NotFoundException) return 'No lo encontramos.';
-  if (error is ConflictException) return 'El servidor rechazó la operación por el estado actual.';
-  if (error is ServerErrorException) return 'El servidor tuvo un error.';
-  if (error is ApiHttpException) return 'El servidor rechazó la petición.';
-  if (error is MalformedResponseException) return 'Respuesta inesperada del servidor.';
+  if (error is ConflictException) return 'No se pudo hacer: algo cambió mientras tanto. Actualiza e inténtalo de nuevo.';
+  if (error is ServerErrorException) return 'Algo falló de nuestro lado. Inténtalo en unos minutos.';
+  if (error is ApiHttpException) return 'No se pudo completar. Revisa los datos.';
+  if (error is MalformedResponseException) return 'Algo falló de nuestro lado. Inténtalo en unos minutos.';
   return 'Ocurrió un error inesperado.';
 }

@@ -6,6 +6,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/labels.dart';
 import '../../../shared/money.dart';
+import '../../../shared/theme/pax_theme.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/campaign_api.dart';
 
@@ -59,7 +60,7 @@ class _CampaignListViewState extends State<CampaignListView> {
     }
     if (!_loaded) return const LoadingView();
     if (_items.isEmpty) {
-      return const MessageView(icon: Icons.campaign_outlined, title: 'No hay convocatorias abiertas ahora.');
+      return const MessageView(icon: Icons.campaign_outlined, title: 'No hay causas abiertas en este momento.');
     }
     return Column(
       key: const Key('campaign-list'),
@@ -91,43 +92,56 @@ class _CampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final p = PaxPalette.of(context);
     final target = int.tryParse(campaign.targetAmount ?? '');
     final cleared = int.tryParse(campaign.clearedAmount ?? '');
-    final progress = (target != null && target > 0 && cleared != null) ? (cleared / target).clamp(0.0, 1.0) : null;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: Key('campaign-${campaign.publicCode}'),
-        onTap: () => Navigator.of(context).pushNamed(AppRoutes.campaignPath(campaign.publicCode)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(campaign.title, style: theme.textTheme.titleMedium),
-              if (campaign.organizationName != null)
-                Text(campaign.organizationName!, style: theme.textTheme.bodySmall),
-              const SizedBox(height: 6),
-              Text(
-                '${campaignStatusLabel(campaign.status)} · hasta el ${shortDate(campaign.endDate)}'
-                '${campaign.acceptedDonationTypes.isEmpty ? '' : ' · ${campaign.acceptedDonationTypes.map(donationTypeLabel).join(', ')}'}',
-                style: theme.textTheme.bodySmall,
-              ),
-              if (progress != null) ...[
-                const SizedBox(height: 10),
-                LinearProgressIndicator(value: progress, minHeight: 6, borderRadius: BorderRadius.circular(3)),
-                const SizedBox(height: 4),
-                Text(
-                  '${formatMinorUnits(cleared!, campaign.currency)} de ${formatMinorUnits(target!, campaign.currency)}',
-                  style: theme.textTheme.bodySmall,
+    final progress = (target != null && target > 0 && cleared != null) ? cleared / target : null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          key: Key('campaign-${campaign.publicCode}'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.campaignPath(campaign.publicCode)),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: p.border)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(campaign.title,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: p.text)),
+                    ),
+                    Icon(Icons.chevron_right, color: p.textMuted),
+                  ],
                 ),
-              ] else if (cleared != null) ...[
-                const SizedBox(height: 6),
-                Text('Acreditado: ${formatMinorUnits(cleared, campaign.currency)}', style: theme.textTheme.bodySmall),
+                if (campaign.organizationName != null)
+                  Text(campaign.organizationName!, style: TextStyle(fontSize: 12.5, color: p.textMuted)),
+                const SizedBox(height: 10),
+                if (progress != null)
+                  ProgressLine(
+                    value: progress,
+                    label: '${formatMinorUnits(cleared!, campaign.currency)} de ${formatMinorUnits(target!, campaign.currency)}',
+                  )
+                else if (cleared != null)
+                  Text('Recaudado: ${formatMinorUnits(cleared, campaign.currency)}',
+                      style: TextStyle(fontSize: 12.5, color: p.textMuted)),
+                const SizedBox(height: 8),
+                Text(
+                  [
+                    'Hasta el ${shortDate(campaign.endDate)}',
+                    if (campaign.acceptedDonationTypes.isNotEmpty)
+                      'Acepta ${campaign.acceptedDonationTypes.map(donationTypeLabel).join(' y ').toLowerCase()}',
+                  ].join(' · '),
+                  style: TextStyle(fontSize: 12, color: p.textMuted),
+                ),
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -78,7 +78,7 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Operaciones pendientes',
+      title: 'Pasos sin confirmar',
       body: ValueListenableBuilder<SessionState>(
         valueListenable: _services.session,
         builder: (context, session, _) {
@@ -92,8 +92,8 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
           if (_error is OutboxStoreUnreadableException) {
             return const MessageView(
               icon: Icons.report_problem_outlined,
-              title: 'No se pueden leer las operaciones guardadas en este dispositivo.',
-              detail: 'No se ha borrado nada. Avisa al equipo antes de reinstalar la app.',
+              title: 'No pudimos leer los pasos guardados en este teléfono.',
+              detail: 'No se borró nada. Avisa a tu organización antes de reinstalar la app.',
             );
           }
           final entries = _entries;
@@ -102,7 +102,8 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
             return const MessageView(
               key: Key('pending-empty'),
               icon: Icons.inbox_outlined,
-              title: 'No hay operaciones pendientes de tu cuenta.',
+              title: 'No tienes pasos pendientes.',
+              detail: 'Todo lo que registraste ya está confirmado.',
             );
           }
           return Column(
@@ -121,7 +122,7 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
                     final ok = await _services.assetOperations.verify(e, accountId: account);
                     if (!ok && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')),
+                        const SnackBar(content: Text('Todavía no aparece registrado. Puedes enviarlo otra vez.')),
                       );
                     }
                   }),

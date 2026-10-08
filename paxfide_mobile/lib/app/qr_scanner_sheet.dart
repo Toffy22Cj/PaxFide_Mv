@@ -23,7 +23,7 @@ Widget defaultQrScanner(BuildContext context, ValueChanged<String> onCode) => !c
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'La cámara no está disponible en esta plataforma. Pega el enlace del QR abajo.',
+            'No hay cámara disponible. Pega el enlace del código abajo.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -70,8 +70,8 @@ Future<void> scanQr(BuildContext context) async {
     return;
   }
   final reason = services.config.publicOrigin == null
-      ? 'La app no tiene configurado el origen de los enlaces de PaxFide (PAXFIDE_PUBLIC_BASE_URL).'
-      : 'Este código QR no es un enlace de PaxFide reconocido.';
+      ? 'La app no puede leer códigos QR en esta instalación.'
+      : 'Este código QR no es de PaxFide.';
   ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(reason)));
 }
 
@@ -107,7 +107,7 @@ class _ScannerSheetState extends State<_ScannerSheet> {
         children: [
           ListTile(
             title: const Text('Escanear un código QR'),
-            subtitle: const Text('Activo o convocatoria'),
+            subtitle: const Text('De un envío o de una causa'),
             trailing: IconButton(
               tooltip: 'Cerrar',
               icon: const Icon(Icons.close),
@@ -121,7 +121,7 @@ class _ScannerSheetState extends State<_ScannerSheet> {
               key: const Key('scanner-paste'),
               controller: _pasted,
               decoration: InputDecoration(
-                labelText: 'O pega el enlace del QR',
+                labelText: 'O pega aquí el enlace del código',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   key: const Key('scanner-paste-open'),

@@ -5,6 +5,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/labels.dart';
 import '../../../shared/money.dart';
+import '../../../shared/theme/pax_theme.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/account_donations_api.dart';
 
@@ -53,28 +54,47 @@ class _MyDonationsViewState extends State<MyDonationsView> {
     if (items.isEmpty) {
       return const MessageView(
         icon: Icons.volunteer_activism_outlined,
-        title: 'Aún no tienes donaciones con esta cuenta.',
-        detail: 'Las donaciones hechas sin iniciar sesión no aparecen aquí.',
+        title: 'Aún no has donado con esta cuenta.',
+        detail: 'Elige una causa en "Causas" para hacer tu primera donación.',
       );
     }
-    final theme = Theme.of(context);
+    final p = PaxPalette.of(context);
     return Column(
       key: const Key('my-donations'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final d in items)
-          Card(
+          Container(
             margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              leading: const Icon(Icons.receipt_long_outlined),
-              title: Text(d.campaignTitle.isEmpty ? 'Convocatoria no disponible' : d.campaignTitle),
-              subtitle: Text(intentStatusLabel(d.status)),
-              trailing: Text(formatMinorUnits(d.amount, d.currency), style: theme.textTheme.titleSmall),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(d.campaignTitle.isEmpty ? 'Causa no disponible' : d.campaignTitle,
+                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: p.text)),
+                      const SizedBox(height: 4),
+                      StatusChip(intentStatusLabel(d.status),
+                          color: d.status == 'CONFIRMED' ? paxAccent : const Color(0xFFF59E0B)),
+                    ],
+                  ),
+                ),
+                Text(formatMinorUnits(d.amount, d.currency),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: p.text)),
+              ],
             ),
           ),
+        const SizedBox(height: 4),
         Text(
-          'Para ver el seguimiento de una donación, escribe su código en "Seguimiento".',
-          style: theme.textTheme.bodySmall,
+          'Para ver a dónde llegó una donación, usa su código en "Seguimiento".',
+          style: TextStyle(fontSize: 12.5, color: p.textMuted),
         ),
       ],
     );

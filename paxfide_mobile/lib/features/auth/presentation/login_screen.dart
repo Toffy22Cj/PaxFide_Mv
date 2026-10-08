@@ -332,11 +332,11 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       LoginUiState.networkError => (
           'login-error-network',
-          'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.',
+          'Sin conexión. Revisa tu internet e inténtalo de nuevo.',
         ),
       LoginUiState.unavailable => (
           'login-unavailable',
-          'El inicio de sesión no está disponible: la app no tiene configurado el servidor.',
+          'La app no está conectada a ningún servidor, así que no puedes entrar.',
         ),
       LoginUiState.initial || LoginUiState.loading => ('', ''),
     };

@@ -1,26 +1,37 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/app_routes.dart';
+import '../../../app/app_services.dart';
 import '../../../app/qr_scanner_sheet.dart';
+import '../../../shared/theme/pax_theme.dart';
+import '../../../shared/widgets/state_views.dart';
 import '../../auth/data/session_controller.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/presentation/campaign_list_view.dart';
 import '../../donations/presentation/my_donations_view.dart';
+import '../../physical_assets/presentation/operator_screen.dart';
+import '../../prediction/presentation/prediction_screen.dart';
+import '../../tracking/presentation/tracking_screen.dart';
 
 /// Secciones de `/home`. Cuáles se muestran depende del [Principal] de
 /// `GET /me` (ADR-043 §0, A3); mostrarlas no es autorización (P7).
 enum HomeSection {
-  campaigns('Convocatorias', 'Convocatorias', Icons.explore_outlined),
-  donations('Mis donaciones', 'Donaciones', Icons.volunteer_activism_outlined),
-  tracking('Seguimiento', 'Seguimiento', Icons.track_changes_rounded),
-  operator('Operaciones de campo', 'Operaciones', Icons.local_shipping_outlined),
-  prediction('Predicción', 'Predicción', Icons.insights_outlined);
+  campaigns('Causas', 'Causas', Icons.explore_outlined,
+      'Causas abiertas que puedes apoyar. Toca una para ver los detalles y donar.'),
+  donations('Mis donaciones', 'Donaciones', Icons.volunteer_activism_outlined,
+      'Las donaciones que hiciste con esta cuenta.'),
+  tracking('Seguimiento', 'Seguimiento', Icons.track_changes_rounded,
+      'Escribe el código que recibiste al donar y mira a dónde llegó tu ayuda.'),
+  operator('Operaciones de campo', 'Operaciones', Icons.local_shipping_outlined,
+      'Registra cuándo sale, llega y se entrega cada envío.'),
+  prediction('Predicción', 'Predicción', Icons.insights_outlined,
+      '¿Llegará cada causa a su meta? Elige una para verlo.');
 
   final String label;
   final String shortLabel;
   final IconData icon;
-  const HomeSection(this.label, this.shortLabel, this.icon);
+  final String description;
+  const HomeSection(this.label, this.shortLabel, this.icon, this.description);
 
   /// Secciones visibles para [principal]. Sin principal (perfil no cargado)
   /// solo las comunes a cualquier cuenta. Varios roles ven la unión.
@@ -33,11 +44,8 @@ enum HomeSection {
       ];
 }
 
-/// Pantalla de `/home` (ADR-043 D8, D10).
-///
-/// Convocatorias y donaciones se cargan del backend dentro de la propia
-/// sección; seguimiento, operaciones y predicción abren su ruta del árbol.
-/// No muestra datos inventados.
+/// Pantalla de `/home` (ADR-043 D8, D10). Cada sección muestra su contenido
+/// directamente; no hay datos inventados.
 class HomeScreen extends StatefulWidget {
   final SessionController session;
 
@@ -48,7 +56,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isDarkMode = true;
   HomeSection _section = HomeSection.campaigns;
   bool _reloadingProfile = false;
 
@@ -69,7 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleTheme() {
-    setState(() => _isDarkMode = !_isDarkMode);
+    final dark = AppScope.of(context).darkMode;
+    dark.value = !dark.value;
   }
 
   /// El guard lleva a /login al emitirse LOGGED_OUT; aquí no se navega.
@@ -98,75 +106,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildForPrincipal(BuildContext context, Principal? principal) {
     final sections = HomeSection.visibleFor(principal);
     final section = sections.contains(_section) ? _section : sections.first;
+    final isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final c = PaxPalette.of(context);
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1024;
-
-    final colors = _HomeColors(dark: _isDarkMode);
-
-    return Theme(
-      data: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _accent,
-          brightness: _isDarkMode ? Brightness.dark : Brightness.light,
-          surface: colors.surface,
-        ),
-        cardTheme: CardThemeData(
-          color: colors.surface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: colors.border),
-          ),
-        ),
-        useMaterial3: true,
-      ),
-      child: Scaffold(
-      backgroundColor: colors.bg,
+    return Scaffold(
+      backgroundColor: c.bg,
       body: Row(
         children: [
-          if (isDesktop) _buildDesktopSidebar(colors, sections, section, principal),
+          if (isDesktop) _buildDesktopSidebar(c, sections, section, principal),
           Expanded(
             child: Column(
               children: [
-                _buildTopAppBar(colors, isDesktop, principal),
+                _buildTopAppBar(c, isDesktop, principal),
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isDesktop ? 40.0 : 16.0,
-                      vertical: 20.0,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 40.0 : 16.0, vertical: 20.0),
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
+                        constraints: const BoxConstraints(maxWidth: 1000),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (principal == null) ...[
-                              _buildProfileUnavailable(colors),
-                              const SizedBox(height: 20),
-                            ],
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              switchInCurve: Curves.easeOutQuad,
-                              switchOutCurve: Curves.easeInQuad,
-                              layoutBuilder: (currentChild, previousChildren) {
-                                return Stack(
-                                  alignment: Alignment.topLeft,
-                                  children: [
-                                    ...previousChildren,
-                                    ?currentChild,
-                                  ],
-                                );
-                              },
-                              transitionBuilder: (child, animation) {
-                                return FadeTransition(opacity: animation, child: child);
-                              },
-                              child: KeyedSubtree(
-                                key: ValueKey('section_${section.name}'),
-                                child: _buildSectionContent(colors, section),
+                            if (principal == null) _buildProfileUnavailable(),
+                            KeyedSubtree(
+                              key: ValueKey('section_${section.name}'),
+                              child: Column(
+                                key: Key('home-section-${section.name}'),
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SectionHeader(title: section.label, subtitle: section.description),
+                                  _buildSectionContent(section),
+                                ],
                               ),
                             ),
                           ],
@@ -180,202 +152,31 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar:
-          isDesktop ? null : _buildMobileBottomBar(colors, sections, section),
-      ),
+      bottomNavigationBar: isDesktop ? null : _buildMobileBottomBar(c, sections, section),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Secciones
-  // ---------------------------------------------------------------------------
+  Widget _buildSectionContent(HomeSection section) => switch (section) {
+        HomeSection.campaigns => const CampaignListView(),
+        HomeSection.donations => const MyDonationsView(),
+        HomeSection.tracking => const TrackingView(),
+        HomeSection.operator => const OperatorView(),
+        HomeSection.prediction => const PredictionView(),
+      };
 
-  Widget _buildSectionContent(_HomeColors c, HomeSection section) {
-    switch (section) {
-      case HomeSection.campaigns:
-        return _buildSection(
-          c,
-          key: 'home-section-campaigns',
-          title: 'Convocatorias',
-          subtitle: 'Convocatorias abiertas de organizaciones verificadas: '
-              'meta, lo recaudado y los tipos de donación que aceptan.',
-          body: const CampaignListView(),
-        );
-      case HomeSection.donations:
-        return _buildSection(
-          c,
-          key: 'home-section-donations',
-          title: 'Mis donaciones',
-          subtitle: 'Tus donaciones con su convocatoria, importe, estado y, '
-              'cuando los fondos se aplican, su código de seguimiento.',
-          body: const MyDonationsView(),
-        );
-      case HomeSection.tracking:
-        return _buildSection(
-          c,
-          key: 'home-section-tracking',
-          title: 'Seguimiento',
-          subtitle: 'Con el código de seguimiento de una donación puedes ver '
-              'los fondos acreditados y asignados, los activos entregados y la '
-              'verificación de integridad de sus registros.',
-          body: _buildEntryCard(
-            c,
-            key: 'home-entry-tracking',
-            icon: Icons.qr_code_2_rounded,
-            title: 'Consultar seguimiento',
-            description: 'El código se escribe a mano en la pantalla de seguimiento.',
-            route: AppRoutes.tracking,
-          ),
-        );
-      case HomeSection.operator:
-        return _buildSection(
-          c,
-          key: 'home-section-operator',
-          title: 'Operaciones de campo',
-          subtitle: 'Despacho, recepción y entrega de activos físicos. '
-              'El servidor autoriza cada operación.',
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildEntryCard(
-                c,
-                key: 'home-entry-operator',
-                icon: Icons.inventory_2_outlined,
-                title: 'Operaciones',
-                description: 'Abrir un activo y registrar su siguiente paso.',
-                route: AppRoutes.operator,
-              ),
-              const SizedBox(height: 12),
-              _buildEntryCard(
-                c,
-                key: 'home-entry-operator-pending',
-                icon: Icons.pending_actions_outlined,
-                title: 'Operaciones pendientes',
-                description: 'Operaciones guardadas en este teléfono que aún no '
-                    'se enviaron o no se pudieron confirmar.',
-                route: AppRoutes.operatorPending,
-              ),
-            ],
-          ),
-        );
-      case HomeSection.prediction:
-        return _buildSection(
-          c,
-          key: 'home-section-prediction',
-          title: 'Predicción',
-          subtitle: 'Estimación de la probabilidad de que una convocatoria '
-              'alcance su meta y del porcentaje final esperado. Es una '
-              'estimación, no una promesa de recaudo.',
-          body: _buildEntryCard(
-            c,
-            key: 'home-entry-prediction',
-            icon: Icons.insights_outlined,
-            title: 'Consultar una predicción',
-            description: 'Elige una convocatoria de tu organización.',
-            route: AppRoutes.prediction,
-          ),
-        );
-    }
-  }
-
-  Widget _buildSection(
-    _HomeColors c, {
-    required String key,
-    required String title,
-    required String subtitle,
-    required Widget body,
-  }) {
-    return Column(
-      key: Key(key),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: c.text)),
-        const SizedBox(height: 4),
-        Text(subtitle, style: TextStyle(fontSize: 13, color: c.textMuted, height: 1.4)),
-        const SizedBox(height: 20),
-        body,
-      ],
-    );
-  }
-
-  /// Acceso a una ruta del árbol aprobado.
-  Widget _buildEntryCard(
-    _HomeColors c, {
-    required String key,
-    required IconData icon,
-    required String title,
-    required String description,
-    required String route,
-  }) {
-    return Material(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        key: Key(key),
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).pushNamed(route),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: c.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 20, color: _accent),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: c.text)),
-                    const SizedBox(height: 3),
-                    Text(description, style: TextStyle(fontSize: 12, color: c.textMuted, height: 1.35)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: c.textMuted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileUnavailable(_HomeColors c) {
-    return Container(
+  Widget _buildProfileUnavailable() {
+    return Notice(
       key: const Key('home-profile-unavailable'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.person_off_outlined, size: 20, color: Color(0xFFF59E0B)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'No pudimos cargar tu perfil. Solo se muestran las secciones comunes '
-              'a cualquier cuenta.',
-              style: TextStyle(fontSize: 12.5, color: c.text, height: 1.35),
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            key: const Key('home-profile-retry'),
-            onPressed: _reloadingProfile ? null : _reloadProfile,
-            child: const Text('Reintentar'),
-          ),
-        ],
+      kind: NoticeKind.warning,
+      title: 'No pudimos cargar tu perfil',
+      text: 'Por ahora solo ves las secciones para donantes.',
+      action: Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton(
+          key: const Key('home-profile-retry'),
+          onPressed: _reloadingProfile ? null : _reloadProfile,
+          child: const Text('Intentar de nuevo'),
+        ),
       ),
     );
   }
@@ -384,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Estructura: barra superior, lateral e inferior
   // ---------------------------------------------------------------------------
 
-  Widget _buildTopAppBar(_HomeColors c, bool isDesktop, Principal? principal) {
+  Widget _buildTopAppBar(PaxPalette c, bool isDesktop, Principal? principal) {
     return Container(
       height: 64,
       decoration: BoxDecoration(
@@ -398,36 +199,24 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!isDesktop)
             _buildBrand(c, fontSize: 23)
           else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _accent.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                _roleSummary(principal),
-                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: _accent),
-              ),
-            ),
+            StatusChip(_roleSummary(principal)),
           Row(
             children: [
               IconButton(
                 key: const Key('home-scan'),
-                tooltip: 'Escanear QR',
+                tooltip: 'Escanear un código QR',
                 icon: Icon(Icons.qr_code_scanner, color: c.textMuted, size: 20),
                 onPressed: () => scanQr(context),
               ),
               IconButton(
-                tooltip: _isDarkMode ? 'Modo claro' : 'Modo oscuro',
+                tooltip: c.dark ? 'Modo claro' : 'Modo oscuro',
                 icon: Icon(
-                  _isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
-                  color: _isDarkMode ? const Color(0xFFFBBF24) : c.text,
+                  c.dark ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+                  color: c.dark ? const Color(0xFFFBBF24) : c.text,
                   size: 20,
                 ),
                 onPressed: _toggleTheme,
               ),
-              const SizedBox(width: 4),
               IconButton(
                 key: const Key('home-logout'),
                 tooltip: 'Cerrar sesión',
@@ -441,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBrand(_HomeColors c, {required double fontSize}) {
+  Widget _buildBrand(PaxPalette c, {required double fontSize}) {
     return RichText(
       text: TextSpan(
         text: 'PaxFide',
@@ -453,17 +242,14 @@ class _HomeScreenState extends State<HomeScreen> {
           color: c.text,
         ),
         children: const [
-          TextSpan(
-            text: '.',
-            style: TextStyle(color: _accent, fontWeight: FontWeight.w900),
-          ),
+          TextSpan(text: '.', style: TextStyle(color: paxAccent, fontWeight: FontWeight.w900)),
         ],
       ),
     );
   }
 
   Widget _buildDesktopSidebar(
-    _HomeColors c,
+    PaxPalette c,
     List<HomeSection> sections,
     HomeSection selected,
     Principal? principal,
@@ -478,52 +264,33 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildBrand(c, fontSize: 25),
-          ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 8.0), child: _buildBrand(c, fontSize: 25)),
           const SizedBox(height: 36),
           for (final section in sections) _buildSidebarNavItem(c, section, selected),
           const Spacer(),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _isDarkMode
-                    ? [const Color(0xFF131D27), const Color(0xFF0F1620)]
-                    : [const Color(0xFFF8FAFC), Colors.white],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: c.surfaceAlt,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: c.border),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: _accent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.person_outline_rounded, size: 16, color: _accent),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _roleSummary(principal),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: c.text),
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: paxAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.person_outline_rounded, size: 16, color: paxAccent),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Lo que ves depende de tu rol. El servidor autoriza cada operación.',
-                  style: TextStyle(fontSize: 11, color: c.textMuted, height: 1.3),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _roleSummary(principal),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: c.text),
+                  ),
                 ),
               ],
             ),
@@ -533,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSidebarNavItem(_HomeColors c, HomeSection section, HomeSection selected) {
+  Widget _buildSidebarNavItem(PaxPalette c, HomeSection section, HomeSection selected) {
     final isSelected = section == selected;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -545,12 +312,12 @@ class _HomeScreenState extends State<HomeScreen> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: isSelected ? _accent.withValues(alpha: 0.14) : Colors.transparent,
+            color: isSelected ? paxAccent.withValues(alpha: 0.14) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              Icon(section.icon, size: 19, color: isSelected ? _accent : c.textMuted),
+              Icon(section.icon, size: 19, color: isSelected ? paxAccent : c.textMuted),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
@@ -559,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                    color: isSelected ? _accent : c.textMuted,
+                    color: isSelected ? paxAccent : c.textMuted,
                   ),
                 ),
               ),
@@ -570,27 +337,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMobileBottomBar(
-    _HomeColors c,
-    List<HomeSection> sections,
-    HomeSection selected,
-  ) {
+  Widget _buildMobileBottomBar(PaxPalette c, List<HomeSection> sections, HomeSection selected) {
     return Container(
-      height: 60,
+      height: 62,
       decoration: BoxDecoration(
         color: c.surface,
         border: Border(top: BorderSide(color: c.border)),
       ),
       child: Row(
         children: [
-          for (final section in sections)
-            Expanded(child: _buildMobileNavBtn(c, section, selected)),
+          for (final section in sections) Expanded(child: _buildMobileNavBtn(c, section, selected)),
         ],
       ),
     );
   }
 
-  Widget _buildMobileNavBtn(_HomeColors c, HomeSection section, HomeSection selected) {
+  Widget _buildMobileNavBtn(PaxPalette c, HomeSection section, HomeSection selected) {
     final isSel = section == selected;
     return GestureDetector(
       key: Key('home-nav-${section.name}'),
@@ -599,15 +361,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(section.icon, size: 20, color: isSel ? _accent : c.textMuted),
-          const SizedBox(height: 2),
+          Icon(section.icon, size: 21, color: isSel ? paxAccent : c.textMuted),
+          const SizedBox(height: 3),
           Text(
             section.shortLabel,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 10.5,
               fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-              color: isSel ? _accent : c.textMuted,
+              color: isSel ? paxAccent : c.textMuted,
             ),
           ),
         ],
@@ -626,18 +388,4 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     return labels.isEmpty ? 'Cuenta' : labels.join(' · ');
   }
-}
-
-const Color _accent = Color(0xFF10B981);
-
-/// Paleta de la home en modo claro u oscuro.
-class _HomeColors {
-  final bool dark;
-  const _HomeColors({required this.dark});
-
-  Color get bg => dark ? const Color(0xFF070B0E) : const Color(0xFFF1F5F9);
-  Color get surface => dark ? const Color(0xFF0F151D) : Colors.white;
-  Color get border => dark ? const Color(0xFF1F2D3D) : const Color(0xFFE2E8F0);
-  Color get text => dark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
-  Color get textMuted => dark ? const Color(0xFF7E92A7) : const Color(0xFF64748B);
 }

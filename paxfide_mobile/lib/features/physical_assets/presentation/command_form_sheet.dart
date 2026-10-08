@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/theme/pax_theme.dart';
 import '../domain/asset_action.dart';
 import '../domain/asset_command.dart';
 
 String actionLabel(AssetAction a) => switch (a) {
-      AssetAction.dispatch => 'Despachar',
+      AssetAction.dispatch => 'Enviar',
       AssetAction.receive => 'Recibir',
       AssetAction.deliver => 'Entregar',
-      AssetAction.readOnly => 'Solo lectura',
+      AssetAction.readOnly => 'Sin acciones',
     };
 
-/// Formulario de comando: transitorio sobre `AssetScreen` (hoja), nunca una
+/// Explicación de cada paso para quien lo registra.
+String actionHint(AssetAction a) => switch (a) {
+      AssetAction.dispatch => 'Regístralo cuando el envío salga de la bodega.',
+      AssetAction.receive => 'Regístralo cuando el envío llegue al centro de acopio.',
+      AssetAction.deliver => 'Regístralo cuando entregues las ayudas a quien las necesita.',
+      AssetAction.readOnly => 'Este envío ya terminó su recorrido.',
+    };
+
+/// Formulario de un paso: hoja transitoria sobre `AssetScreen`, nunca una
 /// ruta ni restaurable (§12 regla 2).
 Future<AssetCommand?> showCommandForm(BuildContext context, AssetAction action, String assetRef) {
   return showModalBottomSheet<AssetCommand>(
@@ -64,6 +73,7 @@ class _CommandFormState extends State<_CommandForm> {
   @override
   Widget build(BuildContext context) {
     final spec = AssetCommand.fields[widget.action]!;
+    final p = PaxPalette.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
@@ -72,9 +82,9 @@ class _CommandFormState extends State<_CommandForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(actionLabel(widget.action), style: Theme.of(context).textTheme.titleLarge),
+            Text(actionLabel(widget.action), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: p.text)),
             const SizedBox(height: 4),
-            Text('Activo ${widget.assetRef}', style: Theme.of(context).textTheme.bodySmall),
+            Text(actionHint(widget.action), style: TextStyle(fontSize: 13, color: p.textMuted)),
             const SizedBox(height: 16),
             for (final f in spec) ...[
               TextField(
@@ -83,13 +93,14 @@ class _CommandFormState extends State<_CommandForm> {
                 maxLength: AssetCommand.maxLength,
                 decoration: InputDecoration(
                   labelText: f.label,
-                  border: const OutlineInputBorder(),
-                  errorText: _invalid.contains(f.key) ? 'Obligatorio (máximo ${AssetCommand.maxLength})' : null,
+                  counterText: '',
+                  errorText: _invalid.contains(f.key) ? 'Completa este dato' : null,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
             ],
-            FilledButton(key: const Key('form-submit'), onPressed: _submit, child: Text(actionLabel(widget.action))),
+            const SizedBox(height: 6),
+            FilledButton(key: const Key('form-submit'), onPressed: _submit, child: Text('Registrar: ${actionLabel(widget.action).toLowerCase()}')),
           ],
         ),
       ),

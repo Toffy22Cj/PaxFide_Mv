@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paxfide_mobile/core/offline/outbox_item.dart';
+import 'package:paxfide_mobile/core/offline/outbox_status.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/session_controller.dart';
@@ -178,28 +180,39 @@ void main() {
 
     testWidgets('escritorio: la barra lateral también depende del rol', (tester) async {
       await pumpApp(tester, token: 't', meResult: const MeSucceeded(donor), size: const Size(1280, 800));
-      expect(find.text('Convocatorias'), findsWidgets);
+      expect(find.text('Causas'), findsWidgets);
       expect(find.byKey(const Key('home-nav-operator')), findsNothing);
     });
 
-    testWidgets('operaciones pendientes abre /operator/pending', (tester) async {
-      await pumpApp(tester, token: 't', meResult: const MeSucceeded(fieldOperator));
+    testWidgets('operaciones: con pasos sin confirmar, el aviso abre /operator/pending', (tester) async {
+      final h = Harness(token: 't', meResult: const MeSucceeded(fieldOperator));
+      h.api.routes['GET /organizations/org-1/physical-assets'] = (_) => ok({'items': <Object>[]});
+      h.outboxStore.items['c1'] = OutboxItem(
+        commandId: 'c1',
+        accountId: fieldOperator.accountId,
+        kind: 'DISPATCH',
+        resourceRef: 'AS-1',
+        path: '/physical-assets/AS-1/dispatch',
+        payload: const {},
+        status: OutboxStatus.pending,
+        createdAt: DateTime.utc(2026, 10, 8),
+      );
+      await h.pump(tester);
       await tester.tap(find.byKey(const Key('home-nav-operator')));
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('operator-pending-notice')), findsOneWidget);
       await tester.tap(find.byKey(const Key('home-entry-operator-pending')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('pending-empty')), findsOneWidget);
       expect(currentRoute(tester), '/operator/pending');
+      expect(find.byKey(const Key('outbox-entry-c1')), findsOneWidget);
     });
 
-    testWidgets('seguimiento abre /tracking sin código', (tester) async {
+    testWidgets('seguimiento se consulta dentro de la home, sin código en la ruta', (tester) async {
       await pumpApp(tester, token: 't');
       await tester.tap(find.byKey(const Key('home-nav-tracking')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('home-entry-tracking')));
-      await tester.pumpAndSettle();
       expect(find.byKey(const Key('tracking-code')), findsOneWidget);
-      expect(currentRoute(tester), '/tracking');
+      expect(currentRoute(tester), '/home');
     });
 
     testWidgets('NEGATIVA: la home no muestra el dominio inventado ni datos escritos a mano', (tester) async {

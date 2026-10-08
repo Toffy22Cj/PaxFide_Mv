@@ -25,6 +25,9 @@ class Harness {
     // Respuestas por defecto de las secciones de la home.
     api.routes['GET /public/campaigns'] = (_) => ok({'items': <Object>[]});
     api.routes['GET /account/donations'] = (_) => ok({'items': <Object>[]});
+    api.routes['GET /organizations/org-1/physical-assets'] = (_) => ok({'items': <Object>[]});
+    api.routes['GET /organizations/org-1/campaigns'] = (_) => ok({'items': <Object>[]});
+    api.routes['GET /me/campaigns'] = (_) => ok({'items': <Object>[]});
     session = SessionController(tokenStore: tokenStore, meGateway: meGateway);
     services = AppServices(
       config: AppConfig(apiBaseUrl: Uri.parse('http://test/api/v1'), publicOrigin: publicOrigin),

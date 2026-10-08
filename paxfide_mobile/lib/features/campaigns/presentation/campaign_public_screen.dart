@@ -5,16 +5,15 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/labels.dart';
 import '../../../shared/money.dart';
-import '../../../shared/widgets/amount_bars.dart';
+import '../../../shared/quantity.dart';
+import '../../../shared/theme/pax_theme.dart';
 import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../donations/presentation/donate_sheet.dart';
 import '../data/campaign_api.dart';
 
-/// `/c/:publicCode` (§13): convocatoria pública y su narrativa (sección, no
-/// ruta), con los hechos separados del relato (DDM-26). Estados: carga,
-/// contenido, código inexistente (404), error, narrativa pendiente o no
-/// disponible.
+/// `/c/:publicCode` (§13): una causa, cuánto lleva, lo logrado y su historia.
+/// Los datos registrados se muestran aparte del relato (DDM-26).
 class CampaignPublicScreen extends StatefulWidget {
   const CampaignPublicScreen({super.key, required this.publicCode});
 
@@ -73,14 +72,14 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
   Widget build(BuildContext context) {
     final qr = _campaign == null ? null : _services.publicLinks.campaign(widget.publicCode);
     return AppPage(
-      title: 'Convocatoria',
+      title: 'Causa',
       actions: [
         if (qr != null)
           IconButton(
             key: const Key('campaign-qr'),
-            tooltip: 'Mostrar QR de la convocatoria',
+            tooltip: 'Compartir con código QR',
             icon: const Icon(Icons.qr_code_2),
-            onPressed: () => showQrSheet(context, title: 'QR de la convocatoria', url: qr),
+            onPressed: () => showQrSheet(context, title: 'Código QR de la causa', url: qr),
           ),
       ],
       body: _body(context),
@@ -90,37 +89,43 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
   Widget _body(BuildContext context) {
     final e = _error;
     if (e is NotFoundException) {
-      return const MessageView(icon: Icons.search_off, title: 'No encontramos esta convocatoria.');
+      return const MessageView(icon: Icons.search_off, title: 'No encontramos esta causa.');
     }
     if (e != null) return ErrorRetryView(message: describeError(e), onRetry: _load);
     final c = _campaign;
     if (c == null) return const LoadingView();
-    final theme = Theme.of(context);
+    final p = PaxPalette.of(context);
     final target = int.tryParse(c.targetAmount ?? '');
-    final cleared = int.tryParse(c.clearedAmount ?? '');
+    final cleared = int.tryParse(c.clearedAmount ?? '') ?? 0;
     return Column(
       key: const Key('campaign-detail'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(c.title, style: theme.textTheme.headlineSmall),
-        if (c.organizationName.isNotEmpty) Text(c.organizationName, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Text('${campaignStatusLabel(c.status)} · del ${shortDate(c.startDate)} al ${shortDate(c.endDate)}'),
-        if (c.description != null) ...[const SizedBox(height: 12), Text(c.description!)],
-        const SizedBox(height: 12),
-        if (target != null || cleared != null)
+        Text(c.title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: p.text)),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            if (c.organizationName.isNotEmpty)
+              Flexible(child: Text(c.organizationName, style: TextStyle(fontSize: 13.5, color: p.textMuted))),
+            const SizedBox(width: 8),
+            StatusChip(campaignStatusLabel(c.status), color: c.status == 'OPEN' ? paxAccent : p.textMuted),
+          ],
+        ),
+        if (c.description != null) ...[
+          const SizedBox(height: 12),
+          Text(c.description!, style: TextStyle(fontSize: 14, color: p.text, height: 1.5)),
+        ],
+        const SizedBox(height: 16),
+        if (target != null && target > 0)
           SectionCard(
-            title: 'Recaudación',
-            child: AmountBars(
-              bars: [
-                if (target != null) AmountBar('Meta', target, formatMinorUnits(target, c.currency)),
-                if (cleared != null) AmountBar('Recaudado y acreditado', cleared, formatMinorUnits(cleared, c.currency)),
-              ],
+            icon: Icons.savings_outlined,
+            title: 'Lo recaudado',
+            child: ProgressLine(
+              value: cleared / target,
+              label: '${formatMinorUnits(cleared, c.currency)} de ${formatMinorUnits(target, c.currency)} · '
+                  'termina el ${shortDate(c.endDate)}',
             ),
           ),
-        if (c.acceptedDonationTypes.isNotEmpty)
-          Text('Acepta: ${c.acceptedDonationTypes.map(donationTypeLabel).join(', ')}'),
-        const SizedBox(height: 12),
         if (canDonate(c)) ...[
           FilledButton.icon(
             key: const Key('donate-open'),
@@ -129,49 +134,64 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
             onPressed: () => showDonateSheet(context, publicCode: widget.publicCode, currency: c.currency!),
           ),
           const SizedBox(height: 12),
-        ],
-        _narrativeSection(context),
+        ] else if (c.status != 'OPEN')
+          const Notice(text: 'Esta causa ya terminó y no recibe más donaciones.'),
+        _achievements(context),
       ],
     );
   }
 
-  Widget _narrativeSection(BuildContext context) {
+  /// Lo logrado (datos registrados) y la historia contada a partir de ellos.
+  Widget _achievements(BuildContext context) {
     final n = _narrative;
-    final theme = Theme.of(context);
+    final p = PaxPalette.of(context);
     final f = n?.facts;
     return SectionCard(
       key: const Key('campaign-narrative'),
-      title: 'Hechos registrados',
+      icon: Icons.emoji_events_outlined,
+      title: 'Lo que se ha logrado',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (f != null) ...[
-            Text('Unidades entregadas: ${f.unitsDelivered}'),
-            Text('Receptores distintos: ${f.distinctRecipients}'),
-            if (f.clearedAmount != null) Text('Acreditado: ${formatMinorUnits(f.clearedAmount!, f.currency)}'),
-          ],
-          const Divider(),
-          Text('Relato', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
+          if (f != null)
+            Row(
+              children: [
+                Expanded(child: _Stat(value: formatQuantity(f.unitsDelivered), label: 'ayudas entregadas')),
+                Expanded(child: _Stat(value: f.distinctRecipients, label: 'lugares o personas que recibieron')),
+              ],
+            ),
+          const SizedBox(height: 12),
           if (_narrativeLoading)
             const LinearProgressIndicator()
           else if (n == null || n.status == 'PENDING') ...[
-            Text(n == null ? 'No pudimos cargar el relato.' : 'El relato todavía se está preparando.'),
-            TextButton(onPressed: _loadNarrative, child: const Text('Actualizar')),
-          ] else if (n.status == 'UNAVAILABLE')
-            Text(n.content ?? 'Narrativa no disponible')
-          else ...[
-            Text(n.content ?? ''),
-            const SizedBox(height: 8),
-            Text(
-              n.source == 'LLM_GENERATED'
-                  ? 'Texto generado con IA a partir de los hechos registrados.'
-                  : 'Texto de plantilla a partir de los hechos registrados.',
-              style: theme.textTheme.bodySmall,
+            Text(n == null ? 'No pudimos cargar la historia.' : 'Estamos preparando la historia de esta causa.',
+                style: TextStyle(fontSize: 13, color: p.textMuted)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(onPressed: _loadNarrative, child: const Text('Volver a mirar')),
             ),
-          ],
+          ] else if (n.status == 'AVAILABLE' && (n.content ?? '').isNotEmpty)
+            Text(n.content!, style: TextStyle(fontSize: 14, color: p.text, height: 1.5)),
         ],
       ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.label});
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PaxPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: paxAccent)),
+        Text(label, style: TextStyle(fontSize: 12, color: p.textMuted)),
+      ],
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../shared/theme/pax_theme.dart';
+
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/campaigns/presentation/campaign_public_screen.dart';
@@ -13,9 +15,6 @@ import '../features/tracking/presentation/tracking_screen.dart';
 import 'app_router.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
-
-/// Color de marca de PaxFide.
-const Color paxfideGreen = Color(0xFF1E4A38);
 
 /// Raíz de la app. Recibe sus dependencias para poder probarla con dobles.
 class PaxFideApp extends StatefulWidget {
@@ -61,26 +60,16 @@ class _PaxFideAppState extends State<PaxFideApp> {
   Widget build(BuildContext context) {
     return AppScope(
       services: widget.services,
-      child: MaterialApp(
-        title: 'PaxFide',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: paxfideGreen),
-          scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-          cardTheme: CardThemeData(
-            color: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-          ),
-          appBarTheme: const AppBarTheme(backgroundColor: Colors.white, surfaceTintColor: Colors.white),
-          useMaterial3: true,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: widget.services.darkMode,
+        builder: (context, dark, _) => MaterialApp(
+          title: 'PaxFide',
+          debugShowCheckedModeBanner: false,
+          theme: paxTheme(dark: dark),
+          initialRoute: widget.initialRoute,
+          onGenerateInitialRoutes: _router.onGenerateInitialRoutes,
+          onGenerateRoute: _router.onGenerateRoute,
         ),
-        initialRoute: widget.initialRoute,
-        onGenerateInitialRoutes: _router.onGenerateInitialRoutes,
-        onGenerateRoute: _router.onGenerateRoute,
       ),
     );
   }

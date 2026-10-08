@@ -16,16 +16,16 @@ class AssetCommand {
   static const int maxLength = 256;
 
   static const Map<AssetAction, List<CommandField>> fields = {
-    AssetAction.dispatch: [CommandField('carrierRef', 'Transportista')],
+    AssetAction.dispatch: [CommandField('carrierRef', '¿Quién lo transporta?')],
     AssetAction.receive: [
-      CommandField('facilityLocation', 'Lugar de recepción'),
-      CommandField('receiverRef', 'Quién recibe'),
+      CommandField('facilityLocation', '¿Dónde se recibe?'),
+      CommandField('receiverRef', '¿Quién lo recibe?'),
     ],
     AssetAction.deliver: [
-      CommandField('finalCustodianRef', 'Custodio final'),
-      CommandField('beneficiaryRef', 'Beneficiario (referencia)'),
-      CommandField('locationRef', 'Lugar de entrega'),
-      CommandField('evidenceRef', 'Referencia de la evidencia'),
+      CommandField('finalCustodianRef', '¿Quién queda a cargo?'),
+      CommandField('beneficiaryRef', '¿A quién se entrega?'),
+      CommandField('locationRef', '¿Dónde se entrega?'),
+      CommandField('evidenceRef', 'Número del acta o de la foto de entrega'),
     ],
   };
 

@@ -116,10 +116,13 @@ class PredictionHistory {
 
 /// Convocatoria elegible para la predicción (de `GET /organizations/{id}/campaigns` o `GET /me/campaigns`).
 class CampaignChoice {
-  const CampaignChoice({required this.campaignRef, required this.title, required this.status});
+  const CampaignChoice({required this.campaignRef, required this.title, required this.status, this.publicCode});
   final String campaignRef;
   final String title;
   final String status;
+
+  /// Para leer meta, recaudado y fechas en `GET /public/campaigns/{publicCode}`.
+  final String? publicCode;
 
   static List<CampaignChoice> listFrom(Map<String, dynamic> j) {
     final items = j['items'];
@@ -131,6 +134,7 @@ class CampaignChoice {
             campaignRef: i['campaignRef'] as String,
             title: i['title'] as String,
             status: '${i['status']}',
+            publicCode: i['publicCode'] is String ? i['publicCode'] as String : null,
           ),
     ];
   }

@@ -363,6 +363,17 @@ Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revis
 - `flutter test`: tests unitarios, de pantallas y de flujos con dobles, incluidas las aserciones negativas (sin rol elegible, código de seguimiento nunca en una ruta, cuenta ajena en el Outbox, 403 como estado de pantalla, ningún reintento automático).
 - `test/integration/backend_real_test.dart` contra el backend `Toffy22Cj/Donaciones` (`develop`, perfil `demo-seed`, anclaje en Ganache): login rechazado, roles desde `/me`, convocatorias, registro + donación + pago simulado + código de seguimiento, seguimiento con integridad `MATCH`, recibir y entregar un activo por el Outbox (y un rechazo 409 como `FAILED`), predicción con historial y T-1 con un JWT inválido: **8/8**.
 
+### 8.6 Diseño único y lenguaje para usuario común (2026-10-08)
+
+A petición del dueño del producto, sin cambiar contratos ni decisiones de arquitectura:
+
+- **Un solo diseño:** el del inicio de este front (modo oscuro por defecto, verde de acento, tarjetas con borde) se aplica a todas las pantallas mediante un tema común (`PaxPalette`/`paxTheme`); el cambio de modo oscuro/claro afecta a toda la app. El login conserva su diseño propio.
+- **Sin clics de más:** cada sección del inicio muestra su contenido directamente (causas, mis donaciones, seguimiento, operaciones de campo y predicción). Las rutas `/tracking`, `/operator` y `/prediction` siguen existiendo y muestran el mismo contenido como pantalla completa.
+- **Lenguaje sencillo:** "convocatoria" se muestra como "causa"; los pasos del activo como Enviar, Recibir y Entregar; los estados del Outbox como "Guardado sin enviar", "No sabemos si se registró" (con "Comprobar" antes que "Enviar otra vez") y "No se pudo registrar". La semántica de D6 no cambia.
+- **Predicción explicada:** respuesta principal en palabras ("Podría alcanzar la meta"), probabilidad en porcentaje entero, lo recaudado frente a la meta y el tiempo transcurrido. Sin cifra, se explica el motivo y, si es pronto, desde qué fecha habrá estimación (el 15 % del tiempo de la causa). La etiqueta técnica de DDM-30 ("modelo entrenado con datos sintéticos", versión del modelo) se sustituye por "Es un cálculo aproximado y cambia con cada nueva donación"; el texto `unavailableText` del backend no se muestra. Sigue sin calcularse ninguna cifra en el cliente.
+- **Integridad:** el seguimiento dice "Registro protegido" solo con todos los lotes en `MATCH` y nada sin anclar; el comprobante (transacción, red y fecha) queda plegado en "Ver comprobante". La raíz Merkle ya no se muestra.
+- **Importes:** formato colombiano (`$1.000.000 COP`, coma decimal solo si hay centavos), que sustituye al formato de DDM-37 (`1 000 000,00 COP`); al donar se aceptan puntos de miles. Las unidades mínimas del contrato no cambian.
+
 ---
 
 ## Anexo histórico — Registros del prototipo de interfaz (2026-10-06 y 2026-10-07)

@@ -69,6 +69,9 @@ class AppServices {
   final SyncEngine syncEngine;
   late final AssetOperations assetOperations;
   final PendingIntentHolder pendingIntents = PendingIntentHolder();
+
+  /// Modo oscuro (por defecto) o claro, para toda la app.
+  final ValueNotifier<bool> darkMode = ValueNotifier(true);
 }
 
 /// Construye las dependencias reales.
