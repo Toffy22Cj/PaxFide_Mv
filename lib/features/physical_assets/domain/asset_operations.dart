@@ -6,7 +6,7 @@ import '../../../core/offline/sync_engine.dart';
 import '../data/physical_asset_api.dart';
 import 'asset_action.dart';
 import 'asset_command.dart';
-import 'command_id.dart';
+import '../../../core/util/command_id.dart';
 
 /// Operaciones del operador sobre PhysicalAsset a través del Outbox (ADR-043 D6, H2).
 ///

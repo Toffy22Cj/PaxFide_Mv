@@ -1,7 +1,7 @@
 import 'dart:math';
 
-/// `Command-Id`: UUID v4 con `Random.secure()` del SDK (DDM-05). Se genera aquí, en el dominio, nunca en
-/// `ApiClient` (D4) ni en un deep link (R3).
+/// `Command-Id`: UUID v4 con `Random.secure()` del SDK (DDM-05). Lo usan los dominios (activos, donaciones), nunca
+/// `ApiClient` (D4) ni un deep link (R3).
 class CommandIdGenerator {
   CommandIdGenerator([Random? random]) : _random = random ?? Random.secure();
 

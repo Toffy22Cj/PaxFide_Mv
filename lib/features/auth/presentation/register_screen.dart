@@ -6,7 +6,11 @@ import '../../../shared/error_messages.dart';
 import 'auth_layout.dart';
 
 /// `/register`: `POST /auth/register` (`{email, password}` → 201). No inicia sesión: el backend no devuelve token.
-/// Sin política de contraseña en el cliente: el backend no la tiene (H-P2-1) y no se inventa.
+/// La única regla de contraseña es la del backend: al menos 12 caracteres (`PasswordTooShort`); se comprueba antes de
+/// enviar y el backend la vuelve a validar.
+/// Mínimo de la contraseña según el backend (`PasswordTooShort`, referencia-api-v1 §1, develop 1b012da).
+const minPasswordLength = 12;
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -35,6 +39,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _error = 'Escribe un email y una contraseña.');
       return;
     }
+    if (password.length < minPasswordLength) {
+      setState(() => _error = 'La contraseña debe tener al menos $minPasswordLength caracteres.');
+      return;
+    }
     setState(() {
       _sending = true;
       _error = null;
@@ -52,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _sending = false;
         _error = switch (e) {
           ConflictException() => 'Ya existe una cuenta con ese email.',
-          BadRequestException() => 'Revisa el email: no es válido.',
+          BadRequestException() => 'Revisa el email y que la contraseña tenga al menos $minPasswordLength caracteres.',
           _ => describeError(e),
         };
       });
@@ -93,7 +101,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _password,
             enabled: !_sending,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Contraseña',
+              helperText: 'Al menos $minPasswordLength caracteres',
+              border: OutlineInputBorder(),
+            ),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
