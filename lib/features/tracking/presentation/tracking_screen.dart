@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/money.dart';
 import '../../../shared/widgets/amount_bars.dart';
 import '../../physical_assets/domain/lifecycle_status.dart';
 import '../data/tracking_api.dart';
@@ -167,7 +168,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   Widget _content(BuildContext context, TrackingSummary s) {
     final f = s.financial;
-    final cur = f.currency ?? '';
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -183,13 +183,21 @@ class _TrackingScreenState extends State<TrackingScreen> {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: AmountBars(
-              unit: cur,
               bars: [
-                AmountBar('Donado', f.originalAmount),
-                AmountBar('Acreditado', f.clearedAmount),
-                AmountBar('Asignación pendiente', f.pendingAllocationAmount),
-                AmountBar('Asignación confirmada', f.confirmedAllocationAmount),
-                if (f.refundedAmount > 0) AmountBar('Reembolsado', f.refundedAmount),
+                AmountBar('Donado', f.originalAmount, formatMinorUnits(f.originalAmount, f.currency)),
+                AmountBar('Acreditado', f.clearedAmount, formatMinorUnits(f.clearedAmount, f.currency)),
+                AmountBar(
+                  'Asignación pendiente',
+                  f.pendingAllocationAmount,
+                  formatMinorUnits(f.pendingAllocationAmount, f.currency),
+                ),
+                AmountBar(
+                  'Asignación confirmada',
+                  f.confirmedAllocationAmount,
+                  formatMinorUnits(f.confirmedAllocationAmount, f.currency),
+                ),
+                if (f.refundedAmount > 0)
+                  AmountBar('Reembolsado', f.refundedAmount, formatMinorUnits(f.refundedAmount, f.currency)),
               ],
             ),
           ),

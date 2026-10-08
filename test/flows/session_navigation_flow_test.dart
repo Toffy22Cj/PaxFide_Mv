@@ -194,7 +194,7 @@ void main() {
     expect(h.location, AppRoutes.register);
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-9', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
-    await tester.enterText(find.byKey(const Key('register.password')), 'pw');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Cuenta creada'), findsOneWidget);
@@ -210,7 +210,7 @@ void main() {
     await tester.pumpAndSettle();
     h.api.enqueue(const ApiResponse(statusCode: 409));
     await tester.enterText(find.byKey(const Key('register.email')), 'ya@demo');
-    await tester.enterText(find.byKey(const Key('register.password')), 'pw');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Ya existe una cuenta con ese email.'), findsOneWidget);
@@ -233,5 +233,35 @@ void main() {
     await tester.pumpAndSettle();
     await h.login(tester, roles: const ['EMPLOYEE']);
     expect(find.text('Operaciones'), findsWidgets);
+  });
+
+  testWidgets('/register: contraseña de menos de 12 caracteres → no se envía (regla del backend, PasswordTooShort)', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'onceeeeeeee');
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('La contraseña debe tener al menos 12 caracteres.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('/register: 400 del backend (PasswordTooShort u email) → mensaje que nombra las dos reglas', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    h.api.enqueue(const ApiResponse(statusCode: 400));
+    await tester.enterText(find.byKey(const Key('register.email')), 'raro');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Revisa el email y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
   });
 }

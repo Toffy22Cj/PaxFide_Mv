@@ -5,6 +5,7 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/money.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/account_donations_api.dart';
 
@@ -80,7 +81,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
               child: ListTile(
                 title: Text(d.campaignTitle),
                 subtitle: Text(donationStatusLabel(d.status)),
-                trailing: Text('${d.amount} ${d.currency}'),
+                trailing: Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
               ),
             ),
           const Padding(

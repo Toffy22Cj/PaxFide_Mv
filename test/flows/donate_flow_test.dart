@@ -51,7 +51,7 @@ void main() {
   Iterable<dynamic> creates(AppHarness h) =>
       h.api.calls.where((c) => c.method == 'POST' && c.path == '/public/campaigns/PUB1/donation-intents');
 
-  test('importe: dígitos en unidades enteras, sin signo ni decimales', () {
+  test('importe ya en unidades mínimas: dígitos, sin signo ni decimales', () {
     expect(isValidAmount('4000000'), isTrue);
     for (final bad in ['', '0', '-5', '1.5', '1e3', ' 10', '0010']) {
       expect(isValidAmount(bad), isFalse, reason: bad);
@@ -79,7 +79,7 @@ void main() {
           ? const ApiResponse(statusCode: 200, data: {'status': 'PENDING'})
           : const ApiResponse(statusCode: 200, data: {'status': 'CONFIRMED', 'trackingCode': 'CODIGO-NUEVO'});
     };
-    await donate(tester, '4000000');
+    await donate(tester, '40000'); // pesos; al backend van unidades mínimas
 
     final post = creates(h).single;
     expect(post.credentialMode, CredentialMode.none);
@@ -147,10 +147,29 @@ void main() {
     expect(ids[0], isNot(ids[1]));
   });
 
-  testWidgets('importe inválido → no se envía nada', (tester) async {
+  testWidgets('importe inválido (más de 2 decimales) → no se envía nada', (tester) async {
     final h = await openCampaign(tester);
-    await donate(tester, '10,5');
+    await donate(tester, '10,555');
     expect(creates(h), isEmpty);
-    expect(find.textContaining('unidades enteras'), findsOneWidget);
+    expect(find.text('Escribe un importe válido en COP (hasta 2 decimales).'), findsOneWidget);
+  });
+
+  testWidgets('pesos con decimales → unidades mínimas, con vista previa antes de enviar', (tester) async {
+    final h = await openCampaign(tester);
+    h.api.routes[createPath] = (_) => created;
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('donate.amount')), '1000,50');
+    await tester.pump();
+    expect(find.text('Se donarán 1 000,50 COP.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donate.submit')));
+    await tester.pumpAndSettle();
+    expect(creates(h).single.body?['amount'], '100050');
+  });
+
+  testWidgets('moneda sin exponente conocido → no se ofrece donar', (tester) async {
+    await openCampaign(tester, c: campaign(currency: 'XYZ'));
+    expect(find.byKey(const Key('donate.open')), findsNothing);
   });
 }
