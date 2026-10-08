@@ -1,5 +1,5 @@
-import '../../../core/errors/app_exceptions.dart';
-import '../../../core/network/api_response.dart';
+import '../errors/app_exceptions.dart';
+import '../network/api_response.dart';
 
 /// Resultado de enviar un comando (ADR-043 D6, regla 2.6).
 enum CommandOutcome {

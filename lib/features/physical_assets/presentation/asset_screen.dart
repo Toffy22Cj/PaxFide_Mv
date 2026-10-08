@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
+import '../../../app/public_links.dart';
 import '../../../core/errors/app_exceptions.dart';
+import '../../../core/offline/command_outcome.dart';
+import '../../../core/offline/outbox_item.dart';
+import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
 import '../domain/asset_action.dart';
-import '../domain/asset_command.dart';
-import '../domain/command_id.dart';
-import '../domain/command_outcome.dart';
+import '../domain/asset_operations.dart';
 import '../domain/lifecycle_status.dart';
 import 'command_form_sheet.dart';
+import 'outbox_entry_card.dart';
 
 String lifecycleLabel(String wire) => switch (LifecycleStatus.fromWire(wire)) {
   LifecycleStatus.registered => 'Registrado',
@@ -24,18 +28,10 @@ String lifecycleLabel(String wire) => switch (LifecycleStatus.fromWire(wire)) {
   null => wire,
 };
 
-/// Último comando enviado desde esta pantalla (en memoria; el Outbox persistente llega en el bloque 2.4).
-class _SentCommand {
-  _SentCommand(this.command, this.commandId, this.outcome);
-  final AssetCommand command;
-  final String commandId;
-  CommandOutcome outcome;
-  int? statusCode;
-}
-
-/// `/assets/:assetRef` (§13): `GET /physical-assets/{assetRef}` + `ActionResolver` + estado del comando.
-/// Estados: carga; contenido; 403 (también inexistente u otra organización, DD-01); 404; error.
+/// `/assets/:assetRef` (§13): `GET /physical-assets/{assetRef}` + `ActionResolver` + estado del Outbox (incluido
+/// `AMBIGUOUS`). Estados: carga; contenido; 403 (también inexistente u otra organización, DD-01); 404; error.
 /// La acción solo se **muestra** a `EMPLOYEE` según `/me`; el backend autoriza cada petición (P7).
+/// El estado del comando sale del Outbox de la cuenta (H2) y sobrevive a los reinicios.
 class AssetScreen extends StatefulWidget {
   const AssetScreen({super.key, required this.assetRef});
   final String assetRef;
@@ -47,18 +43,32 @@ class AssetScreen extends StatefulWidget {
 class _AssetScreenState extends State<AssetScreen> {
   late final AppServices _services = AppScope.of(context);
   late final PhysicalAssetApi _api = PhysicalAssetApi(_services.apiClient);
-  final _ids = CommandIdGenerator();
+  late final AssetOperations _ops = AssetOperations(engine: _services.syncEngine, api: _api);
 
   PhysicalAssetDto? _asset;
   Object? _error;
   bool _loading = true;
-  bool _sending = false;
-  _SentCommand? _sent;
+  bool _busy = false;
+  List<OutboxItem> _entries = const [];
+  bool _started = false;
+
+  String? get _accountId => _services.session.principal?.accountId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_asset == null && _error == null && _loading) _load();
+    if (!_started) {
+      _started = true;
+      _services.syncEngine.addListener(_loadEntries);
+      _load();
+      _loadEntries();
+    }
+  }
+
+  @override
+  void dispose() {
+    _services.syncEngine.removeListener(_loadEntries);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -82,53 +92,76 @@ class _AssetScreenState extends State<AssetScreen> {
     }
   }
 
+  Future<void> _loadEntries() async {
+    final account = _accountId;
+    if (account == null) return;
+    try {
+      final all = await _services.syncEngine.entriesFor(account);
+      if (!mounted) return;
+      setState(() => _entries = all.where((i) => i.resourceRef == widget.assetRef).toList());
+    } on AppException {
+      // Almacén ilegible: lo explica /operator/pending.
+    }
+  }
+
+  Future<void> _run(Future<void> Function() body) async {
+    setState(() => _busy = true);
+    try {
+      await body();
+    } on AppException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(describeError(e))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _startAction(AssetAction action) async {
+    final account = _accountId;
+    if (account == null) return;
     final cmd = await showCommandForm(context, action, widget.assetRef);
     if (cmd == null || !mounted) return;
-    await _send(_SentCommand(cmd, _ids.next(), CommandOutcome.notSent));
-  }
-
-  /// Envía con el `Command-Id` de [sent]. El reintento de un `AMBIGUOUS` usa el **mismo** id; uno nuevo solo para una
-  /// "Nueva operación" tras `FAILED`.
-  Future<void> _send(_SentCommand sent) async {
-    setState(() {
-      _sending = true;
-      _sent = sent;
+    await _run(() async {
+      final (_, outcome) = await _ops.submit(cmd, accountId: account);
+      if (outcome == CommandOutcome.acknowledged) await _load();
     });
-    try {
-      final r = await _api.postCommand(path: sent.command.path, body: sent.command.body, commandId: sent.commandId);
-      sent
-        ..outcome = classifyResponse(r)
-        ..statusCode = r.statusCode;
-    } on TransportException catch (e) {
-      sent.outcome = classifyTransport(e);
-    }
-    if (!mounted) return;
-    setState(() => _sending = false);
-    if (sent.outcome == CommandOutcome.acknowledged) await _load();
   }
 
-  /// "Verificar estado": el estado observado coincide con el esperado → confirmada. No prueba que este
-  /// `Command-Id` lo causara (límite epistémico de D6).
-  Future<void> _verify() async {
-    final sent = _sent;
-    if (sent == null) return;
-    setState(() => _sending = true);
-    try {
-      final a = await _api.get(widget.assetRef);
-      if (a.lifecycleStatus == sent.command.action.expectedStatusAfter?.wire) {
-        sent.outcome = CommandOutcome.acknowledged;
-      }
-      if (mounted) setState(() => _asset = a);
-    } on AppException {
-      // Sigue AMBIGUOUS.
+  Future<void> _verify(OutboxItem item) => _run(() async {
+    final ok = await _ops.verify(item, accountId: _accountId!);
+    if (ok) await _load();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')));
     }
-    if (mounted) setState(() => _sending = false);
+  });
+
+  Future<void> _send(OutboxItem item) => _run(() async {
+    final outcome = await _services.syncEngine.send(item.commandId, _accountId!);
+    if (outcome == CommandOutcome.acknowledged) await _load();
+  });
+
+  Future<void> _discard(OutboxItem item) async {
+    if (!await confirmDiscard(context)) return;
+    await _run(() => _services.syncEngine.discard(item.commandId, _accountId!));
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppShell(location: AppRoutes.assetPath(widget.assetRef), title: 'Activo', body: _body(context));
+    final qr = _asset == null ? null : PublicLinks(_services.config.publicOrigin).asset(widget.assetRef);
+    return AppShell(
+      location: AppRoutes.assetPath(widget.assetRef),
+      title: 'Activo',
+      actions: [
+        if (qr != null)
+          IconButton(
+            key: const Key('asset.qr'),
+            tooltip: 'Mostrar QR del activo',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => showQrSheet(context, title: 'QR del activo ${widget.assetRef}', url: qr),
+          ),
+      ],
+      body: _body(context),
+    );
   }
 
   Widget _body(BuildContext context) {
@@ -149,34 +182,36 @@ class _AssetScreenState extends State<AssetScreen> {
     final a = _asset!;
     final principal = _services.session.principal;
     final action = const ActionResolver().resolveWire(a.lifecycleStatus);
-    final canShowAction = (principal?.showsOperatorActions ?? false) && action != AssetAction.readOnly;
-    final sent = _sent;
-    final blocking = sent != null && sent.outcome == CommandOutcome.ambiguous;
+    // Una operación sin resolver (PENDING, IN_FLIGHT, AMBIGUOUS) bloquea otra sobre el mismo activo.
+    final unresolved = _entries.any((e) => e.status != OutboxStatus.failed);
+    final canShowAction = (principal?.showsOperatorActions ?? false) && action != AssetAction.readOnly && !unresolved;
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () async {
+        await _load();
+        await _loadEntries();
+      },
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (sent != null)
-            _OutcomeCard(
-              sent: sent,
-              sending: _sending,
-              onVerify: _verify,
-              onRetrySame: () => _send(sent),
-              onNew: () {
-                setState(() => _sent = null);
-                _startAction(sent.command.action);
-              },
+          for (final e in _entries)
+            OutboxEntryCard(
+              item: e,
+              busy: _busy,
+              onSend: () => _send(e),
+              onVerify: () => _verify(e),
+              onRetrySame: () => _send(e),
+              onDiscard: () => _discard(e),
+              onNewOperation: canShowAction ? () => _startAction(action) : null,
             ),
-          if (canShowAction && !blocking && !_sending)
+          if (canShowAction && !_busy && _entries.isEmpty)
             FilledButton.icon(
               key: const Key('asset.action'),
               onPressed: () => _startAction(action),
               icon: const Icon(Icons.play_arrow),
               label: Text(actionLabel(action)),
             ),
-          if (_sending) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
+          if (_busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
           const SizedBox(height: 12),
           Card(
             child: Column(
@@ -205,93 +240,6 @@ class _AssetScreenState extends State<AssetScreen> {
         ],
       ),
     );
-  }
-}
-
-class _OutcomeCard extends StatelessWidget {
-  const _OutcomeCard({
-    required this.sent,
-    required this.sending,
-    required this.onVerify,
-    required this.onRetrySame,
-    required this.onNew,
-  });
-
-  final _SentCommand sent;
-  final bool sending;
-  final VoidCallback onVerify;
-  final VoidCallback onRetrySame;
-  final VoidCallback onNew;
-
-  String _failedReason() => switch (sent.statusCode) {
-    403 => 'Tu cuenta no puede hacer esta operación con este activo.',
-    409 => 'El estado del activo ya no lo permite.',
-    401 => 'Tu sesión terminó antes de enviar.',
-    _ => 'Revisa los datos e inténtalo como una operación nueva.',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final label = actionLabel(sent.command.action);
-    return switch (sent.outcome) {
-      CommandOutcome.acknowledged => Card(
-        child: ListTile(leading: const Icon(Icons.check_circle), title: Text('$label: confirmada')),
-      ),
-      CommandOutcome.failed => Card(
-        child: Column(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.block),
-              title: Text('$label: el servidor la rechazó'),
-              subtitle: Text(_failedReason()),
-            ),
-            OverflowBar(
-              children: [TextButton(onPressed: sending ? null : onNew, child: const Text('Nueva operación'))],
-            ),
-          ],
-        ),
-      ),
-      CommandOutcome.ambiguous => Card(
-        key: const Key('asset.ambiguous'),
-        child: Column(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: Text('$label: no pudimos confirmar la operación'),
-              subtitle: const Text('Puede que el servidor la haya registrado. Verifica el estado antes de reintentar.'),
-            ),
-            OverflowBar(
-              children: [
-                FilledButton(
-                  key: const Key('asset.verify'),
-                  onPressed: sending ? null : onVerify,
-                  child: const Text('Verificar estado'),
-                ),
-                TextButton(
-                  key: const Key('asset.retrySame'),
-                  onPressed: sending ? null : onRetrySame,
-                  child: const Text('Reintentar'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      CommandOutcome.notSent => Card(
-        child: Column(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.cloud_off),
-              title: Text('$label: no se envió'),
-              subtitle: const Text('Sin conexión con el servidor. No se registró nada.'),
-            ),
-            OverflowBar(
-              children: [TextButton(onPressed: sending ? null : onRetrySame, child: const Text('Enviar de nuevo'))],
-            ),
-          ],
-        ),
-      ),
-    };
   }
 }
 
