@@ -79,7 +79,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
           for (final d in items)
             Card(
               child: ListTile(
-                title: Text(d.campaignTitle),
+                title: Text(d.campaignTitle.isEmpty ? 'Convocatoria no disponible' : d.campaignTitle),
                 subtitle: Text(donationStatusLabel(d.status)),
                 trailing: Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
               ),

@@ -73,6 +73,15 @@ void main() {
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);
     expect(find.textContaining('interno-no-mostrar'), findsNothing);
+    // Integridad: el backend no la expone todavía → "No disponible", nunca "verificado".
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('tracking.integrity'), skipOffstage: false),
+        matching: find.text('No disponible', skipOffstage: false),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('erificada'), findsNothing);
     expect(find.textContaining('A-1'), findsNothing);
   });
 
@@ -125,7 +134,8 @@ void main() {
     expect(find.text('El relato todavía se está preparando.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 30));
     expect(narrativeCalls, 1, reason: 'sin polling');
-    await tester.ensureVisible(find.byKey(const Key('tracking.narrative.refresh')));
+    await tester.ensureVisible(find.byKey(const Key('tracking.narrative.refresh'), skipOffstage: false));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tracking.narrative.refresh')));
     await tester.pumpAndSettle();
     expect(narrativeCalls, 2);
@@ -257,5 +267,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No encontramos esta convocatoria.'), findsOneWidget);
     expect(find.byKey(const Key('campaign.qr')), findsNothing);
+  });
+
+  testWidgets('mis donaciones: campaignTitle ausente (rama defensiva del backend) → "Convocatoria no disponible"', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    h.api.routes['GET /account/donations'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'intentId': 'i', 'campaignTitle': null, 'amount': '100000', 'currency': 'COP', 'status': 'PENDING'},
+        ],
+      },
+    );
+    h.services.router.go(AppRoutes.donations);
+    await tester.pumpAndSettle();
+    expect(find.text('Convocatoria no disponible'), findsOneWidget);
+    expect(find.text('1 000,00 COP'), findsOneWidget);
   });
 }

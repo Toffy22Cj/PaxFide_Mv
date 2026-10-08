@@ -172,4 +172,16 @@ void main() {
     await openCampaign(tester, c: campaign(currency: 'XYZ'));
     expect(find.byKey(const Key('donate.open')), findsNothing);
   });
+
+  testWidgets('CV-11 sin statusToken ni paymentRedirectUrl (campos opcionales) → aviso, sin consultar ni fallar', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    h.api.routes[createPath] = (_) => const ApiResponse(statusCode: 201, data: {'intentId': 'int-legado'});
+    await donate(tester, '1000');
+    expect(find.byKey(const Key('donate.noToken')), findsOneWidget);
+    expect(find.byKey(const Key('donate.refresh')), findsNothing);
+    expect(find.text('El servidor no devolvió una dirección de pago para esta donación.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path.startsWith('/public/donation-intents/')), isEmpty);
+  });
 }

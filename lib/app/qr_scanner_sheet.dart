@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -6,17 +7,32 @@ import 'app_services.dart';
 /// Vista de cámara que entrega el texto del primer código leído.
 typedef QrScannerBuilder = Widget Function(BuildContext context, ValueChanged<String> onCode);
 
-Widget defaultQrScanner(BuildContext context, ValueChanged<String> onCode) => MobileScanner(
-  onDetect: (capture) {
-    for (final b in capture.barcodes) {
-      final raw = b.rawValue;
-      if (raw != null && raw.isNotEmpty) {
-        onCode(raw);
-        return;
-      }
-    }
-  },
-);
+/// `mobile_scanner` solo funciona en Android, iOS y macOS. En el resto (Linux, Windows) no hay cámara: se usa el
+/// campo "pegar el enlace" de la hoja.
+bool get cameraSupported =>
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS);
+
+Widget defaultQrScanner(BuildContext context, ValueChanged<String> onCode) => !cameraSupported
+    ? const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('La cámara no está disponible en esta plataforma. Pega el enlace del QR abajo.'),
+        ),
+      )
+    : MobileScanner(
+        onDetect: (capture) {
+          for (final b in capture.barcodes) {
+            final raw = b.rawValue;
+            if (raw != null && raw.isNotEmpty) {
+              onCode(raw);
+              return;
+            }
+          }
+        },
+      );
 
 /// Escáner interno: superficie transitoria (no es una ruta, §9). Todo lo leído pasa por el único
 /// `DeepLinkParser` y entra por `openDeepLink` (D9 R1). Nunca ejecuta comandos ni toca el Outbox (R3).
@@ -49,6 +65,13 @@ class _ScannerSheet extends StatefulWidget {
 
 class _ScannerSheetState extends State<_ScannerSheet> {
   bool _done = false;
+  final _pasted = TextEditingController();
+
+  @override
+  void dispose() {
+    _pasted.dispose();
+    super.dispose();
+  }
 
   void _onCode(String raw) {
     if (_done) return; // solo el primer código
@@ -72,6 +95,24 @@ class _ScannerSheetState extends State<_ScannerSheet> {
             ),
           ),
           Expanded(child: ClipRect(child: widget.builder(context, _onCode))),
+          // Alternativa sin cámara (escritorio, QR dañado): el texto pegado pasa por el mismo DeepLinkParser.
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              key: const Key('scanner.paste'),
+              controller: _pasted,
+              decoration: InputDecoration(
+                labelText: 'O pega el enlace del QR',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  key: const Key('scanner.paste.open'),
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: () => _pasted.text.trim().isEmpty ? null : _onCode(_pasted.text.trim()),
+                ),
+              ),
+              onSubmitted: (v) => v.trim().isEmpty ? null : _onCode(v.trim()),
+            ),
+          ),
         ],
       ),
     );

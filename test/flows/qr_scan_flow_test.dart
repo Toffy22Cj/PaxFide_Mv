@@ -99,4 +99,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, '/assets/A-77');
   });
+
+  testWidgets('sin cámara: pegar el enlace pasa por el mismo DeepLinkParser (aprobado y no aprobado)', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.nextScan = null; // la cámara no lee nada
+    await tester.tap(find.byKey(const Key('login.scan')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('scanner.paste')), '  $testOrigin/c/PUB-7  ');
+    await tester.tap(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/c/PUB-7');
+
+    h.services.router.back();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('login.scan')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('scanner.paste')), 'https://otro.example/assets/A-1');
+    await tester.tap(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.login);
+    expect(find.text('Este código QR no es un enlace de PaxFide reconocido.'), findsOneWidget);
+  });
 }

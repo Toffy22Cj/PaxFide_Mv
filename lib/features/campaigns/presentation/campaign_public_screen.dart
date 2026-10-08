@@ -110,7 +110,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Text(c.title, style: theme.textTheme.headlineSmall),
-        Text(c.organizationName, style: theme.textTheme.titleSmall),
+        if (c.organizationName.isNotEmpty) Text(c.organizationName, style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         Text('${campaignStatusLabel(c.status)} · del ${c.startDate.split('T').first} al ${c.endDate.split('T').first}'),
         if (c.description != null) ...[const SizedBox(height: 12), Text(c.description!)],

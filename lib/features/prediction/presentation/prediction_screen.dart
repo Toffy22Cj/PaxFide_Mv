@@ -8,6 +8,7 @@ import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
 
@@ -33,14 +34,41 @@ class _PredictionScreenState extends State<PredictionScreen> {
   Object? _error;
   bool _loading = false;
 
+  /// `null` mientras se carga; vacío si no hay listado disponible (entonces se ofrece escribir la referencia).
+  List<CampaignChoice>? _choices;
+  String? _selected;
+  bool _listRequested = false;
+
+  /// ADMINISTRATOR: listado de la organización. Si no lo hay (otro rol, 403 o vacío): `GET /me/campaigns` (DDM-38).
+  Future<void> _loadChoices(Principal p) async {
+    _listRequested = true;
+    var list = <CampaignChoice>[];
+    if (p.roles.contains(Principal.administrator)) {
+      try {
+        list = await _api.organizationCampaigns(p.organizationId!);
+      } on AppException {
+        list = [];
+      }
+    }
+    if (list.isEmpty) {
+      try {
+        list = await _api.myCampaigns();
+      } on AppException {
+        list = [];
+      }
+    }
+    if (mounted) setState(() => _choices = list);
+  }
+
   @override
   void dispose() {
     _campaignRef.dispose();
     super.dispose();
   }
 
-  Future<void> _query(String organizationId) async {
-    final ref = _campaignRef.text.trim();
+  Future<void> _query(String organizationId, [String? chosen]) async {
+    final ref = chosen ?? _campaignRef.text.trim();
+    _selected = chosen;
     if (!AppRoutes.isValidParam(ref)) {
       setState(() => _error = const BadRequestException());
       return;
@@ -77,30 +105,60 @@ class _PredictionScreenState extends State<PredictionScreen> {
           if (!p.showsPrediction) {
             return const MessageView(icon: Icons.lock_outline, title: 'Tu cuenta no tiene acceso a la predicción.');
           }
+          if (!_listRequested) _loadChoices(p);
+          final choices = _choices;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              TextField(
-                key: const Key('prediction.campaignRef'),
-                controller: _campaignRef,
-                enabled: !_loading,
-                decoration: const InputDecoration(
-                  labelText: 'Referencia de la convocatoria (campaignRef)',
-                  helperText: 'La muestra el panel de la organización en la web.',
-                  border: OutlineInputBorder(),
+              if (choices == null) const LinearProgressIndicator(),
+              if (choices != null && choices.isNotEmpty) ...[
+                Text('Elige una convocatoria', style: Theme.of(context).textTheme.titleMedium),
+                for (final c in choices)
+                  ListTile(
+                    key: Key('prediction.choice.${c.campaignRef}'),
+                    leading: Icon(_selected == c.campaignRef ? Icons.radio_button_checked : Icons.radio_button_off),
+                    title: Text(c.title),
+                    subtitle: Text(c.status == 'OPEN' ? 'Abierta' : (c.status == 'CLOSED' ? 'Cerrada' : c.status)),
+                    enabled: !_loading,
+                    onTap: () => _query(p.organizationId!, c.campaignRef),
+                  ),
+              ],
+              if (choices != null && choices.isEmpty) ...[
+                const Text('No hay un listado de convocatorias disponible para tu cuenta.'),
+                const SizedBox(height: 8),
+                TextField(
+                  key: const Key('prediction.campaignRef'),
+                  controller: _campaignRef,
+                  enabled: !_loading,
+                  decoration: const InputDecoration(
+                    labelText: 'Referencia de la convocatoria (campaignRef)',
+                    helperText: 'La muestra el panel de la organización en la web.',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _query(p.organizationId!),
                 ),
-                onSubmitted: (_) => _query(p.organizationId!),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                key: const Key('prediction.submit'),
-                onPressed: _loading ? null : () => _query(p.organizationId!),
-                child: const Text('Consultar'),
-              ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  key: const Key('prediction.submit'),
+                  onPressed: _loading ? null : () => _query(p.organizationId!),
+                  child: const Text('Consultar'),
+                ),
+              ],
               const SizedBox(height: 16),
               if (_loading) const LinearProgressIndicator(),
               if (_error != null) _errorView(_error!),
-              if (_prediction != null) _PredictionCard(prediction: _prediction!),
+              if (_prediction != null) ...[
+                _PredictionCard(prediction: _prediction!),
+                // Gráfico de las estimaciones históricas: el backend aún no las expone (S-08). Nunca se inventan cortes.
+                const Card(
+                  key: Key('prediction.history'),
+                  child: ListTile(
+                    leading: Icon(Icons.show_chart),
+                    title: Text('Evolución de las estimaciones'),
+                    subtitle: Text('No disponible'),
+                  ),
+                ),
+              ],
             ],
           );
         },
@@ -146,7 +204,8 @@ class _PredictionCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text('No es un hecho registrado. Modelo ${p.modelVersion} · calculado el ${p.asOf}'),
             const Divider(),
-            if (!p.available)
+            // Sin estimación (incluido OUTSIDE_TRAINED_RANGE): solo el motivo, nunca una cifra.
+            if (!p.available || p.unavailableReason != null)
               Text(
                 p.unavailableText ?? 'Sin estimación para esta convocatoria.',
                 key: const Key('prediction.unavailable'),

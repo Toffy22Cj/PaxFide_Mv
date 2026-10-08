@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
+import '../../../shared/quantity.dart';
 import '../../../shared/widgets/amount_bars.dart';
 import '../../physical_assets/domain/lifecycle_status.dart';
 import '../data/tracking_api.dart';
@@ -209,7 +210,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         for (final l in s.logistics)
           Card(
             child: ExpansionTile(
-              title: Text('${l.assetType} · ${l.quantity} ${l.unitOfMeasure}'),
+              title: Text('${l.assetType} · ${formatQuantityWithUnit(l.quantity, l.unitOfMeasure)}'),
               subtitle: Text(
                 [
                   _lifecycle(l.lifecycleStatus),
@@ -237,6 +238,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
               ],
             ),
           ),
+        const SizedBox(height: 12),
+        // Verificación de integridad (anclaje): el backend aún no la expone (S-09). Sin datos, no se afirma nada.
+        const Card(
+          key: Key('tracking.integrity'),
+          child: ListTile(
+            leading: Icon(Icons.verified_outlined),
+            title: Text('Verificación de integridad'),
+            subtitle: Text('No disponible'),
+          ),
+        ),
         const SizedBox(height: 12),
         _narrativeSection(context),
       ],

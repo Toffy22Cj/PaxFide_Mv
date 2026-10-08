@@ -213,17 +213,26 @@ class _DonateSheetState extends State<DonateSheet> {
                 child: Text(_outcome == CommandOutcome.ambiguous ? 'Reintentar' : 'Continuar al pago simulado'),
               ),
             ] else ...[
-              const Text('Completa el pago en el checkout simulado de la web de PaxFide:'),
-              const SizedBox(height: 4),
-              SelectableText(_checkoutUrl(intent.paymentRedirectUrl), key: const Key('donate.checkout')),
+              if (intent.paymentRedirectUrl != null) ...[
+                const Text('Completa el pago en el checkout simulado de la web de PaxFide:'),
+                const SizedBox(height: 4),
+                SelectableText(_checkoutUrl(intent.paymentRedirectUrl!), key: const Key('donate.checkout')),
+              ] else
+                const Text('El servidor no devolvió una dirección de pago para esta donación.'),
               const SizedBox(height: 12),
               _statusView(theme, a!.lastStatus),
               const SizedBox(height: 8),
-              FilledButton.tonal(
-                key: const Key('donate.refresh'),
-                onPressed: _busy ? null : _refresh,
-                child: const Text('Consultar estado del pago'),
-              ),
+              if (intent.statusToken == null)
+                const Text(
+                  'Esta donación no se puede consultar desde la app (el servidor no devolvió el permiso de consulta).',
+                  key: Key('donate.noToken'),
+                )
+              else
+                FilledButton.tonal(
+                  key: const Key('donate.refresh'),
+                  onPressed: _busy ? null : _refresh,
+                  child: const Text('Consultar estado del pago'),
+                ),
             ],
             if (_error != null) ...[
               const SizedBox(height: 8),

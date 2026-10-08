@@ -10,8 +10,13 @@ import '../support/app_harness.dart';
 const path = '/organizations/org-1/campaigns/camp-9/prediction';
 
 void main() {
-  Future<AppHarness> open(WidgetTester tester, List<String> roles) async {
+  Future<AppHarness> open(WidgetTester tester, List<String> roles, {bool withList = false}) async {
     final h = AppHarness();
+    if (!withList) {
+      // Sin listado: la app ofrece escribir la referencia como último recurso.
+      h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
+      h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    }
     h.saveToken('jwt');
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: roles)));
     h.services.router.go(AppRoutes.prediction);
@@ -52,6 +57,14 @@ void main() {
       expect(find.text('Tiempo transcurrido de la convocatoria: 25.0 %'), findsOneWidget);
       // Solo lo que devuelve el backend: nada de bandas de confianza.
       expect(find.textContaining('confianza'), findsNothing);
+      // Gráfico histórico: el backend no lo expone todavía → "No disponible", sin cortes inventados.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('prediction.history'), skipOffstage: false),
+          matching: find.text('No disponible', skipOffstage: false),
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('95'), findsNothing);
       // La etiqueta va antes que cualquier cifra.
       final labelY = tester.getTopLeft(find.byKey(const Key('prediction.label'))).dy;
@@ -93,5 +106,97 @@ void main() {
     final h = await open(tester, ['EMPLOYEE']);
     expect(find.text('Tu cuenta no tiene acceso a la predicción.'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path.contains('/prediction')), isEmpty);
+  });
+
+  const listItem = {
+    'campaignRef': 'camp-9',
+    'publicCode': 'PUB9',
+    'title': 'Abrigo para el invierno',
+    'status': 'OPEN',
+  };
+  const available = ApiResponse(
+    statusCode: 200,
+    data: {
+      'kind': 'ESTIMATE',
+      'modelVersion': 'p3-v1',
+      'warning': 'modelo entrenado con datos sintéticos',
+      'available': true,
+      'probabilityReachTarget': 0.5,
+      'asOf': '2026-10-08T00:00:00Z',
+    },
+  );
+
+  testWidgets('ADMINISTRATOR elige la convocatoria del listado de la organización (S-04), sin escribir nada', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {...listItem, 'visibility': 'PUBLIC', 'responsibles': [], 'assignedEmployeeCount': 0},
+        ],
+      },
+    );
+    h.api.routes['GET $path'] = (_) => available;
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['ADMINISTRATOR'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.campaignRef')), findsNothing, reason: 'con listado no se escribe');
+    await tester.tap(find.text('Abrigo para el invierno'));
+    await tester.pumpAndSettle();
+    expect(h.api.calls.last.path, path);
+    expect(find.text('Probabilidad estimada de alcanzar la meta: 50.0 %'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
+  });
+
+  testWidgets('REPRESENTATIVE (sin listado de organización) usa sus convocatorias de GET /me/campaigns', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {...listItem, 'actingRole': 'REPRESENTATIVE', 'assignedAt': '2026-10-01T00:00:00Z'},
+        ],
+      },
+    );
+    h.api.routes['GET $path'] = (_) => available;
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(h.api.calls.where((c) => c.path == '/organizations/org-1/campaigns'), isEmpty);
+    await tester.tap(find.text('Abrigo para el invierno'));
+    await tester.pumpAndSettle();
+    expect(h.api.calls.last.path, path);
+  });
+
+  testWidgets('OUTSIDE_TRAINED_RANGE → el motivo, sin ninguna cifra (aunque llegaran)', (tester) async {
+    final h = await open(tester, ['ADMINISTRATOR']);
+    h.api.routes['GET $path'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'kind': 'ESTIMATE',
+        'modelVersion': 'p3-v1',
+        'warning': 'modelo entrenado con datos sintéticos',
+        'available': false,
+        'unavailableReason': 'OUTSIDE_TRAINED_RANGE',
+        'unavailableText':
+            'Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria',
+        // Defensa: aunque el backend enviara cifras con este motivo, no se muestran.
+        'probabilityReachTarget': 0.9,
+        'pctTimeElapsed': 0.7,
+        'asOf': '2026-10-08T00:00:00Z',
+      },
+    );
+    await query(tester);
+    expect(find.text(predictionLabel), findsOneWidget);
+    expect(find.textContaining('Fuera del rango del modelo'), findsOneWidget);
+    expect(find.textContaining('Probabilidad'), findsNothing);
+    expect(find.textContaining('Tiempo transcurrido'), findsNothing);
+    expect(find.textContaining('%)'), findsNothing);
   });
 }

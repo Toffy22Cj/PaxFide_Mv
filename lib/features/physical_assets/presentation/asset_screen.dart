@@ -9,6 +9,7 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/quantity.dart';
 import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
@@ -224,7 +225,7 @@ class _AssetScreenState extends State<AssetScreen> {
                 ),
                 ListTile(
                   title: const Text('Cantidad'),
-                  subtitle: Text([a.quantity, a.unitOfMeasure].whereType<String>().join(' ').ifEmpty('—')),
+                  subtitle: Text(formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
                 ),
                 ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef ?? '—')),
                 ListTile(
@@ -241,8 +242,4 @@ class _AssetScreenState extends State<AssetScreen> {
       ),
     );
   }
-}
-
-extension on String {
-  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

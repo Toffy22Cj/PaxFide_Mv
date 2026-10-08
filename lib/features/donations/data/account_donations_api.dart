@@ -30,7 +30,8 @@ class AccountDonationsApi {
       for (final i in items)
         if (i is Map)
           AccountDonation(
-            campaignTitle: '${i['campaignTitle'] ?? ''}',
+            // `campaignTitle?` solo falta si la convocatoria no se encuentra (rama defensiva del backend).
+            campaignTitle: i['campaignTitle'] is String ? i['campaignTitle'] as String : '',
             amount: '${i['amount'] ?? ''}',
             currency: '${i['currency'] ?? ''}',
             status: '${i['status'] ?? ''}',

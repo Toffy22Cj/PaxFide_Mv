@@ -53,9 +53,46 @@ class Prediction {
   }
 }
 
+/// Convocatoria elegible para la predicción (de `GET /organizations/{id}/campaigns` o `GET /me/campaigns`).
+class CampaignChoice {
+  const CampaignChoice({required this.campaignRef, required this.title, required this.status});
+  final String campaignRef;
+  final String title;
+  final String status;
+
+  static List<CampaignChoice> listFrom(Map<String, dynamic> j) {
+    final items = j['items'];
+    if (items is! List) throw const MalformedResponseException();
+    return [
+      for (final i in items)
+        if (i is Map && i['campaignRef'] is String && i['title'] is String)
+          CampaignChoice(
+            campaignRef: i['campaignRef'] as String,
+            title: i['title'] as String,
+            status: '${i['status']}',
+          ),
+    ];
+  }
+}
+
 class PredictionApi {
   const PredictionApi(this._api);
   final ApiClient _api;
+
+  /// Listado del panel: solo `ADMINISTRATOR` (referencia-api-v1 §3). 403 para cualquier otro rol.
+  Future<List<CampaignChoice>> organizationCampaigns(String organizationId) async {
+    final r = await _api.get(
+      '/organizations/${Uri.encodeComponent(organizationId)}/campaigns',
+      credentialMode: CredentialMode.jwt,
+    );
+    return CampaignChoice.listFrom(r.requireData());
+  }
+
+  /// Convocatorias asignadas a quien llama (§3.4), también las cerradas (DD-72).
+  Future<List<CampaignChoice>> myCampaigns() async {
+    final r = await _api.get('/me/campaigns', credentialMode: CredentialMode.jwt);
+    return CampaignChoice.listFrom(r.requireData());
+  }
 
   /// 403 uniforme: sin permiso, otra organización o convocatoria inexistente.
   Future<Prediction> get(String organizationId, String campaignRef) async {
