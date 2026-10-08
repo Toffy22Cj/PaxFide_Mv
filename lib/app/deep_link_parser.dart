@@ -6,86 +6,72 @@ class ParsedDeepLink {
   final Map<String, String> parameters;
   final RouteCategory category;
 
-  const ParsedDeepLink({
-    required this.route,
-    required this.parameters,
-    required this.category,
-  });
+  const ParsedDeepLink({required this.route, required this.parameters, required this.category});
 
-  /// Representa un enlace estructuralmente inválido o no reconocido (R5).
-  const ParsedDeepLink.unapproved()
-      : route = '',
-        parameters = const {},
-        category = RouteCategory.notApproved;
+  /// Enlace estructuralmente inválido o no reconocido (R5).
+  const ParsedDeepLink.unapproved() : route = '', parameters = const {}, category = RouteCategory.notApproved;
+
+  bool get isApproved => category != RouteCategory.notApproved;
+
+  @override
+  String toString() => 'ParsedDeepLink($route, $category)';
 }
 
 /// Único parser para enlaces externos y del escáner interno (ADR-043 D9 R1).
 ///
-/// Invariante R3: Este parser no ejecuta comandos, no genera commandId
-/// ni crea entradas en el Outbox.
+/// - Solo aprueba los tres payloads de QR (matriz §4b): `/assets/{assetRef}`, `/c/{publicCode}` y
+///   el de seguimiento. Cualquier otra ruta, aunque exista en el árbol, no es un payload: No aprobada.
+/// - R5: el esquema y el host deben coincidir con el origen canónico configurado (DDM-03). Sin origen
+///   configurado no se aprueba ningún enlace.
+/// - Seguimiento: el enlace abre `/tracking` **sin** el código. El código se descarta aquí y nunca llega a
+///   una ruta, a `NavigationRestoreState` ni a un log (decisión de la web, ADR-043 §0).
+/// - R3: no ejecuta comandos, no genera `commandId` ni crea entradas en el Outbox.
 class DeepLinkParser {
-  const DeepLinkParser();
+  const DeepLinkParser({required this.canonicalOrigin});
 
-  ParsedDeepLink parse(Uri uri) {
-    final pathSegments = uri.pathSegments;
+  /// Esquema + host (+ puerto) canónicos. `null` = no configurado.
+  final Uri? canonicalOrigin;
 
-    // Validación estructural básica: no vacío y longitud defensiva (D8, D9 R5)
-    if (pathSegments.isEmpty) {
-      return const ParsedDeepLink.unapproved();
-    }
-
-    // Caso 1: /c/:publicCode (Campaña pública)
-    if (pathSegments.length == 2 && pathSegments[0] == 'c') {
-      final code = pathSegments[1].trim();
-      if (_isValidParam(code)) {
-        return ParsedDeepLink(
-          route: '/c/$code',
-          parameters: {'publicCode': code},
-          category: RouteCategory.public,
-        );
-      }
-    }
-
-    // Caso 2: /tracking/:trackingCode (Tracking público - credencial bearer)
-    if (pathSegments.length == 2 && pathSegments[0] == 'tracking') {
-      final tracking = pathSegments[1].trim();
-      if (_isValidParam(tracking)) {
-        return ParsedDeepLink(
-          route: '/tracking/$tracking',
-          parameters: {'trackingCode': tracking},
-          category: RouteCategory.public,
-        );
-      }
-    }
-
-    // Caso 3: /assets/:assetRef (Asset operativo autenticado)
-    if (pathSegments.length == 2 && pathSegments[0] == 'assets') {
-      final assetRef = pathSegments[1].trim();
-      if (_isValidParam(assetRef)) {
-        return ParsedDeepLink(
-          route: '/assets/$assetRef',
-          parameters: {'assetRef': assetRef},
-          category: RouteCategory.authenticated,
-        );
-      }
-    }
-
-    // Caso 4: Rutas fijas sin parámetros dinámicos
-    final normalizedPath = '/${pathSegments.join('/')}';
-    final category = AppRoutes.categorize(normalizedPath);
-    if (category != RouteCategory.notApproved) {
-      return ParsedDeepLink(
-        route: normalizedPath,
-        parameters: const {},
-        category: category,
-      );
-    }
-
-    // Cualquier otra ruta o parámetro no válido se trata como No Aprobada (R5)
-    return const ParsedDeepLink.unapproved();
+  /// Para el texto leído por el escáner: si no es una URI, es No aprobada.
+  ParsedDeepLink parseText(String raw) {
+    final uri = Uri.tryParse(raw.trim());
+    if (uri == null || raw.trim().isEmpty) return const ParsedDeepLink.unapproved();
+    return parse(uri);
   }
 
-  bool _isValidParam(String value) {
-    return value.isNotEmpty && value.length <= 256;
+  ParsedDeepLink parse(Uri uri) {
+    final origin = canonicalOrigin;
+    if (origin == null) return const ParsedDeepLink.unapproved();
+    if (uri.scheme != origin.scheme || uri.host != origin.host || uri.port != origin.port) {
+      return const ParsedDeepLink.unapproved();
+    }
+    if (uri.hasQuery || uri.hasFragment) return const ParsedDeepLink.unapproved();
+
+    final segments = uri.pathSegments;
+
+    // Seguimiento: `/tracking` o `/tracking/{código}` → `/tracking`, sin el código.
+    if (segments.isNotEmpty && segments.first == 'tracking' && segments.length <= 2) {
+      return const ParsedDeepLink(route: AppRoutes.tracking, parameters: {}, category: RouteCategory.public);
+    }
+
+    if (segments.length != 2) return const ParsedDeepLink.unapproved();
+    final value = segments[1];
+    if (!AppRoutes.isValidParam(value)) return const ParsedDeepLink.unapproved();
+
+    switch (segments[0]) {
+      case 'c':
+        return ParsedDeepLink(
+          route: AppRoutes.campaignPath(value),
+          parameters: {'publicCode': value},
+          category: RouteCategory.public,
+        );
+      case 'assets':
+        return ParsedDeepLink(
+          route: AppRoutes.assetPath(value),
+          parameters: {'assetRef': value},
+          category: RouteCategory.authenticated,
+        );
+    }
+    return const ParsedDeepLink.unapproved();
   }
 }

@@ -1,11 +1,6 @@
 /// Estados de sesión formalizados en ADR-043 D3 y front-fase1.md §3.
 /// Deliberadamente sin REFRESHING ni TOKEN_EXPIRED.
-enum SessionStatus {
-  unknown,
-  restoring,
-  authenticated,
-  loggedOut,
-}
+enum SessionStatus { unknown, restoring, authenticated, loggedOut }
 
 class SessionState {
   final SessionStatus status;
@@ -19,10 +14,7 @@ class SessionState {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SessionState &&
-          runtimeType == other.runtimeType &&
-          status == other.status;
+      identical(this, other) || other is SessionState && runtimeType == other.runtimeType && status == other.status;
 
   @override
   int get hashCode => status.hashCode;

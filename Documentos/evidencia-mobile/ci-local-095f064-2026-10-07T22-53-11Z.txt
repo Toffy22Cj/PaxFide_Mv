@@ -1,0 +1,132 @@
+# CI local — scripts/ci-local.sh (paxfide-mobile)
+commit:   095f0647cf5a8b8eebc9a27b5e1032b0397444f1
+rama:     feat/mobile-base-sesion
+inicio:   2026-10-07T22:53:11Z
+fin:      2026-10-07T22:53:28Z
+comandos: flutter analyze ; flutter test --reporter expanded
+salida:   analyze=0 test=0
+
+## Versiones
+📎
+Flutter 3.47.5 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 6a19cca564 (3 weeks ago) • 2026-09-17 14:13:22 -0400
+Engine • hash ab598368592da0064197e2bc15c7f5b0a2c6bb1f (revision af7e796e16) (21 days ago) • 2026-09-16 18:35:09.000Z
+Tools • Dart 3.13.4 • DevTools 2.60.0
+
+## flutter analyze (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Analyzing PaxFide_Mv...                                         
+No issues found! (ran in 3.7s)
+
+## flutter test (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+00:00 +0: loading /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart
+00:00 +0: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) activo → /assets/:assetRef, autenticada
+00:00 +1: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) convocatoria → /c/:publicCode, pública
+00:00 +2: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento → /tracking SIN el código (nunca va en una URL)
+00:00 +3: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento sin código → /tracking
+00:00 +4: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas host desconocido
+00:00 +5: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas esquema distinto del canónico
+00:00 +6: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas sin origen canónico configurado, nada se aprueba
+00:00 +7: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas ruta desconocida o fija que no es payload de QR
+00:00 +8: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas parámetro inválido
+00:00 +9: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas texto que no es URL
+00:00 +10: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta aprobada con la versión actual es válida
+00:00 +11: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: schemaVersion desconocida → inválido
+00:00 +12: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta no aprobada (incluida /campaigns) → inválido
+00:00 +13: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: transitorias nunca se restauran
+00:00 +14: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: parámetros que no corresponden a la ruta → inválido
+00:00 +15: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ida y vuelta por JSON; JSON corrupto → null
+00:00 +16: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: pública → permitir (no espera sesión)
+00:00 +17: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: /login → esperar
+00:00 +18: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: autenticada → esperar
+00:00 +19: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: no aprobada → esperar (fallback al resolver)
+00:00 +20: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: pública → permitir (no espera sesión)
+00:00 +21: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: /login → esperar
+00:00 +22: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +23: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +24: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +25: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +26: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +27: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +28: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +29: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +30: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +31: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes negativa: /campaigns nunca se permite en ningún estado de sesión
+00:00 +32: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) seguimiento: el código nunca forma parte de una ruta aprobada
+00:00 +33: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes /register se comporta como /login (transitoria de auth)
+00:00 +34: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) transitorias de auth
+00:00 +35: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) autenticadas
+00:00 +36: loading /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart
+00:00 +36: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) parámetros estructuralmente inválidos → no aprobada
+00:00 +37: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) desconocidas y diferidas → no aprobada
+00:01 +38: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +39: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +40: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +41: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +42: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +43: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +44: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +45: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:01 +46: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:02 +47: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:02 +48: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:02 +49: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:02 +50: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /login (sin ruta guardada)
+00:02 +51: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: G-1: arranque en frío con ruta pública guardada → se muestra sin UI de espera
+00:02 +52: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: ruta autenticada durante RESTORING → UI de espera (no es una ruta)
+00:03 +53: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:03 +54: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:03 +55: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:03 +56: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:03 +57: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:03 +58: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:03 +59: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:03 +60: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:03 +61: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:03 +62: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:03 +63: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:04 +64: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login fallido → la intención desaparece
+00:04 +65: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: T-1: 401 con JWT → LOGGED_OUT → /login; la pila autenticada desaparece
+00:04 +66: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: logout → atrás nunca vuelve a /assets (invariante 4)
+00:05 +67: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: Decisión B: ruta autenticada guardada sin sesión → /login → /home (no al recurso)
+00:05 +68: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: Decisión B: ruta autenticada guardada sin sesión → /login → /home (no al recurso)
+00:05 +69: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: Decisión B: ruta autenticada guardada sin sesión → /login → /home (no al recurso)
+00:05 +70: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: restauración de ruta autenticada con sesión válida
+00:05 +71: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R4: deep link fresco + NavigationRestoreState en arranque en frío → gana el deep link
+00:05 +72: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: estado de navegación corrupto → se descarta → fallback
+00:05 +73: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: deep link no aprobado → no navega
+00:05 +74: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: el seguimiento por QR abre /tracking sin el código; nada lo guarda
+00:05 +75: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: jwt: pone el JWT del TokenStore y une la base con la ruta
+00:05 +76: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +77: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +78: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +79: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +80: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +81: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +82: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +83: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:05 +84: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:06 +85: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:06 +86: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE
+00:06 +87: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE
+00:06 +88: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:07 +89: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:07 +90: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: negativa: IN_FLIGHT nunca vuelve a PENDING al arrancar
+00:07 +91: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2 no toca otros estados
+00:07 +92: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2 aplica a las entradas de todas las cuentas (sin enviarlas)
+00:07 +93: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: OutboxItem guarda el accountId que lo creó (H2)
+00:07 +94: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: T-1: 401 con JWT limpia el TokenStore y cierra la sesión
+00:07 +95: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: negativa: el 401 de seguimiento nunca modifica la sesión
+00:07 +96: /home/user/PaxFide_Mv/test/core/auth_response_handler_test.dart: negativa: 401 sin credencial, 403 y 404 no tocan la sesión
+00:07 +97: All tests passed!
+
+## sha256 de las dos salidas
+analyze: d1d9ef12dd4a766c6203fb62a5672024e53a4993de6ee8ed7283f8627011db75
+test:    71f9bb6c549b59c8d10eb4b7b10eaddc6a6de222f7cb9e9f7655df6fe1b47ed4
