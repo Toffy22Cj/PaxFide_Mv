@@ -235,6 +235,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Despachado'), findsOneWidget);
     expect(find.text('Sin ubicación registrada'), findsOneWidget);
+    expect(find.text('1 UNITS'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
     expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
   });
 }

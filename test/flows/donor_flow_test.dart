@@ -73,6 +73,15 @@ void main() {
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);
     expect(find.textContaining('interno-no-mostrar'), findsNothing);
+    // Integridad: el backend no la expone todavía → "No disponible", nunca "verificado".
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('tracking.integrity'), skipOffstage: false),
+        matching: find.text('No disponible', skipOffstage: false),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('erificada'), findsNothing);
     expect(find.textContaining('A-1'), findsNothing);
   });
 
@@ -125,7 +134,8 @@ void main() {
     expect(find.text('El relato todavía se está preparando.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 30));
     expect(narrativeCalls, 1, reason: 'sin polling');
-    await tester.ensureVisible(find.byKey(const Key('tracking.narrative.refresh')));
+    await tester.ensureVisible(find.byKey(const Key('tracking.narrative.refresh'), skipOffstage: false));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tracking.narrative.refresh')));
     await tester.pumpAndSettle();
     expect(narrativeCalls, 2);

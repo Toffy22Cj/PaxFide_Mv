@@ -264,4 +264,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Revisa el email y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
   });
+
+  testWidgets('login: el email se envía sin espacios en los extremos (el backend lo pasa a minúsculas, DD-74)', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.api.enqueue(const ApiResponse(statusCode: 200, data: {'token': 'jwt-1'}));
+    h.api.enqueue(meResponse());
+    await tester.enterText(find.byKey(const Key('login.email')), '  Empleado@Demo.PaxFide.local \t');
+    await tester.enterText(find.byKey(const Key('login.password')), ' contraseña con espacios ');
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pumpAndSettle();
+    final call = h.api.calls.firstWhere((c) => c.path == '/auth/login');
+    expect(
+      call.body?['email'],
+      'Empleado@Demo.PaxFide.local',
+      reason: 'solo se recortan los extremos; las mayúsculas las trata el backend',
+    );
+    expect(call.body?['password'], ' contraseña con espacios ', reason: 'la contraseña nunca se modifica');
+  });
+
+  testWidgets('registro: el email se envía sin espacios en los extremos; la contraseña tal cual', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'a', 'status': 'ACTIVE'}));
+    await tester.enterText(find.byKey(const Key('register.email')), ' nuevo@demo ');
+    await tester.enterText(find.byKey(const Key('register.password')), ' doce-o-mas-chars ');
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    final call = h.api.calls.firstWhere((c) => c.path == '/auth/register');
+    expect(call.body?['email'], 'nuevo@demo');
+    expect(call.body?['password'], ' doce-o-mas-chars ');
+  });
 }
