@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 
-/// Punto de entrada provisional: la plantilla del contador se quitó (auditoría 2026-10).
-/// El arranque real (restauración de sesión, router, T-2) llega en el bloque "base".
+import 'app/app_config.dart';
+import 'app/bootstrap.dart';
+import 'app/paxfide_app.dart';
+import 'core/storage/secure_key_value_store.dart';
+import 'shared/widgets/state_views.dart';
+
 void main() {
-  runApp(const PaxFideApp());
-}
-
-class PaxFideApp extends StatelessWidget {
-  const PaxFideApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'PaxFide',
-      home: Scaffold(body: Center(child: Text('PaxFide'))),
+  WidgetsFlutterBinding.ensureInitialized();
+  final config = AppConfig.fromEnvironment();
+  if (config.apiBaseUrl == null) {
+    runApp(
+      const MaterialApp(
+        home: Scaffold(
+          body: MessageView(
+            icon: Icons.settings,
+            title: 'Falta configurar la API',
+            detail: 'Compila con --dart-define=PAXFIDE_API_BASE_URL=<base de la API>.',
+          ),
+        ),
+      ),
     );
+    return;
   }
+  final services = buildServices(config: config, secureStore: const FlutterSecureKeyValueStore());
+  runApp(PaxFideApp(services: services));
+  startServices(services);
 }

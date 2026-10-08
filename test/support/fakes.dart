@@ -1,8 +1,10 @@
 import 'package:paxfide_mobile/core/network/api_client.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/storage/outbox_store.dart';
+import 'package:paxfide_mobile/core/storage/secure_key_value_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
 
 class InMemoryTokenStore implements TokenStore {
@@ -42,8 +44,18 @@ class InMemoryOutboxStore implements OutboxStore {
 
 /// `ApiClient` falso: devuelve respuestas o lanza excepciones programadas y registra cada llamada.
 class FakeApiClient implements ApiClient {
+  FakeApiClient({this.authHandler});
+
+  /// Si se da, cada respuesta pasa por él, como en el cliente real (T-1).
+  AuthResponseHandler? authHandler;
   final List<RecordedCall> calls = [];
   final List<Object> _queue = [];
+
+  /// Respuestas por ruta para las pruebas de flujo (se usan si la cola está vacía).
+  final Map<String, Object Function(RecordedCall call)> routes = {};
+
+  /// Último recurso: si devuelve `null`, la llamada sin respuesta programada falla.
+  Object? Function(RecordedCall call)? fallback;
 
   /// Programa la siguiente respuesta ([ApiResponse]) o excepción.
   void enqueue(Object responseOrError) => _queue.add(responseOrError);
@@ -51,9 +63,20 @@ class FakeApiClient implements ApiClient {
   Future<ApiResponse> _next(RecordedCall call) async {
     calls.add(call);
     if (call.beforeSend != null) await call.beforeSend!();
-    if (_queue.isEmpty) throw StateError('FakeApiClient: sin respuesta programada para ${call.method} ${call.path}');
-    final r = _queue.removeAt(0);
-    if (r is ApiResponse) return r;
+    final Object r;
+    if (_queue.isNotEmpty) {
+      r = _queue.removeAt(0);
+    } else if (routes.containsKey('${call.method} ${call.path}')) {
+      r = routes['${call.method} ${call.path}']!(call);
+    } else if (fallback?.call(call) case final Object f) {
+      r = f;
+    } else {
+      throw StateError('FakeApiClient: sin respuesta programada para ${call.method} ${call.path}');
+    }
+    if (r is ApiResponse) {
+      await authHandler?.handleResponse(statusCode: r.statusCode, credentialMode: call.credentialMode);
+      return r;
+    }
     throw r;
   }
 
@@ -83,4 +106,17 @@ class RecordedCall {
   final Map<String, dynamic>? body;
   final CredentialMode credentialMode;
   final Future<void> Function()? beforeSend;
+}
+
+class InMemorySecureKeyValueStore implements SecureKeyValueStore {
+  final Map<String, String> values = {};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
 }
