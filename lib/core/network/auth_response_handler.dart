@@ -6,27 +6,20 @@ typedef OnSessionLoggedOutCallback = void Function();
 
 /// Manejador de respuestas de autenticación en la capa de red (ADR-043 D3, D4).
 class AuthResponseHandler {
-  final TokenStore _tokenStore;
-  final OnSessionLoggedOutCallback _onSessionLoggedOut;
+  final TokenStore tokenStore;
+  final OnSessionLoggedOutCallback onSessionLoggedOut;
 
-  const AuthResponseHandler({
-    required TokenStore tokenStore,
-    required OnSessionLoggedOutCallback onSessionLoggedOut,
-  })  : _tokenStore = tokenStore,
-        _onSessionLoggedOut = onSessionLoggedOut;
+  const AuthResponseHandler({required this.tokenStore, required this.onSessionLoggedOut});
 
   /// Procesa el código HTTP y aplica T-1 si corresponde.
-  Future<void> handleResponse({
-    required int statusCode,
-    required CredentialMode credentialMode,
-  }) async {
+  Future<void> handleResponse({required int statusCode, required CredentialMode credentialMode}) async {
     if (statusCode != 401) {
       return;
     }
 
     if (credentialMode == CredentialMode.jwt) {
-      await _tokenStore.clearToken();
-      _onSessionLoggedOut();
+      await tokenStore.clearToken();
+      onSessionLoggedOut();
       return;
     }
   }
