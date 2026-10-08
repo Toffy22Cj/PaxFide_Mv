@@ -5,6 +5,8 @@ import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/storage/outbox_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
+import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
+import 'package:paxfide_mobile/features/auth/domain/principal.dart';
 
 /// TokenStore falso que registra cada llamada.
 class FakeTokenStore implements TokenStore {
@@ -51,6 +53,10 @@ class FakeOutboxStore implements OutboxStore {
 
   @override
   Future<List<OutboxItem>> getAllItems() async => items.values.toList();
+
+  @override
+  Future<List<OutboxItem>> getItemsFor(String accountId) async =>
+      items.values.where((i) => i.accountId == accountId).toList();
 
   @override
   Future<void> saveItem(OutboxItem item) async {
@@ -126,3 +132,36 @@ class FakeLoginGateway implements LoginGateway {
     return result;
   }
 }
+
+/// MeGateway falso con resultado configurable.
+class FakeMeGateway implements MeGateway {
+  MeResult result;
+  int calls = 0;
+
+  FakeMeGateway(this.result);
+
+  FakeMeGateway.principal(Principal principal) : result = MeSucceeded(principal);
+
+  @override
+  Future<MeResult> fetch(String token) async {
+    calls++;
+    return result;
+  }
+}
+
+const donor = Principal(accountId: 'acc-donor');
+const fieldOperator = Principal(
+  accountId: 'acc-employee',
+  organizationId: 'org-1',
+  roles: {OrgRole.employee},
+);
+const administrator = Principal(
+  accountId: 'acc-admin',
+  organizationId: 'org-1',
+  roles: {OrgRole.administrator},
+);
+const operatorAndAdmin = Principal(
+  accountId: 'acc-both',
+  organizationId: 'org-1',
+  roles: {OrgRole.employee, OrgRole.administrator},
+);

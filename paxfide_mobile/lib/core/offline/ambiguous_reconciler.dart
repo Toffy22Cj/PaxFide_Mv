@@ -21,6 +21,16 @@ class UnsupportedReconciliationException implements Exception {
       'UnsupportedReconciliationException: "$actionType" no se reconcilia por lifecycleStatus';
 }
 
+/// Se pidió reconciliar una entrada de otra cuenta (ADR-043 §0, A1).
+class OutboxOwnershipException implements Exception {
+  final String commandId;
+  const OutboxOwnershipException(this.commandId);
+
+  @override
+  String toString() =>
+      'OutboxOwnershipException: la entrada $commandId pertenece a otra cuenta';
+}
+
 /// Se pidió reconciliar una entrada que no está en AMBIGUOUS.
 class ReconciliationNotApplicableException implements Exception {
   final OutboxStatus status;
@@ -63,7 +73,16 @@ class AmbiguousReconciler {
   ///
   /// Si la consulta falla (excepción de transporte o respuesta no exitosa),
   /// la entrada no se modifica y sigue AMBIGUOUS.
-  Future<ReconciliationResult> reconcile(OutboxItem item) async {
+  ///
+  /// [accountId] es la cuenta de la sesión actual; una entrada de otra
+  /// cuenta lanza [OutboxOwnershipException] sin consultar nada.
+  Future<ReconciliationResult> reconcile(
+    OutboxItem item, {
+    required String accountId,
+  }) async {
+    if (item.accountId != accountId) {
+      throw OutboxOwnershipException(item.commandId);
+    }
     if (item.status != OutboxStatus.ambiguous) {
       throw ReconciliationNotApplicableException(item.status);
     }

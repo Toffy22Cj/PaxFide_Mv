@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'app/paxfide_app.dart';
 import 'core/storage/in_memory_token_store.dart';
 import 'features/auth/data/login_gateway.dart';
+import 'features/auth/data/me_gateway.dart';
 import 'features/auth/data/session_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final session = SessionController(tokenStore: InMemoryTokenStore());
+  final session = SessionController(
+    tokenStore: InMemoryTokenStore(),
+    meGateway: defaultMeGateway(),
+  );
 
   runApp(PaxFideApp(
     session: session,

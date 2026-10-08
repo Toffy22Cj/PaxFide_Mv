@@ -5,8 +5,9 @@ import 'app_routes.dart';
 /// Solo contiene contexto de navegación estructural, NUNCA verdad de dominio,
 /// credenciales, roles, datos del Outbox ni información financiera.
 ///
-/// Persistencia: todavía no implementada (requiere almacenamiento local; ver
-/// D12). Esta clase solo define y valida la estructura.
+/// Persistencia: todavía no implementada. Esta clase solo define y valida la
+/// estructura. El código de seguimiento nunca entra aquí: `/tracking` no
+/// lleva parámetros (ADR-043 §0).
 class NavigationRestoreState {
   /// Versión de esquema que esta build sabe leer.
   static const int currentSchemaVersion = 1;

@@ -1,22 +1,44 @@
 # ADR-043 — Frontend móvil `paxfide-mobile`: sesión, Outbox con fallo ambiguo, restauración, navegación y deep links
 
-**Status:** PROPUESTO (2026-09-30). Pasa a APROBADO cuando se cumplan las condiciones de §7. Aprobar este ADR **no** autoriza escribir código: antes se requiere el plan de implementación aprobado (regla 3.4).
+*Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
+
+**Status:** **APROBADO — Carlos, 2026-10-07T22:35Z (UTC)**, con los cambios de la §0 "Enmienda de aprobación" (encargo "alinear y completar `paxfide-mobile`", 2026-10-07). Antes: PROPUESTO (2026-09-30). Lo que en este documento contradiga la §0 queda sustituido por ella.
 **Fecha:** 2026-09-30 (revisión 1)
-**Número:** **043, propuesto** — es el siguiente libre tras ADR-042 en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
+**Número:** **043, asignado al aprobarse (2026-10-07)**; texto original: — era el siguiente libre tras ADR-042 (frontend web, hoy ADR-046) en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
 
 **Documento de diseño fuente:** `front-fase1.md` (raíz), versión con estado "Flutter v1 cerrado a nivel de diseño". Este ADR **no reescribe el diseño**: formaliza las decisiones arquitectónicamente significativas y remite a sus secciones (§N = sección de `front-fase1.md`). Ante cualquier discrepancia entre este ADR y `front-fase1.md`, se detiene y se reporta; no se resuelve por interpretación.
 
-**Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-042 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
+**Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-046 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
 
-**Relacionados:** `front-fase1.md`, `ADR-042-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
+**Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
 
-**Origen de la obligación:** ADR-042 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
+**Origen de la obligación:** ADR-046 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
+
+---
+
+## 0. Enmienda de aprobación — Carlos, 2026-10-07T22:35Z
+
+Decisiones de Carlos (encargo del 2026-10-07, sección 1), aplicadas literalmente. Prevalecen sobre cualquier punto de §1–§7 que las contradiga.
+
+| # | Cambio | Sustituye o actualiza |
+|---|---|---|
+| A1 | **H2 decidido (sustituye a D11).** Cada entrada del Outbox guarda el `accountId` que la creó. Una cuenta distinta nunca envía ni ve entradas ajenas. Tras un logout las entradas siguen guardadas y solo reaparecen si entra la misma cuenta. Descartarlas pide confirmación. | D11 (queda sin efecto: el `SyncEngine` se habilita); H2 en §5 (cerrado) |
+| A2 | **D12.** Se autorizan `mobile_scanner` (escanear) y `qr_flutter` (generar). El `OutboxStore` va en `flutter_secure_storage` (ya aprobado): JSON cifrado con un campo de versión. Enrutado y estado con el SDK de Flutter, sin librerías nuevas. Ninguna otra dependencia sin preguntar a Carlos. | D12 (tabla de dependencias); D5 (tecnología del `OutboxStore`) |
+| A3 | **Alcance.** Donante y operador de campo (D1). Única excepción: la pantalla de **predicción**, visible también para `ADMINISTRATOR`/`REPRESENTATIVE` (requisito académico). | D1 |
+| A4 | **D10 actualizado.** Ya existen en el backend `dispatch`/`receive`/`deliver`, `GET /me`, `POST /auth/register`, CV-11 (donar), la consulta de la intención y `GET /account/donations`; dejan de estar bloqueados. | D10; N1 en §5 (cerrado por `GET /me`); fila "Contratos de dispatch/receive/deliver" de §5 |
+| A5 | **Secciones §8 y §9 como registro histórico.** Este ADR no tiene secciones §8 ni §9 numeradas; la nota se aplicó a **D8 y D9** (árbol de rutas y deep links), que son las que el encargo contradice (seguimiento sin código en la URL). Ver `Documentos/decisiones-delegadas-mobile-2026-10.md`, DDM-01. | D8, D9 |
+
+Decisiones que el encargo da por tomadas y que este ADR recoge para la trazabilidad:
+
+- **Seguimiento sin código en la URL** (decisión ya tomada en la web): el QR de seguimiento abre la pantalla de seguimiento **sin** el código; el código se escribe a mano y viaja solo en la cabecera `Authorization`. Cierra H1 en móvil: no hay credencial en ninguna ruta ni en `NavigationRestoreState`.
+- **El rol sale de `GET /api/v1/me`** y vive en memoria junto a la sesión; nunca se persiste ni se lee del JWT (refuerza D3).
+- Las acciones del operador se **muestran** solo a `EMPLOYEE` según `/me`; el backend sigue autorizando cada petición (P7).
 
 ---
 
 ## 1. Context
 
-`paxfide-mobile` es la superficie del usuario común: donante y operador de campo que escanea QR (§1). Las funciones administrativas de Organización y Platform Administrator pertenecen a `paxfide-web` (ADR-042).
+`paxfide-mobile` es la superficie del usuario común: donante y operador de campo que escanea QR (§1). Las funciones administrativas de Organización y Platform Administrator pertenecen a `paxfide-web` (ADR-046).
 
 Restricciones que condicionan la decisión:
 
@@ -119,6 +141,8 @@ Reglas:
 
 ### D8 — Árbol de rutas v1 y guards
 
+> **Registro histórico (2026-10-07).** Esta decisión se conserva como registro. Lo que contradiga el encargo de Carlos del 2026-10-07 (§0) queda sustituido; en particular, la ruta `/tracking/:trackingCode` se sustituye por `/tracking` sin parámetro (el código nunca va en una URL).
+
 (§9, §10)
 
 - Árbol aprobado de §9: públicas `/c/:publicCode`, `/tracking/:trackingCode`; auth `/login`; autenticadas `/home`, `/donations`, `/operator`, `/operator/pending`, `/assets/:assetRef`.
@@ -132,6 +156,8 @@ Reglas:
 
 ### D9 — Deep links y `PendingIntent`
 
+> **Registro histórico (2026-10-07).** Esta decisión se conserva como registro. Lo que contradiga el encargo de Carlos del 2026-10-07 (§0) queda sustituido; en particular, la ruta `/tracking/:trackingCode` se sustituye por `/tracking` sin parámetro (el código nunca va en una URL).
+
 (§11)
 
 - **R1:** único `DeepLinkParser` para enlaces del sistema operativo y del escáner interno.
@@ -142,6 +168,8 @@ Reglas:
 - Formulario con cambios no enviados + deep link entrante → confirmar salida (abandonar consume el enlace; cancelar lo descarta y conserva el formulario).
 
 ### D10 — Alcance funcional v1
+
+> **Actualizada (2026-10-07, §0 A4):** donar, consulta de la intención, registro de cuenta, `/me` y los comandos `dispatch`/`receive`/`deliver` ya existen en el backend y dejan de estar fuera de v1 o bloqueados.
 
 (§12, §13)
 
@@ -155,14 +183,18 @@ Reglas:
 
 ### D11 — Bloqueo de habilitación del `SyncEngine` por H2
 
+> **Sustituida (2026-10-07):** H2 quedó decidido por Carlos (§0, A1). Este bloqueo ya no aplica.
+
 **PROPUESTA NUEVA de este ADR. No está en `front-fase1.md`; requiere aprobación explícita (condición 3 de §7).**
 
 - Motivo: H2 (ownership del Outbox ante cambio de cuenta) puede producir un evento inmutable atribuido al actor equivocado. `hallazgos-front-fase2.md` clasifica esa clase de efecto como severidad **Crítica**. T-1 agrava el escenario: un `401` puede provocar logout con entradas `AMBIGUOUS` pendientes.
-- Propuesta: el `SyncEngine` **no se habilita para envío** en ningún build distribuible mientras H2 no esté decidido mediante enmienda a este ADR. Análogo a ADR-042 D6 ("R11 es un bloqueo duro de habilitación, no deuda").
+- Propuesta: el `SyncEngine` **no se habilita para envío** en ningún build distribuible mientras H2 no esté decidido mediante enmienda a este ADR. Análogo a ADR-046 D6 ("R11 es un bloqueo duro de habilitación, no deuda").
 - **Esta propuesta no elige ninguna opción de H2.** Solo fija que no se despliega sin decidirla.
 - Alternativa a esta propuesta: tratar H2 como riesgo aceptado y documentado. No recomendada: el efecto es irreversible en el Event Store.
 
 ### D12 — Dependencias base
+
+> **Actualizada (2026-10-07, §0 A2):** `mobile_scanner`, `qr_flutter` y `OutboxStore` sobre `flutter_secure_storage` (JSON cifrado con versión) quedan decididos. Enrutado y estado: SDK de Flutter. Cliente HTTP: `dart:io` del SDK (DDM-04).
 
 Mínimas. Cualquier dependencia no listada como "Decidido" requiere enmienda a este ADR antes de usarse (regla 3.5).
 
@@ -204,7 +236,7 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 ### Positivas
 
 - Los fallos ambiguos tienen salida explícita y nunca provocan reenvío automático (regla 2.6).
-- Una sola fuente de autorización (backend), coherente con `paxfide-web` (ADR-042).
+- Una sola fuente de autorización (backend), coherente con `paxfide-web` (ADR-046).
 - Ningún deep link puede producir efectos en el Event Store (R3).
 - El router no depende de dominio ni de Outbox: sus decisiones son verificables con una tabla de 4 × 4.
 
@@ -216,9 +248,9 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 - **Ninguna acción operativa es ejecutable hoy:** formularios de comando bloqueados por contrato (D10) y, si se aprueba D11, envío bloqueado por H2.
 - **`/donations` sin flujo productor** y Golden Path del donante no implementable en v1.
 
-### Divergencia deliberada con `paxfide-web` (ADR-042)
+### Divergencia deliberada con `paxfide-web` (ADR-046)
 
-| Tema | Móvil (este ADR) | Web (ADR-042) | Motivo |
+| Tema | Móvil (este ADR) | Web (ADR-046) | Motivo |
 |---|---|---|---|
 | Comandos | Outbox persistente | Sin Outbox | Requisito offline solo en móvil |
 | Estado de navegación | `NavigationRestoreState` | La URL | Plataforma |
@@ -252,7 +284,7 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 
 ## 6. Fuera de este ADR
 
-- `paxfide-web`: ADR-042.
+- `paxfide-web`: ADR-046.
 - Estrategia de access/refresh token y semántica de `401/403`: Identity (ADR-038). Al definirse, T-1 se sustituye por enmienda.
 - Identidad visual de la app móvil.
 - Distribución (tiendas, firma de la app, entornos).
@@ -269,4 +301,103 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 | 4 | Aceptar que D12 deja dependencias sin decidir y que cada una exige enmienda antes de usarse | PENDIENTE |
 | 5 | Fuente documental única: existen dos copias de `front-fase1.md` en la raíz (2026-09-27 01:17 y 01:19 UTC); por la convención del proyecto rige la más reciente. Confirmar que es la versión "cerrada a nivel de diseño" y retirar o marcar la otra como histórica | PENDIENTE |
 
+**Resolución (2026-10-07):** Carlos aprueba el ADR con la §0. La condición 3 se resuelve sustituyendo D11 por la decisión de H2 (A1); la 4, autorizando las dependencias de A2; la 5, por la convención "rige la copia más reciente" (ver DDM-02).
+
 Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revisión técnica. Hasta entonces, `front-fase1.md` §17 conserva sus pendientes y este ADR no los da por resueltos.
+
+---
+
+## Anexo histórico — Registros del prototipo de interfaz (2026-10-06 y 2026-10-07)
+
+> **Registro histórico, sustituido (2026-10-08).** Este anexo conserva, sin cambios, las secciones "8" y "9" que el prototipo de interfaz añadió a una copia anterior de este ADR (todavía en PROPUESTO). **No son decisiones vigentes.** Las corrigió el encargo de alineación del 2026-10-08:
+>
+> - El selector de tipo de cuenta del login y `UserRole { donor, organization }` se eliminaron: el rol sale solo de `GET /api/v1/me` (§0).
+> - Las vistas de organización (Tablero Ejecutivo, Auditoría Fiduciaria, Finanzas & Retiros, Parámetros) se retiraron del móvil (§0, A3).
+> - Los conceptos de escrow, retiros, desembolsos, certificados y evidencia fotográfica no existen en el backend y se retiraron de la interfaz.
+> - La curva de predicción con banda de confianza no corresponde al contrato de predicción y se retiró.
+> - `SessionManager` se eliminó: `SessionController` es el único dueño de la sesión (D3).
+>
+> Se mantienen el diseño adaptable del login (corte en 900 px) y la navegación adaptable de la home (corte en 1024 px).
+
+### 8. Registro de Implementación: Prototipo UI de Autenticación y Assets (2026-10-06)
+
+> **Nota de gobernanza:** Esta adición documenta la materialización técnica de la interfaz de autenticación (`/login`) descrita en D8, sin contradecir §6 ("Identidad visual fuera de este ADR") y cumpliendo estrictamente con D12 (cero dependencias externas agregadas).
+
+#### 8.1. Decisiones Técnicas Ejecutadas
+1. **Resolución de Assets sin Dependencias Externas (D12):**
+   - Configuración de la ruta estándar `assets/images/` en `pubspec.yaml` bajo el Flutter SDK nativo.
+   - Integración del identificador gráfico institucional (`paxfide_logo.png`) en contenedor con contraste optimizado y bordes redondeados (`BorderRadius.circular(16)`).
+
+2. **Diseño Adaptativo (Responsive Split-Screen):**
+   - Implementación de `LayoutBuilder` con corte responsive en `900px` para la ruta `/login`:
+     - **Desktop (>= 900px):** Esquema de dos paneles (`Row` / `Expanded`) — Columna izquierda fiduciaria (flex 5) y panel de acceso contenido (flex 6, ancho máximo 420px).
+     - **Mobile (< 900px):** Disposición vertical con scroll seguro (`SingleChildScrollView`) para evitar desbordamientos de viewport.
+
+3. **Máquina de Estados de Presentación Local:**
+   - Creación del enum `LoginUiState` (`initial`, `loading`, `invalidCredentials`, `networkError`, `sessionExpired`) en la capa de presentación, desacoplando la UI de la llamada de red.
+   - Validación nativa de formulario (`FormState`, `TextFormField` con regex de correo corporativo).
+   - Bloqueo de concurrencia en botón primario durante el estado `loading` (UX defensiva, complementaria a §2.6).
+
+#### 8.2. Estado y Cumplimiento de Restricciones
+- **Dependencias (D12):** Cumplimiento total. Se utilizó 100% Flutter SDK estándar; no se incorporaron librerías de routing ni de state management.
+- **Siguientes pasos de integración:** Vincular el submit del formulario con el gestor de sesión (`session_state.dart`), la política T-1 (§3) y la persistencia en `TokenStore` (`flutter_secure_storage`).
+
+
+
+### 9. Registro de Implementación: Prototipo UI Responsivo de Navegación, Roles y Dashboard (2026-10-07)
+
+> **Nota de gobernanza:** Este anexo documenta la implementación de la capa de presentación de `/home` y la bifurcación reactiva de roles de interfaz según D2 y D8, manteniendo estricto apego a D12 (cero dependencias externas adicionales; 100% Flutter SDK nativo).
+
+#### 9.1. Decisiones de Presentación e Integración de Sesión Ejecutadas
+
+1. **Modelado de Estado de Sesión en Dominio (D3):**
+   - Extensión de `SessionState` en `lib/features/auth/domain/session_state.dart` para soportar `UserRole` (`donor` | `organization`) y metadatos básicos de cuenta (`userId`, `email`) bajo el estado `authenticated`.
+   - Adición del singleton en memoria `SessionManager` (`setSession`, `authenticate`, `logOut`) para desacoplar el árbol de widgets de parámetros manuales en constructores, preparando la inyección transparente de tokens.
+   - **Alineación con ADR-038 y P7:** La resolución del rol en cliente se limita a la selección de presentación UI en el formulario de acceso; la autorización fiduciaria y la validación de comandos permanecen delegadas al backend.
+
+2. **Arquitectura Responsiva y Navegación Adaptativa (D8):**
+   - Implementación de un diseño adaptable con punto de corte en `1024px` (`LayoutBuilder` / `MediaQuery`):
+     - **Desktop (>= 1024px):** Barra lateral de navegación anclada (`250px`) que evita el efecto de "isla flotante" en pantallas anchas, con pie informativo de nodo fiduciario y rol activo.
+     - **Mobile (< 1024px):** Barra inferior de navegación nativa (`BottomNavigationBar` personalizada de 3 accesos directos por rol).
+   - Reajuste del scroll contextual: integración de `ScrollController` que reinicia la posición vertical (`jumpTo(0)`) al alternar entre pestañas.
+
+3. **Taxonomía Semántica y Vistas Independientes por Rol (D2, D8):**
+   - Eliminación del término ambiguo "Auditoría" en el perfil de Donante, reestructurando las secciones para reflejar el lenguaje de dominio:
+     - **Donante:** *Explorar Causas* (catálogo fiduciario), *Mis Aportes* (historial de escrow y certificados), *Evidencia & Impacto* (galería de actas y fotos verificadas de hitos físicos) y *Ajustes*.
+     - **Organización:** *Tablero Ejecutivo* (ritmo de recaudación y proyección ML), *Auditoría Fiduciaria* (libro de contratos y custodia), *Finanzas & Retiros* (bolsa disponible vs. retenida) y *Parámetros*.
+   - Renderizado condicional mediante `AnimatedSwitcher` con `layoutBuilder` tipo `Stack` sin colisión de widgets salientes.
+
+4. **Componentes Visuales Interactivos y Canvas Nativo (CustomPainter):**
+   - Gráficas vectoriales sin librerías de terceros (D12):
+     - `_InteractiveWeeklyBars`: Gráfico de barras de ritmo semanal con línea meta discontinua, detección de posición (`onTapDown` / `MouseRegion`) y tooltip reactivo de montos.
+     - `_InteractivePredictionCurve`: Curva fiduciaria y banda de confianza del 95% dibujada mediante primitivas de `Path` con punto guía interactivo.
+   - Microinteracciones defensivas: contadores animados (`TweenAnimationBuilder`), elevación sutil en hover (`AnimatedContainer`) y marcadores de favoritos locales sin persistencia invasiva.
+   - Corrección de desbordamientos móviles: transformación del banner fiduciario superior a estructura de bloque vertical en anchos menores a `600px`.
+
+#### 9.2. Estado frente a Restricciones y Siguientes Pasos
+- **Dependencias (D12):** Cumplimiento total. No se agregaron paquetes de gráficas ni de gestión de estado ajenos al SDK.
+- **Bloqueo Contractual (D10, D11):** El botón "Aportar" y los formularios de hito siguen operando como disparadores de feedback visual local; no generan `commandId` ni encolan operaciones en el `OutboxStore` hasta que existan los contratos definitivos de backend y se resuelva H2.
+- **Siguiente fase:** Conexión del cliente HTTP (`ApiClient`, D4), manejo del token en `TokenStore` (`flutter_secure_storage`) y sustitución del mock de login por la llamada real con manejo de error T-1.
+
+
+#### 9.3. Checkpoint Técnico para Integración con Backend (Deuda y Ajustes de Contrato)
+
+Antes de conectar los endpoints reales de Identity y API Gateway, se deben resolver las siguientes divergencias entre el prototipo UI actual y los contratos formales:
+
+1. **Resolución de Rol vs. Identidad Mínima (ADR-038 / N1):**
+   - *Estado UI:* El login cuenta con un selector de presentación `_selectedAccountType` (`donor` | `organization`).
+   - *Restricción Backend:* El JWT de ADR-038 **no contiene roles**. Al integrar el endpoint real `POST /auth/login`, el rol debe provenir de la respuesta del servicio de perfil/capacidades (contrato N1 pendiente) o validarse si el backend acepta el tipo de cuenta como payload de login. No se debe decodificar el JWT en el cliente buscando claims de rol.
+
+2. **Reemplazo de Mock en `LoginScreen` (D4):**
+   - Sustituir el `Future.delayed` por la llamada tipada a través de `ApiClient` con `CredentialMode = none`.
+   - Mapear respuestas HTTP a la máquina de presentación `LoginUiState`:
+     - `200 OK`: Persistir token en `TokenStore`, actualizar `SessionManager` y navegar a `/home`.
+     - `401 / 403`: `LoginUiState.invalidCredentials`.
+     - Timeout / Fallo de transporte: `LoginUiState.networkError`.
+
+3. **Persistencia de Sesión y Arranque (D3, D5):**
+   - Conectar `SessionManager` con `flutter_secure_storage` (`TokenStore`).
+   - Implementar el ciclo `SessionStatus.restoring` en `main.dart` para verificar si existe un token válido almacenado antes de decidir si mostrar `/login` o restaurar `/home`.
+
+4. **Activación de Política T-1 (D3):**
+   - Registrar el interceptor `AuthResponseHandler`: cualquier petición autenticada subsiguiente (`CredentialMode = jwt`) que retorne un `401` debe purgar el `TokenStore` y emitir `SessionState.loggedOut()`, redirigiendo al usuario a `/login` sin intentar reintentos automáticos ni refresh tokens.

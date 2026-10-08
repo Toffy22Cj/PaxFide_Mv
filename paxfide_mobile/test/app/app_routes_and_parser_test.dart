@@ -7,7 +7,7 @@ void main() {
   group('AppRoutes.match — árbol v1', () {
     final cases = <String, RouteCategory>{
       '/c/PUB-1': RouteCategory.public,
-      '/tracking/TRK-1': RouteCategory.public,
+      '/tracking': RouteCategory.public,
       '/login': RouteCategory.authTransitory,
       '/home': RouteCategory.authenticated,
       '/donations': RouteCategory.authenticated,
@@ -26,7 +26,7 @@ void main() {
     test('extrae parámetros', () {
       expect(AppRoutes.match('/assets/AS-1').params, {'assetRef': 'AS-1'});
       expect(AppRoutes.match('/c/PUB-1').params, {'publicCode': 'PUB-1'});
-      expect(AppRoutes.match('/tracking/TRK-1').params, {'trackingCode': 'TRK-1'});
+      expect(AppRoutes.match('/tracking').params, isEmpty);
     });
 
     const notApproved = [
@@ -39,6 +39,7 @@ void main() {
       '/assets/a/b',
       '/home/extra',
       '/operator/other',
+      '/tracking/TRK-1', // el código nunca va en la URL (ADR-043 §0)
       '/tracking/a/b',
       '/boot', // no existe ruta de arranque (G-1 a)
       '/ambiguous/AS-1', // AMBIGUOUS no es ruta
@@ -94,6 +95,14 @@ void main() {
       expect(parser.parse(Uri.parse('paxfide://paxfide.example/c/PUB-1')).isApproved, isFalse);
     });
 
+    test('NEGATIVA: un enlace con código de seguimiento en la URL no se acepta', () {
+      final parser = const DeepLinkParser(allowedHosts: {'paxfide.example'});
+      expect(parser.parse(Uri.parse('https://paxfide.example/tracking/TRK-1')).isApproved, isFalse);
+      final ok = parser.parse(Uri.parse('https://paxfide.example/tracking'));
+      expect(ok.category, RouteCategory.public);
+      expect(ok.parameters, isEmpty);
+    });
+
     test('NEGATIVA: /campaigns no es aprobada aunque el host sea válido', () {
       final parser = const DeepLinkParser(allowedHosts: {'paxfide.example'});
       expect(parser.parse(Uri.parse('https://paxfide.example/campaigns')).isApproved, isFalse);
@@ -125,6 +134,12 @@ void main() {
     test('NEGATIVA: ruta fuera del árbol → inválida', () {
       expect(s('/campaigns').isValid(), isFalse);
       expect(s('/desconocida').isValid(), isFalse);
+    });
+
+    test('NEGATIVA: un código de seguimiento nunca es restaurable', () {
+      expect(s('/tracking/TRK-1').isValid(), isFalse);
+      expect(s('/tracking', params: {'trackingCode': 'TRK-1'}).isValid(), isFalse);
+      expect(s('/tracking').isValid(), isTrue);
     });
 
     test('NEGATIVA: parámetros que no coinciden con la ruta → inválida', () {

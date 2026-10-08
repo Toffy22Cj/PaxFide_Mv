@@ -93,7 +93,7 @@ class _RouteGateState extends State<RouteGate> {
 
   /// Redirige una sola vez por decisión, y solo si esta ruta es la visible.
   /// Limpia toda la pila: al pasar a LOGGED_OUT ninguna ruta autenticada
-  /// queda debajo (invariante 4). No toca el Outbox (H2).
+  /// queda debajo (invariante 4). No toca el Outbox (A1).
   void _scheduleRedirect(BuildContext context, String target) {
     if (_scheduledRedirect == target) return;
     _scheduledRedirect = target;

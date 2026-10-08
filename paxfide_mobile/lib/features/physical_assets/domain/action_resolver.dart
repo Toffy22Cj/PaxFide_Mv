@@ -18,6 +18,7 @@ class ActionResolver {
       case LifecycleStatus.received:
         return AssetAction.deliver;
       case LifecycleStatus.delivered:
+      case LifecycleStatus.depleted:
         return AssetAction.readOnly;
     }
   }

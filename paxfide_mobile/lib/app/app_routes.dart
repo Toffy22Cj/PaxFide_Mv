@@ -42,7 +42,11 @@ class AppRoutes {
 
   // Rutas Públicas Aprobadas
   static const String campaignPublic = '/c/:publicCode';
-  static const String tracking = '/tracking/:trackingCode';
+
+  /// Seguimiento SIN código en la URL (ADR-043 §0): el código se escribe a
+  /// mano y viaja solo en la cabecera `Authorization`. `/tracking/<x>` es No
+  /// aprobada.
+  static const String tracking = '/tracking';
 
   // Ruta de Autenticación (Transitoria)
   static const String login = '/login';
@@ -59,7 +63,7 @@ class AppRoutes {
   static const String campaignsDiferido = '/campaigns';
 
   /// Longitud máxima defensiva de un parámetro (ADR-043 D8). No se inventa
-  /// formato de `publicCode`, `trackingCode` ni `assetRef`.
+  /// formato de `publicCode` ni `assetRef`.
   static const int maxParamLength = 256;
 
   /// Validación estructural: no vacío, longitud defensiva y sin `/` (un `/`
@@ -117,6 +121,8 @@ class AppRoutes {
 
     if (segments.length == 1) {
       switch (segments[0]) {
+        case 'tracking':
+          return fixed(tracking, RouteCategory.public);
         case 'login':
           return fixed(login, RouteCategory.authTransitory);
         case 'home':
@@ -135,8 +141,6 @@ class AppRoutes {
       switch (head) {
         case 'c':
           return withParam('c', campaignPublic, 'publicCode', value, RouteCategory.public);
-        case 'tracking':
-          return withParam('tracking', tracking, 'trackingCode', value, RouteCategory.public);
         case 'assets':
           return withParam('assets', asset, 'assetRef', value, RouteCategory.authenticated);
         case 'operator':

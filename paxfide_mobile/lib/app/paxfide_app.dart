@@ -31,8 +31,11 @@ class _PaxFideAppState extends State<PaxFideApp> {
   late final AppRouter _router = AppRouter(
     session: widget.session,
     screens: {
-      AppRoutes.login: (context, match) => const LoginScreen(),
-      AppRoutes.home: (context, match) => const HomeScreen(),
+      AppRoutes.login: (context, match) => LoginScreen(
+            loginGateway: widget.loginGateway,
+            session: widget.session,
+          ),
+      AppRoutes.home: (context, match) => HomeScreen(session: widget.session),
     },
   );
 

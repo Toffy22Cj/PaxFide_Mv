@@ -9,9 +9,18 @@ import 'package:paxfide_mobile/core/offline/outbox_status.dart';
 
 import '../support/fakes.dart';
 
-OutboxItem item(String id, OutboxStatus status, {String action = 'DISPATCH', String assetRef = 'AS-1'}) =>
+const account = 'acc-1';
+
+OutboxItem item(
+  String id,
+  OutboxStatus status, {
+  String action = 'DISPATCH',
+  String assetRef = 'AS-1',
+  String accountId = account,
+}) =>
     OutboxItem(
       commandId: id,
+      accountId: accountId,
       assetRef: assetRef,
       actionType: action,
       payload: const {},
@@ -62,7 +71,7 @@ void main() {
       );
       final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
 
-      final result = await r.reconcile(store.items['c1']!);
+      final result = await r.reconcile(store.items['c1']!, accountId: account);
 
       expect(result, ReconciliationResult.acknowledged);
       expect(store.items['c1']!.status, OutboxStatus.acknowledged);
@@ -79,7 +88,7 @@ void main() {
           response: ApiResponse(statusCode: 200, data: {'lifecycleStatus': pair[1]}),
         );
         final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-            .reconcile(store.items['c']!);
+            .reconcile(store.items['c']!, accountId: account);
         expect(result, ReconciliationResult.acknowledged, reason: pair[0]);
       }
     });
@@ -90,7 +99,7 @@ void main() {
         response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'REGISTERED'}),
       );
       final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-          .reconcile(store.items['c1']!);
+          .reconcile(store.items['c1']!, accountId: account);
       expect(result, ReconciliationResult.remainsAmbiguous);
       expect(store.writeCount, 0);
       expect(store.items['c1']!.status, OutboxStatus.ambiguous);
@@ -100,7 +109,7 @@ void main() {
       final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous)]);
       final api = FakeApiClient(response: const ApiResponse(statusCode: 500));
       final result = await AmbiguousReconciler(apiClient: api, outboxStore: store)
-          .reconcile(store.items['c1']!);
+          .reconcile(store.items['c1']!, accountId: account);
       expect(result, ReconciliationResult.remainsAmbiguous);
       expect(store.writeCount, 0);
     });
@@ -109,7 +118,7 @@ void main() {
       final store = FakeOutboxStore([item('c1', OutboxStatus.ambiguous)]);
       final api = FakeApiClient(error: const NetworkTimeoutException());
       final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-      await expectLater(r.reconcile(store.items['c1']!), throwsA(isA<NetworkTimeoutException>()));
+      await expectLater(r.reconcile(store.items['c1']!, accountId: account), throwsA(isA<NetworkTimeoutException>()));
       expect(store.writeCount, 0);
       expect(store.items['c1']!.status, OutboxStatus.ambiguous);
     });
@@ -119,7 +128,7 @@ void main() {
         final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, action: action)]);
         final api = FakeApiClient();
         final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-        await expectLater(r.reconcile(store.items['c']!),
+        await expectLater(r.reconcile(store.items['c']!, accountId: account),
             throwsA(isA<UnsupportedReconciliationException>()));
         expect(api.requests, isEmpty);
         expect(store.writeCount, 0);
@@ -136,7 +145,7 @@ void main() {
         final store = FakeOutboxStore([item('c', status)]);
         final api = FakeApiClient();
         final r = AmbiguousReconciler(apiClient: api, outboxStore: store);
-        await expectLater(r.reconcile(store.items['c']!),
+        await expectLater(r.reconcile(store.items['c']!, accountId: account),
             throwsA(isA<ReconciliationNotApplicableException>()));
         expect(api.requests, isEmpty);
         expect(store.writeCount, 0);
@@ -148,8 +157,44 @@ void main() {
       final api = FakeApiClient(
         response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'X'}),
       );
-      await AmbiguousReconciler(apiClient: api, outboxStore: store).reconcile(store.items['c']!);
+      await AmbiguousReconciler(apiClient: api, outboxStore: store).reconcile(store.items['c']!, accountId: account);
       expect(api.requests.single.path, '/physical-assets/A%20B');
+    });
+  });
+
+  group('Ownership por cuenta — ADR-043 §0 A1', () {
+    test('cada cuenta solo lee sus entradas', () async {
+      final store = FakeOutboxStore([
+        item('mine', OutboxStatus.pending),
+        item('other', OutboxStatus.pending, accountId: 'acc-2'),
+      ]);
+      final mine = await store.getItemsFor(account);
+      expect(mine.map((i) => i.commandId), ['mine']);
+    });
+
+    test('NEGATIVA: no se reconcilia una entrada de otra cuenta y no se consulta nada', () async {
+      final store = FakeOutboxStore([item('c', OutboxStatus.ambiguous, accountId: 'acc-2')]);
+      final api = FakeApiClient(
+        response: const ApiResponse(statusCode: 200, data: {'lifecycleStatus': 'DISPATCHED'}),
+      );
+      await expectLater(
+        AmbiguousReconciler(apiClient: api, outboxStore: store)
+            .reconcile(store.items['c']!, accountId: account),
+        throwsA(isA<OutboxOwnershipException>()),
+      );
+      expect(api.requests, isEmpty);
+      expect(store.writeCount, 0);
+    });
+
+    test('T-2 recupera las entradas de todas las cuentas sin cambiar su dueño', () async {
+      final store = FakeOutboxStore([
+        item('a', OutboxStatus.inFlight),
+        item('b', OutboxStatus.inFlight, accountId: 'acc-2'),
+      ]);
+      await OutboxRecovery(store).executeRecoveryT2();
+      expect(store.items['a']!.status, OutboxStatus.ambiguous);
+      expect(store.items['b']!.status, OutboxStatus.ambiguous);
+      expect(store.items['b']!.accountId, 'acc-2');
     });
   });
 }

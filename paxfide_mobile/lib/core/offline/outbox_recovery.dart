@@ -10,6 +10,8 @@ class OutboxRecovery {
   /// Ejecuta la Regla T-2:
   /// Al arrancar, toda entrada persistida en `inFlight` pasa obligatoriamente a `ambiguous`.
   /// INVARIANTE: `inFlight` NUNCA vuelve a `pending` de forma automática.
+  /// Se aplica a las entradas de todas las cuentas: solo cambia su estado,
+  /// no las muestra ni las envía (A1).
   Future<void> executeRecoveryT2() async {
     final items = await _store.getAllItems();
 

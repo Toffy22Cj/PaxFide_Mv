@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
+import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
+import 'package:paxfide_mobile/features/auth/domain/principal.dart';
 import 'package:paxfide_mobile/features/auth/data/session_controller.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 
@@ -125,6 +127,113 @@ void main() {
       expect(kFakeAuthEnabled, isFalse);
       final r = await defaultLoginGateway().login(email: 'a@b.co', password: 'x');
       expect(r, isA<LoginUnavailable>());
+    });
+  });
+
+  group('Principal desde /me — ADR-043 §0', () {
+    test('restore con token: el principal sale de /me', () async {
+      final s = SessionController(
+        tokenStore: FakeTokenStore(token: 't'),
+        meGateway: FakeMeGateway.principal(fieldOperator),
+      );
+      await s.restore();
+      expect(s.value, const SessionState.authenticated(principal: fieldOperator));
+    });
+
+    test('restore: /me consultado durante RESTORING (el guard sigue esperando)', () async {
+      final me = FakeMeGateway.principal(donor);
+      final s = SessionController(tokenStore: FakeTokenStore(token: 't'), meGateway: me);
+      final seen = <SessionStatus>[];
+      s.addListener(() => seen.add(s.value.status));
+      await s.restore();
+      expect(seen, [SessionStatus.restoring, SessionStatus.authenticated]);
+      expect(me.calls, 1);
+    });
+
+    test('restore con /me 401 → T-1: limpia el token y sale a LOGGED_OUT', () async {
+      final store = FakeTokenStore(token: 't');
+      final s = SessionController(
+        tokenStore: store,
+        meGateway: FakeMeGateway(const MeUnauthorized()),
+      );
+      await s.restore();
+      expect(s.value, const SessionState.loggedOut());
+      expect(store.token, isNull);
+    });
+
+    test('NEGATIVA: /me sin respuesta → AUTHENTICATED sin principal, nunca un rol por defecto', () async {
+      for (final result in const [MeNetworkError(), MeUnavailable()]) {
+        final s = SessionController(
+          tokenStore: FakeTokenStore(token: 't'),
+          meGateway: FakeMeGateway(result),
+        );
+        await s.restore();
+        expect(s.value.status, SessionStatus.authenticated);
+        expect(s.value.principal, isNull);
+      }
+    });
+
+    test('establish: guarda el token y carga el principal', () async {
+      final store = FakeTokenStore();
+      final s = SessionController(
+        tokenStore: store,
+        meGateway: FakeMeGateway.principal(administrator),
+      );
+      await s.restore();
+      final r = await s.establish('jwt');
+      expect(r, EstablishResult.authenticated);
+      expect(s.value.principal, administrator);
+      expect(store.token, 'jwt');
+    });
+
+    test('establish con /me 401 → rejected, sin token y LOGGED_OUT', () async {
+      final store = FakeTokenStore();
+      final s = SessionController(
+        tokenStore: store,
+        meGateway: FakeMeGateway(const MeUnauthorized()),
+      );
+      await s.restore();
+      final r = await s.establish('jwt');
+      expect(r, EstablishResult.rejected);
+      expect(s.value, const SessionState.loggedOut());
+      expect(store.token, isNull);
+    });
+
+    test('reloadPrincipal: AUTHENTICATED sin principal → con principal', () async {
+      final me = FakeMeGateway(const MeNetworkError());
+      final s = SessionController(tokenStore: FakeTokenStore(token: 't'), meGateway: me);
+      await s.restore();
+      expect(s.value.principal, isNull);
+      me.result = const MeSucceeded(donor);
+      await s.reloadPrincipal();
+      expect(s.value.principal, donor);
+    });
+
+    test('NEGATIVA: el gateway de /me por defecto no inventa roles', () async {
+      expect(await defaultMeGateway().fetch('t'), isA<MeUnavailable>());
+    });
+
+    test('Principal.fromJson: roles conocidos, desconocidos ignorados', () {
+      final p = Principal.fromJson({
+        'accountId': 'a',
+        'organizationId': 'o',
+        'roles': ['EMPLOYEE', 'ADMINISTRATOR', 'OTRO'],
+      });
+      expect(p.roles, {OrgRole.employee, OrgRole.administrator});
+      expect(p.isDonor, isFalse);
+      expect(p.isFieldOperator, isTrue);
+      expect(p.canSeePrediction, isTrue);
+    });
+
+    test('Principal.fromJson: sin organización es donante', () {
+      final p = Principal.fromJson({'accountId': 'a', 'roles': <String>[]});
+      expect(p.isDonor, isTrue);
+      expect(p.isFieldOperator, isFalse);
+      expect(p.canSeePrediction, isFalse);
+    });
+
+    test('NEGATIVA: Principal.fromJson sin accountId lanza FormatException', () {
+      expect(() => Principal.fromJson({'roles': <String>[]}), throwsFormatException);
     });
   });
 }

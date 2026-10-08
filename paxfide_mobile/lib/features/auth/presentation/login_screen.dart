@@ -1,17 +1,31 @@
 import 'package:flutter/material.dart';
-import '../domain/session_state.dart';
-import '../../home/presentation/home_screen.dart';
 
+import '../data/login_gateway.dart';
+import '../data/session_controller.dart';
+
+/// Estados de presentación del login. Cada fallo tiene su propio mensaje
+/// (regla 2.6).
 enum LoginUiState {
   initial,
   loading,
   invalidCredentials,
   networkError,
-  sessionExpired,
+  unavailable,
 }
 
+/// Pantalla de `/login` (ADR-043 D8).
+///
+/// No elige rol (sale de `GET /me`) ni navega: cambia la sesión y el guard
+/// decide el destino (invariante 6 del router).
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final LoginGateway loginGateway;
+  final SessionController session;
+
+  const LoginScreen({
+    super.key,
+    required this.loginGateway,
+    required this.session,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -22,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  UserRole _selectedAccountType = UserRole.donor;
   bool _obscurePassword = true;
   LoginUiState _state = LoginUiState.initial;
 
@@ -42,36 +55,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _state = LoginUiState.loading);
 
-    await Future.delayed(const Duration(milliseconds: 700));
+    final LoginResult result;
+    try {
+      result = await widget.loginGateway.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _state = LoginUiState.networkError);
+      return;
+    }
 
     if (!mounted) return;
 
-    SessionManager.instance.setSession(
-      SessionState.authenticated(
-        role: _selectedAccountType,
-        email: _emailController.text.trim(),
-      ),
-    );
-
-    setState(() => _state = LoginUiState.initial);
-
-    // Transición cinemática de entrada a HomeScreen
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-          return FadeTransition(
-            opacity: curve,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curve),
-              child: child,
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
+    switch (result) {
+      case LoginSucceeded(:final token):
+        final established = await widget.session.establish(token);
+        if (!mounted) return;
+        // Con éxito el guard sustituye esta pantalla por /home.
+        setState(() => _state = established == EstablishResult.authenticated
+            ? LoginUiState.initial
+            : LoginUiState.invalidCredentials);
+      case LoginRejected():
+        setState(() => _state = LoginUiState.invalidCredentials);
+      case LoginNetworkError():
+        setState(() => _state = LoginUiState.networkError);
+      case LoginUnavailable():
+        setState(() => _state = LoginUiState.unavailable);
+    }
   }
 
   @override
@@ -151,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Infraestructura fiduciaria integral para garantizar que cada recurso asignado llegue a su destino con auditoría verificable.',
+            'Sigue cada donación desde el aporte hasta la entrega, con un registro que se puede verificar.',
             style: TextStyle(fontSize: 15, color: Color(0xFF94A3B8), height: 1.5),
           ),
           const SizedBox(height: 36),
@@ -176,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Cadena de custodia y trazabilidad en tiempo real',
+                    'Cadena de custodia de cada activo entregado',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFE2E8F0)),
                   ),
                 ),
@@ -184,15 +195,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const Spacer(),
-          const Text('© 2026 PaxFide. Plataforma fiduciaria de impacto.', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+          const Text('© 2026 PaxFide.', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
         ],
       ),
     );
   }
 
   Widget _buildLoginForm({required bool isDesktop}) {
-    final isOrg = _selectedAccountType == UserRole.organization;
-
     return Form(
       key: _formKey,
       child: Column(
@@ -212,29 +221,33 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
           const Text('Iniciar sesión', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Color(0xFF0F172A), letterSpacing: -0.6)),
           const SizedBox(height: 6),
-          Text(
-            isOrg ? 'Panel ejecutivo para organizaciones fiduciarias.' : 'Acceso para personas y aportantes solidarios.',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          const Text(
+            'Entra con tu cuenta de donante u operador.',
+            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 20),
-          _buildAccountTypeSelector(),
-          const SizedBox(height: 20),
-          _buildFieldLabel(isOrg ? 'Correo institucional / ONG' : 'Correo electrónico'),
+          if (_state != LoginUiState.initial && _state != LoginUiState.loading) ...[
+            _buildStateMessage(),
+            const SizedBox(height: 16),
+          ],
+          _buildFieldLabel('Correo electrónico'),
           TextFormField(
+            key: const Key('login-email'),
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
             validator: (value) {
               if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Introduce un correo válido';
+              if (!value.contains('@')) return 'Introduce un correo válido';
               return null;
             },
-            decoration: _inputDecoration(hintText: isOrg ? 'contacto@organizacion.org' : 'nombre@correo.com', prefixIcon: Icons.alternate_email_rounded),
+            decoration: _inputDecoration(hintText: 'nombre@correo.com', prefixIcon: Icons.alternate_email_rounded),
           ),
           const SizedBox(height: 18),
           _buildFieldLabel('Contraseña'),
           TextFormField(
+            key: const Key('login-password'),
             controller: _passwordController,
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
@@ -258,6 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SizedBox(
             height: 48,
             child: ElevatedButton(
+              key: const Key('login-submit'),
               onPressed: _state == LoginUiState.loading ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E4A38),
@@ -268,7 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               child: _state == LoginUiState.loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                  : Text(isOrg ? 'Entrar como Organización' : 'Entrar como Donante', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                  : const Text('Entrar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
             ),
           ),
         ],
@@ -276,35 +290,31 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildAccountTypeSelector() {
+  Widget _buildStateMessage() {
+    final (key, message) = switch (_state) {
+      LoginUiState.invalidCredentials => (
+          'login-error-credentials',
+          'Correo o contraseña incorrectos, o la cuenta no está activa.',
+        ),
+      LoginUiState.networkError => (
+          'login-error-network',
+          'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.',
+        ),
+      LoginUiState.unavailable => (
+          'login-unavailable',
+          'El inicio de sesión no está disponible en esta versión de la app.',
+        ),
+      LoginUiState.initial || LoginUiState.loading => ('', ''),
+    };
     return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          Expanded(child: _buildAccountOption(label: 'Soy Donante', role: UserRole.donor)),
-          Expanded(child: _buildAccountOption(label: 'Organización', role: UserRole.organization)),
-        ],
+      key: Key(key),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFECACA)),
       ),
-    );
-  }
-
-  Widget _buildAccountOption({required String label, required UserRole role}) {
-    final isSelected = _selectedAccountType == role;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedAccountType = role),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 2))] : null,
-        ),
-        child: Center(
-          child: Text(label, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B))),
-        ),
-      ),
+      child: Text(message, style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B), height: 1.35)),
     );
   }
 
