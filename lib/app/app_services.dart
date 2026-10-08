@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../core/network/api_client.dart';
+import '../core/offline/sync_engine.dart';
+import '../core/storage/outbox_store.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import 'app_config.dart';
@@ -17,6 +19,8 @@ class AppServices {
     required this.session,
     required this.authApi,
     required this.pendingIntents,
+    required this.outboxStore,
+    required this.syncEngine,
     this.qrScannerBuilder = defaultQrScanner,
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin);
 
@@ -27,6 +31,8 @@ class AppServices {
   final PendingIntentHolder pendingIntents;
   final DeepLinkParser deepLinkParser;
   final QrScannerBuilder qrScannerBuilder;
+  final OutboxStore outboxStore;
+  final SyncEngine syncEngine;
   late final AppRouterDelegate router;
 }
 
