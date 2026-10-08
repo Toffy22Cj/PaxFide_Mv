@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
+import '../../../app/public_links.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
@@ -145,7 +147,21 @@ class _AssetScreenState extends State<AssetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppShell(location: AppRoutes.assetPath(widget.assetRef), title: 'Activo', body: _body(context));
+    final qr = _asset == null ? null : PublicLinks(_services.config.publicOrigin).asset(widget.assetRef);
+    return AppShell(
+      location: AppRoutes.assetPath(widget.assetRef),
+      title: 'Activo',
+      actions: [
+        if (qr != null)
+          IconButton(
+            key: const Key('asset.qr'),
+            tooltip: 'Mostrar QR del activo',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => showQrSheet(context, title: 'QR del activo ${widget.assetRef}', url: qr),
+          ),
+      ],
+      body: _body(context),
+    );
   }
 
   Widget _body(BuildContext context) {
