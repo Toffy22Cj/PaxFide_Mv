@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
+import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
 import 'package:paxfide_mobile/core/network/http_api_client.dart';
 import 'package:paxfide_mobile/core/offline/command_outcome.dart';
 import 'package:paxfide_mobile/core/offline/outbox_item.dart';
@@ -39,6 +40,7 @@ import 'package:paxfide_mobile/features/physical_assets/domain/asset_command.dar
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_operations.dart';
 import 'package:paxfide_mobile/features/prediction/data/prediction_api.dart';
 import 'package:paxfide_mobile/features/tracking/data/tracking_api.dart';
+import 'package:paxfide_mobile/shared/money.dart';
 
 import '../support/fakes.dart';
 
@@ -104,6 +106,13 @@ void main() {
     donor = Device();
   });
 
+  test('0. registro con contraseña de menos de 12 caracteres → 400 (PasswordTooShort, develop 1b012da)', () async {
+    await expectLater(
+      AuthApi(Device().api).register('corta-$stamp@demo.paxfide.local', 'once-chars!'),
+      throwsA(isA<BadRequestException>()),
+    );
+  });
+
   test('1. registro de cuenta (POST /auth/register) y login con /me; sin rol en el JWT', () async {
     final email = 'donante-movil-$stamp@demo.paxfide.local';
     await AuthApi(donor.api).register(email, env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
@@ -159,6 +168,9 @@ void main() {
     final c = await CampaignApi(donor.api).get(publicCode);
     expect(c.status, 'OPEN');
     expect(c.currency, 'COP');
+    // Unidades mínimas ISO 4217: la meta creada como "50000000" son 500 000,00 COP.
+    expect(c.targetAmount, '50000000');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
     final n = await CampaignApi(donor.api).narrative(publicCode);
     expect(['AVAILABLE', 'PENDING', 'UNAVAILABLE'], contains(n.status));
     expect(n.facts, isNotNull);
@@ -166,7 +178,9 @@ void main() {
 
   test('5. donar con cuenta (DonationFlow, CV-11 con JWT) y consultar con Intent-Token hasta el código', () async {
     final flow = DonationFlow(DonationIntentApi(donor.api));
-    final attempt = flow.start(publicCode, '6000000', 'COP');
+    // El donante escribe 60000 pesos; la app envía unidades mínimas.
+    final attempt = flow.start(publicCode, toMinorUnits('60000', 'COP')!, 'COP');
+    expect(attempt.amount, '6000000');
     final (outcome, status) = await flow.create(attempt, withAccount: true);
     expect(outcome, CommandOutcome.acknowledged, reason: 'HTTP $status');
 
@@ -210,6 +224,7 @@ void main() {
   test('7. seguimiento con el código en la cabecera (TrackingApi); código inválido → mensaje único', () async {
     final t = await TrackingApi(Device().api).summary(trackingCode);
     expect(t.financial.originalAmount, 6000000);
+    expect(formatMinorUnits(t.financial.originalAmount, t.financial.currency), '60 000,00 COP');
     final n = await TrackingApi(Device().api).narrative(trackingCode);
     expect(['AVAILABLE', 'PENDING'], contains(n.status));
     await expectLater(
@@ -337,4 +352,26 @@ void main() {
     expect(d.session.state.status, SessionStatus.loggedOut);
     expect(await d.tokens.readToken(), isNull);
   });
+
+  // Ensayo conjunto: la convocatoria que dejó el golden path del backend (recorrido.py del runbook, paso 5).
+  // Opcional: PAXFIDE_ENSAYO_PUBLIC_CODE con el publicCode de 08-crear-convocatoria.json.
+  final goldenCode = env['PAXFIDE_ENSAYO_PUBLIC_CODE'];
+  test('15. la app lee la convocatoria del golden path del backend: hechos reales y donante con cuenta', () async {
+    final api = CampaignApi(Device().api);
+    final c = await api.get(goldenCode!);
+    expect(c.status, 'OPEN');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    final n = await api.narrative(goldenCode);
+    expect(n.facts, isNotNull);
+    // recorrido.py entrega el padre (6 u.) y el hijo (4 u.) a beneficiarios distintos.
+    expect(n.facts!.unitsDelivered, isNot('0'));
+    expect(n.facts!.distinctRecipients, isNot('0'));
+    // El donante de la semilla donó con cuenta en el golden path: lo ve en "mis donaciones".
+    final d = Device();
+    await d.login('donante@demo.paxfide.local');
+    final mine = await AccountDonationsApi(d.api).list();
+    expect(mine.map((x) => x.campaignTitle), contains(c.title));
+    final own = mine.firstWhere((x) => x.campaignTitle == c.title);
+    expect(formatMinorUnits(own.amount, own.currency), '40 000,00 COP');
+  }, skip: goldenCode == null ? 'Sin PAXFIDE_ENSAYO_PUBLIC_CODE' : false);
 }

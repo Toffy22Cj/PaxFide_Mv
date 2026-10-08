@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../app/public_links.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/money.dart';
 import '../../../shared/widgets/amount_bars.dart';
 import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -119,10 +120,10 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: AmountBars(
-                unit: c.currency ?? '',
                 bars: [
-                  if (target != null) AmountBar('Meta', target),
-                  if (cleared != null) AmountBar('Recaudado y acreditado', cleared),
+                  if (target != null) AmountBar('Meta', target, formatMinorUnits(target, c.currency)),
+                  if (cleared != null)
+                    AmountBar('Recaudado y acreditado', cleared, formatMinorUnits(cleared, c.currency)),
                 ],
               ),
             ),
@@ -157,7 +158,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
             if (f != null) ...[
               Text('Unidades entregadas: ${f.unitsDelivered}'),
               Text('Receptores distintos: ${f.distinctRecipients}'),
-              if (f.clearedAmount != null) Text('Acreditado: ${f.clearedAmount} ${f.currency ?? ''}'),
+              if (f.clearedAmount != null) Text('Acreditado: ${formatMinorUnits(f.clearedAmount!, f.currency)}'),
             ],
             const Divider(),
             Text('Relato', style: theme.textTheme.titleMedium),

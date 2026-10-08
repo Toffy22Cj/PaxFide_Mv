@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/money.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
 import '../data/donation_intent_api.dart';
@@ -14,7 +15,7 @@ import 'my_donations_screen.dart';
 bool canDonate(PublicCampaign c) =>
     c.status == 'OPEN' &&
     c.acceptedDonationTypes.contains('MONETARY') &&
-    c.currency != null &&
+    isKnownCurrency(c.currency) &&
     c.acceptedPaymentMethods.contains('GATEWAY');
 
 Widget donateAction(BuildContext context, PublicCampaign campaign, String publicCode) {
@@ -91,9 +92,10 @@ class _DonateSheetState extends State<DonateSheet> {
   }
 
   Future<void> _create() async {
-    final amount = _amount.text.trim();
-    if (!isValidAmount(amount)) {
-      setState(() => _error = 'Escribe un importe en unidades enteras (${widget.currency}).');
+    // Lo escrito son pesos (p. ej. 1000 o 1000,50); al backend van unidades mínimas (COP: ×100).
+    final amount = toMinorUnits(_amount.text, widget.currency);
+    if (amount == null || !isValidAmount(amount)) {
+      setState(() => _error = 'Escribe un importe válido en ${widget.currency} (hasta 2 decimales).');
       return;
     }
     final attempt = _attempt ?? _flow.start(widget.publicCode, amount, widget.currency);
@@ -178,7 +180,7 @@ class _DonateSheetState extends State<DonateSheet> {
                 key: const Key('donate.amount'),
                 controller: _amount,
                 enabled: !_busy && a == null,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Importe',
                   suffixText: widget.currency,
@@ -202,6 +204,8 @@ class _DonateSheetState extends State<DonateSheet> {
                   key: Key('donate.ambiguous'),
                 ),
               if (_outcome == CommandOutcome.notSent) const Text('Sin conexión con el servidor. No se envió nada.'),
+              if (toMinorUnits(_amount.text, widget.currency) case final minor?)
+                Text('Se donarán ${formatMinorUnits(minor, widget.currency)}.', key: const Key('donate.preview')),
               const SizedBox(height: 12),
               FilledButton(
                 key: const Key('donate.submit'),

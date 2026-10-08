@@ -3,7 +3,7 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/util/command_id.dart';
 import '../data/donation_intent_api.dart';
 
-/// Importe en unidades enteras de la moneda, como texto de dígitos (referencia-api-v1 §0).
+/// Importe ya convertido a unidades mínimas ISO 4217, como texto de dígitos (referencia-api-v1 §0).
 bool isValidAmount(String s) => RegExp(r'^[1-9][0-9]{0,14}$').hasMatch(s);
 
 /// Estado de una donación en curso. Todo vive en memoria: el `statusToken` y el `trackingCode` nunca se persisten,
