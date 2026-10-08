@@ -352,4 +352,26 @@ void main() {
     expect(d.session.state.status, SessionStatus.loggedOut);
     expect(await d.tokens.readToken(), isNull);
   });
+
+  // Ensayo conjunto: la convocatoria que dejó el golden path del backend (recorrido.py del runbook, paso 5).
+  // Opcional: PAXFIDE_ENSAYO_PUBLIC_CODE con el publicCode de 08-crear-convocatoria.json.
+  final goldenCode = env['PAXFIDE_ENSAYO_PUBLIC_CODE'];
+  test('15. la app lee la convocatoria del golden path del backend: hechos reales y donante con cuenta', () async {
+    final api = CampaignApi(Device().api);
+    final c = await api.get(goldenCode!);
+    expect(c.status, 'OPEN');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    final n = await api.narrative(goldenCode);
+    expect(n.facts, isNotNull);
+    // recorrido.py entrega el padre (6 u.) y el hijo (4 u.) a beneficiarios distintos.
+    expect(n.facts!.unitsDelivered, isNot('0'));
+    expect(n.facts!.distinctRecipients, isNot('0'));
+    // El donante de la semilla donó con cuenta en el golden path: lo ve en "mis donaciones".
+    final d = Device();
+    await d.login('donante@demo.paxfide.local');
+    final mine = await AccountDonationsApi(d.api).list();
+    expect(mine.map((x) => x.campaignTitle), contains(c.title));
+    final own = mine.firstWhere((x) => x.campaignTitle == c.title);
+    expect(formatMinorUnits(own.amount, own.currency), '40 000,00 COP');
+  }, skip: goldenCode == null ? 'Sin PAXFIDE_ENSAYO_PUBLIC_CODE' : false);
 }
