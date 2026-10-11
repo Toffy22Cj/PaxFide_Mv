@@ -3,41 +3,48 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/features/campaigns/data/campaign_api.dart';
 import 'package:paxfide_mobile/features/campaigns/presentation/donation_stats_card.dart';
+import 'package:paxfide_mobile/shared/money.dart';
 
 import '../../support/app_harness.dart';
 import '../../support/fakes.dart';
 
 const _code = 'CV-ABCDEFGHJK';
 
-Map<String, dynamic> _campaign({String status = 'OPEN', String cleared = '600000', String? currency = 'COP'}) => {
-      'organizationName': 'Fundación Demo',
-      'title': 'Abrigo para el invierno',
-      'status': status,
-      'startDate': '2026-10-01T00:00:00Z',
-      'endDate': '2026-11-20T00:00:00Z',
-      'acceptedDonationTypes': ['MONETARY'],
-      'acceptedPaymentMethods': ['GATEWAY'],
-      'currency': ?currency,
-      'targetAmount': ?(currency == null ? null : '2000000'),
-      'clearedAmount': ?(currency == null ? null : cleared),
-    };
+/// Fecha `AAAA-MM-DD` a [offset] días de hoy.
+String _d(int offset) {
+  final t = DateTime.now().add(Duration(days: offset));
+  return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+}
 
-Map<String, dynamic> _stats({
-  String total = '600000',
-  int donations = 6,
-  List<Map<String, dynamic>>? periods,
-}) =>
-    {
+DateTime _date(int offset) => DateTime.parse(_d(offset));
+
+/// La causa empezó hace 9 días (hoy es el día 10) y dura 45.
+Map<String, dynamic> _campaign({String status = 'OPEN', String cleared = '600000', String? currency = 'COP'}) {
+  final start = DateTime.now().toUtc().subtract(const Duration(days: 9));
+  return {
+    'organizationName': 'Fundación Demo',
+    'title': 'Abrigo para el invierno',
+    'status': status,
+    'startDate': start.toIso8601String(),
+    'endDate': start.add(const Duration(days: 44)).toIso8601String(),
+    'acceptedDonationTypes': ['MONETARY'],
+    'acceptedPaymentMethods': ['GATEWAY'],
+    'currency': ?currency,
+    'targetAmount': ?(currency == null ? null : '1000000'),
+    'clearedAmount': ?(currency == null ? null : cleared),
+  };
+}
+
+Map<String, dynamic> _stats({String total = '600000', int donations = 4, List<Map<String, dynamic>>? days}) => {
       'currency': 'COP',
-      'targetAmount': '2000000',
+      'targetAmount': '1000000',
       'totalAmount': total,
       'donations': donations,
-      'minDonationsPerPeriod': 3,
       'timeZone': 'America/Bogota',
-      'periods': periods ??
+      'days': days ??
           [
-            {'from': '2026-10-01', 'to': '2026-10-01', 'amount': '200000', 'donations': 3},
-            {'from': '2026-10-03', 'to': '2026-10-05', 'amount': '400000', 'donations': 3},
+            {'date': _d(-9), 'amount': '200000', 'donations': 3},
+            {'date': _d(-2), 'amount': '400000', 'donations': 1},
           ],
       'asOf': '2026-10-11T00:00:00Z',
     };
@@ -47,92 +54,136 @@ Future<Harness> _open(WidgetTester tester, {Map<String, dynamic>? campaign, Map<
   h.api.routes['GET /public/campaigns/$_code'] = (_) => ok(campaign ?? _campaign());
   h.api.routes['GET /public/campaigns/$_code/narrative'] = (_) => status(404);
   h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(stats ?? _stats());
-  await h.pump(tester, initialRoute: '/c/$_code', size: const Size(400, 1400));
+  await h.pump(tester, initialRoute: '/c/$_code', size: const Size(400, 1800));
   return h;
 }
 
-String _detail(WidgetTester tester) =>
-    tester.widget<Text>(find.descendant(of: find.byKey(const Key('donation-stats-detail')), matching: find.byType(Text))).data!;
+String _textOf(WidgetTester tester, Key key) => tester
+    .widgetList<Text>(find.descendant(of: find.byKey(key), matching: find.byType(Text)))
+    .map((t) => t.data)
+    .join(' | ');
 
 void main() {
-  group('API', () {
-    test('lee la estadística pública sin credenciales', () async {
+  group('datos y formatos', () {
+    test('lee la estadística por día sin credenciales', () async {
       final api = FakeApiClient();
       api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(_stats());
       final s = await CampaignApi(api).donationStats(_code);
       expect(api.calls.single.credentialMode, CredentialMode.none);
       expect(s.totalAmount, 600000);
-      expect(s.targetAmount, 2000000);
-      expect(s.donations, 6);
-      expect(s.periods.map((p) => '${p.from}..${p.to}:${p.amount}/${p.donations}'),
-          ['2026-10-01..2026-10-01:200000/3', '2026-10-03..2026-10-05:400000/3']);
+      expect(s.targetAmount, 1000000);
+      expect(s.donations, 4);
+      expect(s.days.map((d) => '${d.date}:${d.amount}/${d.donations}'), ['${_d(-9)}:200000/3', '${_d(-2)}:400000/1']);
     });
 
-    test('etiquetas de periodo en palabras', () {
-      expect(periodLabel(const DonationPeriod(from: '2026-10-01', to: '2026-10-01', amount: 1, donations: 3)),
-          'El 1 de octubre');
-      expect(periodLabel(const DonationPeriod(from: '2026-10-03', to: '2026-10-05', amount: 1, donations: 3)),
-          'Del 3 al 5 de octubre');
-      expect(periodLabel(const DonationPeriod(from: '2026-10-30', to: '2026-11-02', amount: 1, donations: 3)),
-          'Del 30 de octubre al 2 de noviembre');
+    test('la serie tiene todos los días de la causa, también los que no tuvieron donaciones', () {
+      final stats = DonationStats(currency: 'COP', targetAmount: 1000000, totalAmount: 600000, donations: 4, days: [
+        DonationDay(date: _d(-9), amount: 200000, donations: 3),
+        DonationDay(date: _d(-2), amount: 400000, donations: 1),
+      ]);
+      final c = _campaign();
+      final s = DailySeries.of(stats, startDate: c['startDate'] as String, endDate: c['endDate'] as String);
+      expect(s.length, 10);
+      expect(s.amounts, [200000, 0, 0, 0, 0, 0, 0, 400000, 0, 0]);
+      expect(s.cumulative.last, 600000);
+      expect(s.cumulative[6], 200000);
+      expect(s.bestDay, 7);
+      expect(s.lastWithDonations, 7);
+    });
+
+    test('formatos cortos y porcentajes', () {
+      expect(formatCompact(140000000, 'COP'), '\$1,4 M');
+      expect(formatCompact(50000000, 'COP'), '\$500 mil');
+      expect(formatCompact(2000000000, 'COP'), '\$20 M');
+      expect(formatCompact(0, 'COP'), '\$0');
+      expect(percentText(0.07), '7 %');
+      expect(percentText(0.004), 'menos de 1 %');
+      expect(roundToWholeUnits(46666667, 'COP'), 46666700);
+      expect(niceScale(1400000).max, 1500000);
+      expect(niceScale(1400000).step, 500000);
     });
   });
 
   group('detalle de la causa', () {
-    testWidgets('muestra el total, el gráfico y el último periodo en palabras', (tester) async {
+    testWidgets('muestra las cifras clave', (tester) async {
       await _open(tester);
-      expect(find.byKey(const Key('donation-stats')), findsOneWidget);
+      expect(_textOf(tester, const Key('stat-total')), contains('\$6.000 COP'));
+      expect(_textOf(tester, const Key('stat-percent')), '60 % | de la meta');
+      expect(_textOf(tester, const Key('stat-donations')), '4 | donaciones');
+      expect(_textOf(tester, const Key('stat-average')), '\$1.500 COP | promedio por donación');
+      expect(_textOf(tester, const Key('stat-best')), '${shortDay(_date(-2))} | mejor día: \$4.000 COP');
+      expect(_textOf(tester, const Key('stat-day')), 'Día 10 de 45 | quedan 35 días');
+    });
+
+    testWidgets('dibuja los dos gráficos y explica el último día con donaciones', (tester) async {
+      await _open(tester);
       expect(find.byKey(const Key('donation-chart')), findsOneWidget);
-      expect(find.text('6'), findsOneWidget);
-      expect(_detail(tester),
-          'Del 3 al 5 de octubre llegaron \$4.000 COP en 3 donaciones. Hasta ese día se habían reunido \$6.000 COP.');
-      expect(find.text('Se actualiza solo mientras tienes esta pantalla abierta.'), findsOneWidget);
+      expect(find.byKey(const Key('donation-daily-chart')), findsOneWidget);
+      expect(_textOf(tester, const Key('donation-stats-detail')),
+          'El ${longDay(_date(-2))} llegaron \$4.000 COP en 1 donación. Total reunido hasta ese día: \$6.000 COP '
+          '(60 % de la meta).');
     });
 
-    testWidgets('tocar el gráfico elige otro periodo', (tester) async {
+    testWidgets('tocar un día sin donaciones lo dice y da el total hasta ese día', (tester) async {
       await _open(tester);
-      final chart = tester.getRect(find.byKey(const Key('donation-chart')));
-      await tester.tapAt(Offset(chart.left + chart.width * 0.2, chart.center.dy));
+      final r = tester.getRect(find.byKey(const Key('donation-daily-chart')));
+      final plot = r.width - DonationCharts.gutter;
+      // día 5 de 10 (índice 4)
+      await tester.tapAt(Offset(r.left + DonationCharts.gutter + plot * 0.45, r.center.dy));
       await tester.pumpAndSettle();
-      expect(_detail(tester),
-          'El 1 de octubre llegaron \$2.000 COP en 3 donaciones. Hasta ese día se habían reunido \$2.000 COP.');
+      expect(_textOf(tester, const Key('donation-stats-detail')),
+          'El ${longDay(_date(-5))} no llegaron donaciones. Total reunido hasta ese día: \$2.000 COP (20 % de la meta).');
     });
 
-    testWidgets('los datos también se pueden ver como lista', (tester) async {
+    testWidgets('una sola donación ya muestra el gráfico', (tester) async {
+      await _open(tester,
+          stats: _stats(total: '50000', donations: 1, days: [{'date': _d(0), 'amount': '50000', 'donations': 1}]));
+      expect(find.byKey(const Key('donation-chart')), findsOneWidget);
+      expect(_textOf(tester, const Key('donation-stats-detail')), contains('llegaron \$500 COP en 1 donación'));
+    });
+
+    testWidgets('si la meta queda muy por encima, lo dice en texto en lugar de aplastar la línea', (tester) async {
+      await _open(tester,
+          stats: _stats(total: '70000', donations: 3, days: [{'date': _d(0), 'amount': '70000', 'donations': 3}]));
+      expect(find.text('La meta es \$10.000 COP; va en el 7 %.'), findsOneWidget);
+    });
+
+    testWidgets('con la meta cerca, no hace falta la nota', (tester) async {
       await _open(tester);
-      await tester.tap(find.text('Ver los datos'));
+      expect(find.byKey(const Key('donation-goal-note')), findsNothing);
+    });
+
+    testWidgets('los datos también se pueden ver día por día', (tester) async {
+      await _open(tester);
+      await tester.tap(find.text('Ver los datos día por día'));
       await tester.pumpAndSettle();
-      expect(find.text('El 1 de octubre'), findsOneWidget);
+      expect(find.text(longDay(_date(-9))), findsOneWidget);
       expect(find.text('\$2.000 COP · 3 donaciones'), findsOneWidget);
-    });
-
-    testWidgets('con pocas donaciones explica por qué todavía no hay gráfico', (tester) async {
-      await _open(tester, stats: _stats(total: '50000', donations: 2, periods: const []));
-      expect(find.byKey(const Key('donation-chart')), findsNothing);
-      expect(find.textContaining('nadie puede ver cuánto dio una sola persona'), findsOneWidget);
+      expect(find.text('\$4.000 COP · 1 donación'), findsOneWidget);
     });
 
     testWidgets('sin donaciones lo dice en palabras sencillas', (tester) async {
-      await _open(tester, stats: _stats(total: '0', donations: 0, periods: const []));
+      await _open(tester, stats: _stats(total: '0', donations: 0, days: const []));
       expect(find.textContaining('Todavía no hay donaciones'), findsOneWidget);
+      expect(find.byKey(const Key('donation-chart')), findsNothing);
     });
 
     testWidgets('se actualiza sola: llega una donación y cambian el gráfico y lo recaudado', (tester) async {
       final h = await _open(tester);
-      expect(find.textContaining('\$6.000 COP de \$20.000 COP'), findsOneWidget);
+      expect(find.textContaining('\$6.000 COP de \$10.000 COP'), findsOneWidget);
 
       h.api.routes['GET /public/campaigns/$_code'] = (_) => ok(_campaign(cleared: '700000'));
-      h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(_stats(total: '700000', donations: 7,
-              periods: [
-                {'from': '2026-10-01', 'to': '2026-10-01', 'amount': '200000', 'donations': 3},
-                {'from': '2026-10-03', 'to': '2026-10-11', 'amount': '500000', 'donations': 4},
-              ]));
+      h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(_stats(total: '700000', donations: 5, days: [
+            {'date': _d(-9), 'amount': '200000', 'donations': 3},
+            {'date': _d(-2), 'amount': '400000', 'donations': 1},
+            {'date': _d(0), 'amount': '100000', 'donations': 1},
+          ]));
       await tester.pump(const Duration(seconds: 31));
       await tester.pumpAndSettle();
 
-      expect(find.text('7'), findsOneWidget);
-      expect(_detail(tester), contains('\$5.000 COP en 4 donaciones'));
-      expect(find.textContaining('\$7.000 COP de \$20.000 COP'), findsOneWidget);
+      expect(_textOf(tester, const Key('stat-donations')), '5 | donaciones');
+      expect(_textOf(tester, const Key('donation-stats-detail')), contains('llegaron \$1.000 COP en 1 donación'));
+      expect(find.textContaining('\$7.000 COP de \$10.000 COP'), findsOneWidget);
     });
 
     testWidgets('el botón de actualizar vuelve a consultar', (tester) async {

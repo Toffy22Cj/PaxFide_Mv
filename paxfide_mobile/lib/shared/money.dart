@@ -38,3 +38,31 @@ String? toMinorUnits(String input, String? currency) {
   final minor = '${m.group(1)}${(m.group(2) ?? '').padRight(exp, '0')}'.replaceFirst(RegExp(r'^0+'), '');
   return minor.isEmpty ? null : minor;
 }
+
+/// Versión corta para los ejes de los gráficos: `$1,4 M`, `$500 mil`, `$800`. Los textos usan [formatMinorUnits].
+String formatCompact(num minorUnits, String? currency) {
+  final exp = _exponents[currency] ?? 0;
+  final major = minorUnits / _pow10(exp);
+  String trim(double v) {
+    final s = v >= 10 || v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1);
+    return s.replaceAll('.', ',');
+  }
+
+  if (major.abs() >= 1000000) return '\$${trim(major / 1000000)} M';
+  if (major.abs() >= 1000) return '\$${trim(major / 1000)} mil';
+  return '\$${major.round()}';
+}
+
+num _pow10(int exp) {
+  var r = 1;
+  for (var i = 0; i < exp; i++) {
+    r *= 10;
+  }
+  return r;
+}
+
+/// Redondea un importe en unidades mínimas a unidades enteras de la moneda (pesos sin centavos).
+int roundToWholeUnits(num minorUnits, String? currency) {
+  final unit = _pow10(_exponents[currency] ?? 0);
+  return (minorUnits / unit).round() * unit.toInt();
+}

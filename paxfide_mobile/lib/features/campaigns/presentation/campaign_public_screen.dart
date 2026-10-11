@@ -150,6 +150,8 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
         if (c.currency != null)
           DonationStatsCard(
             publicCode: widget.publicCode,
+            startDate: c.startDate,
+            endDate: c.endDate,
             refreshEvery: c.status == 'OPEN' ? const Duration(seconds: 30) : null,
             onTotalChanged: (_) => _refreshQuietly(),
           ),
