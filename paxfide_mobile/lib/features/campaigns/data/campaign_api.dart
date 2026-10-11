@@ -87,6 +87,34 @@ class CampaignPage {
   final String? nextCursor;
 }
 
+/// Un periodo de la estadística pública: días `from`–`to` (fechas `AAAA-MM-DD`) con su monto y donaciones.
+class DonationPeriod {
+  const DonationPeriod({required this.from, required this.to, required this.amount, required this.donations});
+  final String from;
+  final String to;
+  final int amount;
+  final int donations;
+}
+
+/// `GET /public/campaigns/{publicCode}/donation-stats`: solo totales por periodo (cada uno con al menos
+/// [minDonationsPerPeriod] donaciones), nunca donaciones sueltas. Importes en unidades mínimas.
+class DonationStats {
+  const DonationStats({
+    this.currency,
+    this.targetAmount,
+    required this.totalAmount,
+    required this.donations,
+    required this.minDonationsPerPeriod,
+    required this.periods,
+  });
+  final String? currency;
+  final int? targetAmount;
+  final int totalAmount;
+  final int donations;
+  final int minDonationsPerPeriod;
+  final List<DonationPeriod> periods;
+}
+
 class CampaignApi {
   const CampaignApi(this._api);
   final ApiClient _api;
@@ -141,6 +169,32 @@ class CampaignApi {
       currency: _opt(j, 'currency'),
       targetAmount: _opt(j, 'targetAmount'),
       clearedAmount: _opt(j, 'clearedAmount'),
+    );
+  }
+
+  /// Estadística pública de donaciones del detalle de la causa.
+  Future<DonationStats> donationStats(String publicCode) async {
+    final j = (await _api.get('${_path(publicCode)}/donation-stats', credentialMode: CredentialMode.none))
+        .requireData();
+    final total = int.tryParse('${j['totalAmount']}');
+    final periods = j['periods'];
+    if (total == null || periods is! List) throw const MalformedResponseException();
+    return DonationStats(
+      currency: _opt(j, 'currency'),
+      targetAmount: int.tryParse('${j['targetAmount'] ?? ''}'),
+      totalAmount: total,
+      donations: j['donations'] is int ? j['donations'] as int : 0,
+      minDonationsPerPeriod: j['minDonationsPerPeriod'] is int ? j['minDonationsPerPeriod'] as int : 3,
+      periods: [
+        for (final p in periods)
+          if (p is Map && p['from'] is String && p['to'] is String && int.tryParse('${p['amount']}') != null)
+            DonationPeriod(
+              from: p['from'] as String,
+              to: p['to'] as String,
+              amount: int.parse('${p['amount']}'),
+              donations: p['donations'] is int ? p['donations'] as int : 0,
+            ),
+      ],
     );
   }
 

@@ -374,6 +374,16 @@ A petición del dueño del producto, sin cambiar contratos ni decisiones de arqu
 - **Integridad:** el seguimiento dice "Registro protegido" solo con todos los lotes en `MATCH` y nada sin anclar; el comprobante (transacción, red y fecha) queda plegado en "Ver comprobante". La raíz Merkle ya no se muestra.
 - **Importes:** formato colombiano (`$1.000.000 COP`, coma decimal solo si hay centavos), que sustituye al formato de DDM-37 (`1 000 000,00 COP`); al donar se aceptan puntos de miles. Las unidades mínimas del contrato no cambian.
 
+### 8.7 Gráfico "Cómo han llegado las donaciones" (2026-10-11) — **ENMIENDA PROPUESTA, pendiente de aprobación**
+
+A petición del dueño del producto, para el gráfico avanzado del proyecto de aula:
+
+- **Dónde:** detalle de la causa (`/c/:publicCode`), visible para cualquier persona, con o sin cuenta. Solo en causas con donaciones en dinero.
+- **Contrato nuevo:** `GET /public/campaigns/{publicCode}/donation-stats` (ruta pública, mismo acceso y mismo 404 que CV-07; `referencia-api-v1.md` §5 de `Toffy22Cj/Donaciones`). Devuelve solo totales por periodo; cada periodo junta días seguidos hasta reunir al menos 3 donaciones, para que ninguna barra muestre una donación suelta. Nunca datos del donante. Su total es lo recaudado del detalle.
+- **Qué muestra:** total recaudado y número de donaciones; dos paneles con el mismo eje de tiempo y sin doble escala (arriba lo recaudado acumulado frente a la meta, abajo lo que llegó en cada periodo); tocar o deslizar elige un periodo y lo explica en una frase; "Ver los datos" muestra la misma información como lista. Dibujado con `CustomPainter`, sin dependencias nuevas (D12 no cambia).
+- **Lo que necesita aprobación — actualización automática:** mientras la pantalla está abierta, la app en primer plano y la causa abierta, el gráfico vuelve a consultar cada 30 s (y a mano con su botón); si lo recaudado cambió, también refresca "Lo recaudado". Esto es un mecanismo de consulta periódica nuevo y choca con "sin polling" de D10 y la regla 3.5. Se propone como excepción acotada: solo lecturas públicas e idempotentes, sin reintentos ante error (se mantienen los últimos datos y se espera al siguiente ciclo), detenida en segundo plano y en causas terminadas. **Si no se aprueba**, basta con pasar `refreshEvery: null` en `campaign_public_screen.dart` y queda solo la actualización manual.
+- **Verificación:** `test/features/campaigns/donation_stats_test.dart` (13 tests: lectura del contrato, texto de cada periodo, selección por toque, lista de datos, pocas o ninguna donación, actualización automática y manual, fallo de actualización, causa terminada sin actualización, causa sin dinero, ningún dato del donante). En el backend: `PublicDonationStatsTest` (agrupación) y `PublicCampaignDonationStatsEndToEndTest` (de punta a punta con Mongo real y el webhook simulado).
+
 ---
 
 ## Anexo histórico — Registros del prototipo de interfaz (2026-10-06 y 2026-10-07)

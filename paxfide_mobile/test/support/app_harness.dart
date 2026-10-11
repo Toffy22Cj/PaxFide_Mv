@@ -28,6 +28,11 @@ class Harness {
     api.routes['GET /organizations/org-1/physical-assets'] = (_) => ok({'items': <Object>[]});
     api.routes['GET /organizations/org-1/campaigns'] = (_) => ok({'items': <Object>[]});
     api.routes['GET /me/campaigns'] = (_) => ok({'items': <Object>[]});
+    // Gráfico del detalle de cualquier causa: sin donaciones, salvo que el test programe su ruta.
+    api.fallback = (call) => call.method == 'GET' && call.path.endsWith('/donation-stats')
+        ? ok({'currency': 'COP', 'totalAmount': '0', 'donations': 0, 'minDonationsPerPeriod': 3,
+            'timeZone': 'America/Bogota', 'periods': <Object>[], 'asOf': '2026-10-11T00:00:00Z'})
+        : null;
     session = SessionController(tokenStore: tokenStore, meGateway: meGateway);
     services = AppServices(
       config: AppConfig(apiBaseUrl: Uri.parse('http://test/api/v1'), publicOrigin: publicOrigin),

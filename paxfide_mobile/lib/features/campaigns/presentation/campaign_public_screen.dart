@@ -11,6 +11,7 @@ import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../donations/presentation/donate_sheet.dart';
 import '../data/campaign_api.dart';
+import 'donation_stats_card.dart';
 
 /// `/c/:publicCode` (§13): una causa, cuánto lleva, lo logrado y su historia.
 /// Los datos registrados se muestran aparte del relato (DDM-26).
@@ -52,6 +53,16 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
       _loadNarrative();
     } on AppException catch (e) {
       if (mounted) setState(() => _error = e);
+    }
+  }
+
+  /// Cuando el gráfico ve que cambió lo recaudado, refresca la causa sin volver a la pantalla de carga.
+  Future<void> _refreshQuietly() async {
+    try {
+      final c = await _services.campaignApi.get(widget.publicCode);
+      if (mounted) setState(() => _campaign = c);
+    } on AppException {
+      // Se queda lo que ya se mostraba; el gráfico avisa si no pudo actualizar.
     }
   }
 
@@ -136,6 +147,12 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
           const SizedBox(height: 12),
         ] else if (c.status != 'OPEN')
           const Notice(text: 'Esta causa ya terminó y no recibe más donaciones.'),
+        if (c.currency != null)
+          DonationStatsCard(
+            publicCode: widget.publicCode,
+            refreshEvery: c.status == 'OPEN' ? const Duration(seconds: 30) : null,
+            onTotalChanged: (_) => _refreshQuietly(),
+          ),
         _achievements(context),
       ],
     );
