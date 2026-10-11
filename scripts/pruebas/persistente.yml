@@ -1,0 +1,14 @@
+# Añadido local al docker-compose de la demo del backend (no modifica el repositorio del backend):
+# Mongo y Ganache guardan sus datos en disco, así que apagar el computador no borra nada.
+# Solo se borra con limpiar-pruebas.sh (base de pruebas) o borrando estos volúmenes a propósito.
+services:
+  mongo:
+    volumes:
+      - paxfide-mongo:/data/db
+  ganache:
+    command: ["--deterministic", "--chain.chainId", "1337", "--database.dbPath", "/ganache-data"]
+    volumes:
+      - paxfide-ganache:/ganache-data
+volumes:
+  paxfide-mongo:
+  paxfide-ganache:
