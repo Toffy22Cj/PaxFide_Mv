@@ -388,6 +388,24 @@ A petición del dueño del producto, para el gráfico avanzado del proyecto de a
   - **Decisión tomada:** quién lo ve sigue la regla de la predicción: `ADMINISTRATOR` o `REPRESENTATIVE` de la organización dueña. **Los empleados no lo ven.** Si se decide que también lo vean, cambia en los dos lados: `CampaignDonationStatsUseCase` en el backend y la sección donde se muestra en la app.
   - **Pendiente (acordado dejarlo para después):** mostrar el gráfico también en el detalle de la causa (`/c/:publicCode`), pero solo al administrador y al representante de la organización dueña de esa causa. Hoy no se puede: el detalle público (CV-07) solo trae `organizationName`, no `organizationId` ni `campaignRef`, así que la app no puede saber si quien mira es dueño de esa causa ni con qué datos pedir la ruta de organización. Opciones: (a) que el backend dé, con JWT de un miembro de la organización dueña, el `campaignRef` de un `publicCode`; o (b) que la app lo busque en el listado de la organización (`GET /organizations/{organizationId}/campaigns`), que hoy solo sirve al `ADMINISTRATOR`. Hasta entonces el gráfico solo está en Predicción.
 
+
+### 8.8 Entrar con biometría (2026-10-16) — **ENMIENDA PROPUESTA: backend hecho, app pendiente de aprobar `local_auth` (D12)**
+
+Pedido por el dueño del producto. **Registro:**
+
+- **2026-10-16 — qué se quiere.** El usuario elige cómo entrar: con su contraseña, como siempre, o con su huella o rostro. Primero la activa con la sesión iniciada. Desde entonces, al abrir la pantalla de login aparece un recuadro **"Entrar por biometría"** y el teléfono pide la huella sin que el usuario toque nada más. Con la huella correcta entra. Con la **X**, tocando fuera del recuadro o si falla la huella, el recuadro se cierra y queda el login con contraseña.
+- **2026-10-16 — decisión: credencial de dispositivo, nunca la contraseña.** El JWT dura 8 h y no se renueva, así que para entrar "siempre" el teléfono necesita algo propio con lo que pedir un JWT nuevo. Se descartó guardar la contraseña cifrada en el teléfono: si alguien saca los datos, se lleva la contraseña real. Elegido por el dueño del producto.
+- **2026-10-16 — backend hecho** (`Toffy22Cj/Donaciones`, rama `claude/focused-goodall-meb6sh`; `referencia-api-v1.md`):
+  - `POST /auth/device-credentials` (JWT), `{deviceName?}` → `201 {credentialId, deviceToken}`. El `deviceToken` (256 bits) solo sale aquí; el backend guarda su SHA-256. Máximo 10 dispositivos activos por cuenta (409).
+  - `POST /auth/device-login` (pública), `{deviceToken}` → `200 {token}`, el mismo JWT que el login. Token inexistente, revocado o de una cuenta inactiva: el mismo 401 que el login con contraseña.
+  - `POST /auth/device-credentials/{credentialId}/revoke` (JWT) → 204. Cambiar la contraseña revoca todos los dispositivos de la cuenta.
+- **Diseño de la app (pendiente):**
+  - **Activar:** en el perfil, "Entrar con huella". Se confirma con la huella (`local_auth`), se llama a `POST /auth/device-credentials` y se guardan `credentialId` y `deviceToken` en `flutter_secure_storage` (ya aprobado), separados del JWT. Solo se ofrece si el teléfono tiene biometría configurada.
+  - **Login:** si hay `deviceToken` guardado y el teléfono tiene biometría, el recuadro aparece solo y lanza la huella. Con éxito, `POST /auth/device-login` y la sesión se establece como tras un login normal (D3, `establish`). Un 401 borra el `deviceToken` y avisa: "La huella ya no sirve en este teléfono; entra con tu contraseña y vuelve a activarla" (pasa si se cambió la contraseña o se revocó).
+  - **Cerrar sesión no desactiva la huella** (es lo que permite volver a entrar con ella). **Desactivar** la huella: `revoke` y se borra lo guardado.
+  - **Plataformas:** Android (permiso `USE_BIOMETRIC` y `FlutterFragmentActivity`) e iOS (`NSFaceIDUsageDescription`). En Linux, donde se prueba hoy con `scripts/pruebas/app.sh`, `local_auth` no funciona: el recuadro no aparece y se entra con contraseña. Para probar la huella hace falta un teléfono (APK) o el emulador de Android Studio.
+- **Bloqueo:** la app necesita la dependencia `local_auth`, y A2/D12 exige la aprobación de Carlos para cualquier dependencia nueva. Hasta que se apruebe, la app no se toca.
+
 ---
 
 ## Anexo histórico — Registros del prototipo de interfaz (2026-10-06 y 2026-10-07)
