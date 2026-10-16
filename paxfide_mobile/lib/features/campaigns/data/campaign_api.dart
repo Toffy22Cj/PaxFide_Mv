@@ -87,7 +87,7 @@ class CampaignPage {
   final String? nextCursor;
 }
 
-/// Un día de la estadística pública: fecha `AAAA-MM-DD`, monto (unidades mínimas) y número de donaciones.
+/// Un día de la estadística de donaciones: fecha `AAAA-MM-DD`, monto (unidades mínimas) y número de donaciones.
 class DonationDay {
   const DonationDay({required this.date, required this.amount, required this.donations});
   final String date;
@@ -95,8 +95,9 @@ class DonationDay {
   final int donations;
 }
 
-/// `GET /public/campaigns/{publicCode}/donation-stats`: totales por día (solo los días con donaciones), sin datos del
-/// donante. Importes en unidades mínimas.
+/// `GET /organizations/{organizationId}/campaigns/{campaignRef}/donation-stats`: totales por día (solo los días con
+/// donaciones), sin datos del donante. Importes en unidades mínimas. Solo para `ADMINISTRATOR`/`REPRESENTATIVE` de la
+/// organización dueña (como la predicción): un donante no la ve.
 class DonationStats {
   const DonationStats({
     this.currency,
@@ -169,9 +170,12 @@ class CampaignApi {
     );
   }
 
-  /// Estadística pública de donaciones del detalle de la causa.
-  Future<DonationStats> donationStats(String publicCode) async {
-    final j = (await _api.get('${_path(publicCode)}/donation-stats', credentialMode: CredentialMode.none))
+  /// Estadística de donaciones de una causa, para su organización (con JWT).
+  Future<DonationStats> donationStats(String organizationId, String campaignRef) async {
+    final j = (await _api.get(
+      '/organizations/${Uri.encodeComponent(organizationId)}/campaigns/${Uri.encodeComponent(campaignRef)}/donation-stats',
+      credentialMode: CredentialMode.jwt,
+    ))
         .requireData();
     final total = int.tryParse('${j['totalAmount']}');
     final days = j['days'];

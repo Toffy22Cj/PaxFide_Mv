@@ -28,7 +28,7 @@ class Harness {
     api.routes['GET /organizations/org-1/physical-assets'] = (_) => ok({'items': <Object>[]});
     api.routes['GET /organizations/org-1/campaigns'] = (_) => ok({'items': <Object>[]});
     api.routes['GET /me/campaigns'] = (_) => ok({'items': <Object>[]});
-    // Gráfico del detalle de cualquier causa: sin donaciones, salvo que el test programe su ruta.
+    // Gráfico de donaciones de la sección Predicción: sin donaciones, salvo que el test programe su ruta.
     api.fallback = (call) => call.method == 'GET' && call.path.endsWith('/donation-stats')
         ? ok({'currency': 'COP', 'totalAmount': '0', 'donations': 0, 'timeZone': 'America/Bogota',
             'days': <Object>[], 'asOf': '2026-10-11T00:00:00Z'})

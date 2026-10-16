@@ -13,6 +13,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
+import '../../campaigns/presentation/donation_stats_card.dart';
 import '../data/prediction_api.dart';
 
 /// Porcentaje entero para el usuario: 0.4234 → "42 %".
@@ -156,6 +157,8 @@ class _PredictionViewState extends State<PredictionView> {
             if (_error != null) _errorView(_error!),
             if (_prediction != null)
               _PredictionResult(
+                organizationId: p.organizationId!,
+                campaignRef: _selected!.campaignRef,
                 title: _selected?.title ?? '',
                 prediction: _prediction!,
                 history: _history,
@@ -231,8 +234,17 @@ class _PredictionViewState extends State<PredictionView> {
 
 /// Resultado para una causa: lo que se lleva, el tiempo y la estimación.
 class _PredictionResult extends StatelessWidget {
-  const _PredictionResult({required this.title, required this.prediction, this.history, this.campaign});
+  const _PredictionResult({
+    required this.organizationId,
+    required this.campaignRef,
+    required this.title,
+    required this.prediction,
+    this.history,
+    this.campaign,
+  });
 
+  final String organizationId;
+  final String campaignRef;
   final String title;
   final Prediction prediction;
   final PredictionHistory? history;
@@ -283,6 +295,16 @@ class _PredictionResult extends StatelessWidget {
             ),
           ),
         if (history != null) _historyCard(context, history!),
+        // Solo la organización dueña llega aquí (ADMINISTRATOR/REPRESENTATIVE); el detalle público ya no lo muestra.
+        if (c != null && c.currency != null)
+          DonationStatsCard(
+            key: ValueKey('donation-stats-$campaignRef'),
+            organizationId: organizationId,
+            campaignRef: campaignRef,
+            startDate: c.startDate,
+            endDate: c.endDate,
+            refreshEvery: c.status == 'OPEN' ? const Duration(seconds: 30) : null,
+          ),
       ],
     );
   }

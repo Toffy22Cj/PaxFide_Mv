@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
+import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
 import 'package:paxfide_mobile/features/campaigns/data/campaign_api.dart';
 import 'package:paxfide_mobile/features/campaigns/presentation/donation_stats_card.dart';
 import 'package:paxfide_mobile/shared/money.dart';
@@ -9,6 +10,8 @@ import '../../support/app_harness.dart';
 import '../../support/fakes.dart';
 
 const _code = 'CV-ABCDEFGHJK';
+const _ref = 'C1';
+const _statsRoute = 'GET /organizations/org-1/campaigns/$_ref/donation-stats';
 
 /// Fecha `AAAA-MM-DD` a [offset] días de hoy.
 String _d(int offset) {
@@ -49,12 +52,28 @@ Map<String, dynamic> _stats({String total = '600000', int donations = 4, List<Ma
       'asOf': '2026-10-11T00:00:00Z',
     };
 
+/// El administrador abre Predicción y elige la causa: ahí está el gráfico.
 Future<Harness> _open(WidgetTester tester, {Map<String, dynamic>? campaign, Map<String, dynamic>? stats}) async {
-  final h = Harness();
+  final h = Harness(token: 't', meResult: const MeSucceeded(administrator));
+  h.api.routes['GET /organizations/org-1/campaigns'] = (_) => ok({
+        'items': [
+          {'campaignRef': _ref, 'publicCode': _code, 'title': 'Abrigo para el invierno', 'status': 'OPEN'},
+        ],
+      });
+  h.api.routes['GET /organizations/org-1/campaigns/$_ref/prediction'] = (_) => ok({
+        'kind': 'ESTIMATE',
+        'modelVersion': 'v1',
+        'warning': 'x',
+        'available': false,
+        'unavailableReason': 'OUTSIDE_TRAINED_RANGE',
+        'asOf': '2026-10-11T00:00:00Z',
+      });
+  h.api.routes['GET /organizations/org-1/campaigns/$_ref/prediction/history'] = (_) => status(500);
   h.api.routes['GET /public/campaigns/$_code'] = (_) => ok(campaign ?? _campaign());
-  h.api.routes['GET /public/campaigns/$_code/narrative'] = (_) => status(404);
-  h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(stats ?? _stats());
-  await h.pump(tester, initialRoute: '/c/$_code', size: const Size(400, 1800));
+  h.api.routes[_statsRoute] = (_) => ok(stats ?? _stats());
+  await h.pump(tester, initialRoute: '/prediction', size: const Size(400, 2400));
+  await tester.tap(find.byKey(const Key('prediction-choice-$_ref')));
+  await tester.pumpAndSettle();
   return h;
 }
 
@@ -65,11 +84,11 @@ String _textOf(WidgetTester tester, Key key) => tester
 
 void main() {
   group('datos y formatos', () {
-    test('lee la estadística por día sin credenciales', () async {
+    test('lee la estadística por día de la organización, con sesión', () async {
       final api = FakeApiClient();
-      api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(_stats());
-      final s = await CampaignApi(api).donationStats(_code);
-      expect(api.calls.single.credentialMode, CredentialMode.none);
+      api.routes[_statsRoute] = (_) => ok(_stats());
+      final s = await CampaignApi(api).donationStats('org-1', _ref);
+      expect(api.calls.single.credentialMode, CredentialMode.jwt);
       expect(s.totalAmount, 600000);
       expect(s.targetAmount, 1000000);
       expect(s.donations, 4);
@@ -104,7 +123,7 @@ void main() {
     });
   });
 
-  group('detalle de la causa', () {
+  group('sección Predicción (administrador)', () {
     testWidgets('muestra las cifras clave', (tester) async {
       await _open(tester);
       expect(_textOf(tester, const Key('stat-total')), contains('\$6.000 COP'));
@@ -168,12 +187,10 @@ void main() {
       expect(find.byKey(const Key('donation-chart')), findsNothing);
     });
 
-    testWidgets('se actualiza sola: llega una donación y cambian el gráfico y lo recaudado', (tester) async {
+    testWidgets('se actualiza sola: llega una donación y cambia el gráfico', (tester) async {
       final h = await _open(tester);
-      expect(find.textContaining('\$6.000 COP de \$10.000 COP'), findsOneWidget);
 
-      h.api.routes['GET /public/campaigns/$_code'] = (_) => ok(_campaign(cleared: '700000'));
-      h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => ok(_stats(total: '700000', donations: 5, days: [
+      h.api.routes[_statsRoute] = (_) => ok(_stats(total: '700000', donations: 5, days: [
             {'date': _d(-9), 'amount': '200000', 'donations': 3},
             {'date': _d(-2), 'amount': '400000', 'donations': 1},
             {'date': _d(0), 'amount': '100000', 'donations': 1},
@@ -183,7 +200,6 @@ void main() {
 
       expect(_textOf(tester, const Key('stat-donations')), '5 | donaciones');
       expect(_textOf(tester, const Key('donation-stats-detail')), contains('llegaron \$1.000 COP en 1 donación'));
-      expect(find.textContaining('\$7.000 COP de \$10.000 COP'), findsOneWidget);
     });
 
     testWidgets('el botón de actualizar vuelve a consultar', (tester) async {
@@ -196,7 +212,7 @@ void main() {
 
     testWidgets('si falla la actualización, se quedan los últimos datos', (tester) async {
       final h = await _open(tester);
-      h.api.routes['GET /public/campaigns/$_code/donation-stats'] = (_) => status(500);
+      h.api.routes[_statsRoute] = (_) => status(500);
       await tester.tap(find.byKey(const Key('donation-stats-refresh')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('donation-chart')), findsOneWidget);
@@ -222,6 +238,28 @@ void main() {
       for (final banned in ['donorRef', 'intentId', 'acc-', '@']) {
         expect(find.textContaining(banned), findsNothing);
       }
+    });
+  });
+
+  group('NEGATIVA: el detalle público de la causa no tiene el gráfico', () {
+    Future<Harness> openPublic(WidgetTester tester, Harness h) async {
+      h.api.routes['GET /public/campaigns/$_code'] = (_) => ok(_campaign());
+      h.api.routes['GET /public/campaigns/$_code/narrative'] = (_) => status(404);
+      await h.pump(tester, initialRoute: '/c/$_code', size: const Size(400, 1800));
+      return h;
+    }
+
+    testWidgets('un donante no ve el gráfico ni se consulta', (tester) async {
+      final h = await openPublic(tester, Harness(token: 't', meResult: const MeSucceeded(donor)));
+      expect(find.text('Abrigo para el invierno'), findsWidgets);
+      expect(find.byKey(const Key('donation-stats')), findsNothing);
+      expect(h.api.calls.where((c) => c.path.endsWith('/donation-stats')), isEmpty);
+    });
+
+    testWidgets('sin sesión tampoco', (tester) async {
+      final h = await openPublic(tester, Harness());
+      expect(find.byKey(const Key('donation-stats')), findsNothing);
+      expect(h.api.calls.where((c) => c.path.endsWith('/donation-stats')), isEmpty);
     });
   });
 }

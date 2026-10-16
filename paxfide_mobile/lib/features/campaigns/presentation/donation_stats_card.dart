@@ -93,7 +93,8 @@ class DailySeries {
   }
 }
 
-/// Tarjeta "Cómo han llegado las donaciones" del detalle de la causa: cifras clave, el total reunido día a día frente
+/// Tarjeta "Cómo han llegado las donaciones" de la sección Predicción, solo para la organización dueña de la causa
+/// (`ADMINISTRATOR`/`REPRESENTATIVE`; un donante no la ve): cifras clave, el total reunido día a día frente
 /// a la meta y lo donado cada día, con fechas y montos en los ejes. Tocar o deslizar sobre el gráfico elige un día.
 ///
 /// Se actualiza sola cada [refreshEvery] mientras la pantalla está abierta y la app en primer plano; también a mano.
@@ -102,14 +103,16 @@ class DailySeries {
 class DonationStatsCard extends StatefulWidget {
   const DonationStatsCard({
     super.key,
-    required this.publicCode,
+    required this.organizationId,
+    required this.campaignRef,
     required this.startDate,
     required this.endDate,
     this.onTotalChanged,
     this.refreshEvery = const Duration(seconds: 30),
   });
 
-  final String publicCode;
+  final String organizationId;
+  final String campaignRef;
 
   /// Inicio y fin de la causa (ISO-8601), para dibujar todos sus días.
   final String startDate;
@@ -176,7 +179,7 @@ class _DonationStatsCardState extends State<DonationStatsCard> with WidgetsBindi
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final s = await _services.campaignApi.donationStats(widget.publicCode);
+      final s = await _services.campaignApi.donationStats(widget.organizationId, widget.campaignRef);
       if (!mounted) return;
       final previous = _stats;
       setState(() {
