@@ -389,7 +389,7 @@ A petición del dueño del producto, para el gráfico avanzado del proyecto de a
   - **Pendiente (acordado dejarlo para después):** mostrar el gráfico también en el detalle de la causa (`/c/:publicCode`), pero solo al administrador y al representante de la organización dueña de esa causa. Hoy no se puede: el detalle público (CV-07) solo trae `organizationName`, no `organizationId` ni `campaignRef`, así que la app no puede saber si quien mira es dueño de esa causa ni con qué datos pedir la ruta de organización. Opciones: (a) que el backend dé, con JWT de un miembro de la organización dueña, el `campaignRef` de un `publicCode`; o (b) que la app lo busque en el listado de la organización (`GET /organizations/{organizationId}/campaigns`), que hoy solo sirve al `ADMINISTRATOR`. Hasta entonces el gráfico solo está en Predicción.
 
 
-### 8.8 Entrar con biometría (2026-10-16) — **ENMIENDA PROPUESTA: backend hecho, app pendiente de aprobar `local_auth` (D12)**
+### 8.8 Entrar con biometría (2026-10-16) — **IMPLEMENTADA (backend y app); `local_auth` aprobada por el dueño del producto**
 
 Pedido por el dueño del producto. **Registro:**
 
@@ -399,12 +399,22 @@ Pedido por el dueño del producto. **Registro:**
   - `POST /auth/device-credentials` (JWT), `{deviceName?}` → `201 {credentialId, deviceToken}`. El `deviceToken` (256 bits) solo sale aquí; el backend guarda su SHA-256. Máximo 10 dispositivos activos por cuenta (409).
   - `POST /auth/device-login` (pública), `{deviceToken}` → `200 {token}`, el mismo JWT que el login. Token inexistente, revocado o de una cuenta inactiva: el mismo 401 que el login con contraseña.
   - `POST /auth/device-credentials/{credentialId}/revoke` (JWT) → 204. Cambiar la contraseña revoca todos los dispositivos de la cuenta.
-- **Diseño de la app (pendiente):**
+- **Diseño de la app (implementado el 2026-10-16, ver abajo):**
   - **Activar:** en el perfil, "Entrar con huella". Se confirma con la huella (`local_auth`), se llama a `POST /auth/device-credentials` y se guardan `credentialId` y `deviceToken` en `flutter_secure_storage` (ya aprobado), separados del JWT. Solo se ofrece si el teléfono tiene biometría configurada.
   - **Login:** si hay `deviceToken` guardado y el teléfono tiene biometría, el recuadro aparece solo y lanza la huella. Con éxito, `POST /auth/device-login` y la sesión se establece como tras un login normal (D3, `establish`). Un 401 borra el `deviceToken` y avisa: "La huella ya no sirve en este teléfono; entra con tu contraseña y vuelve a activarla" (pasa si se cambió la contraseña o se revocó).
   - **Cerrar sesión no desactiva la huella** (es lo que permite volver a entrar con ella). **Desactivar** la huella: `revoke` y se borra lo guardado.
   - **Plataformas:** Android (permiso `USE_BIOMETRIC` y `FlutterFragmentActivity`) e iOS (`NSFaceIDUsageDescription`). En Linux, donde se prueba hoy con `scripts/pruebas/app.sh`, `local_auth` no funciona: el recuadro no aparece y se entra con contraseña. Para probar la huella hace falta un teléfono (APK) o el emulador de Android Studio.
-- **Bloqueo:** la app necesita la dependencia `local_auth`, y A2/D12 exige la aprobación de Carlos para cualquier dependencia nueva. Hasta que se apruebe, la app no se toca.
+- **2026-10-16 — dependencia `local_auth` aprobada.** A2/D12 pide aprobación para cualquier dependencia nueva; el dueño del producto la aprobó en esta sesión ("prosigue"). Se añade `local_auth: ^3.0.2` (trae `local_auth_android`, `local_auth_darwin` y `local_auth_windows`). A2 nombra a Carlos: si no fue él quien aprobó, queda para que la ratifique.
+- **2026-10-16 — app hecha** (rama `claude/focused-goodall-meb6sh` de este repositorio):
+  - `lib/features/auth/biometrics/biometric_authenticator.dart`: la biometría del teléfono (`local_auth`, solo huella o rostro: `biometricOnly`). En Linux y en la web se usa una versión "sin biometría" y nunca se ofrece.
+  - `lib/features/auth/biometrics/biometric_login.dart`: activar, desactivar y entrar. Si la huella se cancela o no coincide, no se llama al backend.
+  - `lib/core/storage/device_credential_store.dart`: `credentialId` y `deviceToken` en `flutter_secure_storage`, en una clave distinta del JWT (`paxfide.biometric.device`). Cerrar sesión no la borra.
+  - `lib/features/auth/data/auth_api.dart`: `enrollDevice`, `deviceLogin` y `revokeDevice`.
+  - **Login** (`login_screen.dart` y `biometric_login_dialog.dart`): con la huella activada, al abrir aparece el recuadro "Entrar por biometría" y el teléfono pide la huella. Con éxito, la sesión se establece como en el login normal y el guard lleva a `/home`. La X o tocar fuera cierran el recuadro; queda un botón "Entrar con huella" para volver a intentarlo. Si el backend ya no la acepta (401), se borra del teléfono y aparece "La huella ya no sirve en este teléfono. Entra con tu contraseña y vuelve a activarla."
+  - **Activar o desactivar:** botón de huella en la barra superior de `/home` (`biometric_settings_sheet.dart`), con un interruptor. Activar pide la huella para confirmar. Desactivar revoca en el backend; sin conexión no se borra nada (para no dejarla viva en el backend) y lo dice. Sin biometría en el teléfono, lo explica y no muestra el interruptor.
+  - **Plataformas:** Android: `MainActivity` pasa a `FlutterFragmentActivity` y el permiso `USE_BIOMETRIC` en el manifiesto. iOS: `NSFaceIDUsageDescription` en `Info.plist`.
+  - **Verificación:** `test/features/auth/biometric_login_test.dart` (19 tests: entrar, cancelar sin llamar al backend, 401 borra, sin conexión conserva, activar con sesión, activar cancelado o sin biometría, máximo de dispositivos, desactivar con 204 y 404, desactivar sin conexión; recuadro que aparece solo y entra, la X, tocar fuera, credencial revocada, negativas sin activar y sin biometría; activar y desactivar desde `/home`; cerrar sesión no la desactiva). Suite completa: 243 en verde. `flutter build linux` compila.
+  - **Probar la huella de verdad:** en un teléfono Android (APK) o en el emulador de Android Studio con una huella registrada. En Linux (`scripts/pruebas/app.sh`) no aparece.
 
 ---
 

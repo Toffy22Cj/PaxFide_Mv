@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_config.dart';
 import 'package:paxfide_mobile/app/app_services.dart';
 import 'package:paxfide_mobile/app/paxfide_app.dart';
+import 'package:paxfide_mobile/core/storage/device_credential_store.dart';
 import 'package:paxfide_mobile/features/auth/data/login_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/me_gateway.dart';
 import 'package:paxfide_mobile/features/auth/data/session_controller.dart';
@@ -17,7 +18,9 @@ class Harness {
     LoginResult loginResult = const LoginUnavailable(),
     MeResult meResult = const MeSucceeded(donor),
     Uri? publicOrigin,
+    FakeBiometricAuthenticator? biometric,
   })  : api = FakeApiClient(),
+        biometric = biometric ?? FakeBiometricAuthenticator(available: false),
         tokenStore = FakeTokenStore(token: token),
         outboxStore = FakeOutboxStore(),
         loginGateway = FakeLoginGateway(loginResult),
@@ -41,6 +44,8 @@ class Harness {
       loginGateway: loginGateway,
       outboxStore: outboxStore,
       qrScannerBuilder: (context, onCode) => const SizedBox.shrink(),
+      deviceCredentialStore: deviceCredentials,
+      biometricAuthenticator: this.biometric,
     );
   }
 
@@ -49,6 +54,10 @@ class Harness {
   final FakeOutboxStore outboxStore;
   final FakeLoginGateway loginGateway;
   final FakeMeGateway meGateway;
+
+  /// Biometría del teléfono: sin huella por defecto (como en Linux).
+  final FakeBiometricAuthenticator biometric;
+  final MemoryDeviceCredentialStore deviceCredentials = MemoryDeviceCredentialStore();
   late final SessionController session;
   late final AppServices services;
 

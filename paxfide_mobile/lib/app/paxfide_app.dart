@@ -43,6 +43,7 @@ class _PaxFideAppState extends State<PaxFideApp> {
             loginGateway: widget.services.loginGateway,
             session: widget.services.session,
             pendingIntents: widget.services.pendingIntents,
+            biometricLogin: widget.services.biometricLogin,
           ),
       AppRoutes.register: (context, match) => const RegisterScreen(),
       AppRoutes.home: (context, match) => HomeScreen(session: widget.services.session),

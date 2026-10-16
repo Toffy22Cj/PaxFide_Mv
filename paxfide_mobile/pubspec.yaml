@@ -38,6 +38,8 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   mobile_scanner: ^7.4.2
   qr_flutter: ^4.1.0
+  # ADR-043 §8.8 (entrar con biometría): aprobada por el dueño del producto el 2026-10-16.
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

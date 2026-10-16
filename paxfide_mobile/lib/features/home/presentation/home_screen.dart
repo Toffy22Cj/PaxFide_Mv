@@ -5,6 +5,7 @@ import '../../../app/qr_scanner_sheet.dart';
 import '../../../shared/theme/pax_theme.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/data/session_controller.dart';
+import '../../auth/presentation/biometric_settings_sheet.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/presentation/campaign_list_view.dart';
@@ -216,6 +217,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   size: 20,
                 ),
                 onPressed: _toggleTheme,
+              ),
+              IconButton(
+                key: const Key('home-biometric'),
+                tooltip: 'Entrar con huella',
+                icon: Icon(Icons.fingerprint, color: c.textMuted, size: 21),
+                onPressed: () {
+                  final services = AppScope.of(context);
+                  showBiometricSettingsSheet(context, services.biometricLogin);
+                },
               ),
               IconButton(
                 key: const Key('home-logout'),

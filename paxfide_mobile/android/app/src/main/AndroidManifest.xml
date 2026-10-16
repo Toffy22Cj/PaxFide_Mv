@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- ADR-043 D4: la app habla con la API por HTTP. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Entrar con biometría (ADR-043 §8.8) -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="PaxFide"
         android:name="${applicationName}"

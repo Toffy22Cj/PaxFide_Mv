@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../app/app_routes.dart';
 import '../../../app/pending_intent.dart';
 import '../../../app/qr_scanner_sheet.dart';
+import '../biometrics/biometric_login.dart';
 import '../data/login_gateway.dart';
 import '../data/session_controller.dart';
+import 'biometric_login_dialog.dart';
 
 /// Estados de presentación del login. Cada fallo tiene su propio mensaje
 /// (regla 2.6).
@@ -14,6 +16,9 @@ enum LoginUiState {
   invalidCredentials,
   networkError,
   unavailable,
+
+  /// La huella ya no sirve en este teléfono (contraseña cambiada o revocada): hay que volver a activarla.
+  biometricRevoked,
 }
 
 /// Pantalla de `/login` (ADR-043 D8).
@@ -27,11 +32,15 @@ class LoginScreen extends StatefulWidget {
   /// La intención de un deep link desaparece si el login falla (D9 R2, DDM-12).
   final PendingIntentHolder? pendingIntents;
 
+  /// Entrar con biometría (ADR-043 §8.8). Sin él, o si no está activada en este teléfono, solo hay contraseña.
+  final BiometricLogin? biometricLogin;
+
   const LoginScreen({
     super.key,
     required this.loginGateway,
     required this.session,
     this.pendingIntents,
+    this.biometricLogin,
   });
 
   @override
@@ -45,6 +54,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   LoginUiState _state = LoginUiState.initial;
+
+  /// La huella está activada en este teléfono: se ofrece al abrir y con el botón "Entrar con huella".
+  bool _biometricOffered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _offerBiometric();
+  }
+
+  /// Al abrir el login, si la huella está activada, aparece el recuadro solo.
+  Future<void> _offerBiometric() async {
+    final biometric = widget.biometricLogin;
+    if (biometric == null || !await biometric.canOffer() || !mounted) return;
+    setState(() => _biometricOffered = true);
+    await _biometricLogin();
+  }
+
+  Future<void> _biometricLogin() async {
+    final biometric = widget.biometricLogin;
+    if (biometric == null || _state == LoginUiState.loading) return;
+    final result = await showBiometricLoginDialog(context, biometric);
+    if (!mounted || result == null) return;
+    switch (result) {
+      case BiometricLoginSucceeded(:final token):
+        setState(() => _state = LoginUiState.loading);
+        final established = await widget.session.establish(token);
+        if (!mounted) return;
+        if (established != EstablishResult.authenticated) widget.pendingIntents?.clear();
+        setState(() => _state = established == EstablishResult.authenticated
+            ? LoginUiState.initial
+            : LoginUiState.biometricRevoked);
+      case BiometricLoginRevoked():
+        setState(() {
+          _biometricOffered = false;
+          _state = LoginUiState.biometricRevoked;
+        });
+      case BiometricLoginNetworkError():
+        setState(() => _state = LoginUiState.networkError);
+      case BiometricLoginDismissed():
+        break;
+    }
+  }
 
   @override
   void dispose() {
@@ -295,6 +347,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   : const Text('Entrar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
             ),
           ),
+          if (_biometricOffered) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                key: const Key('login-biometric'),
+                onPressed: _state == LoginUiState.loading ? null : _biometricLogin,
+                icon: const Icon(Icons.fingerprint, size: 22),
+                label: const Text('Entrar con huella', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1E4A38),
+                  side: const BorderSide(color: Color(0xFF1E4A38)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Wrap(
             alignment: WrapAlignment.center,
@@ -337,6 +406,10 @@ class _LoginScreenState extends State<LoginScreen> {
       LoginUiState.unavailable => (
           'login-unavailable',
           'La app no está conectada a ningún servidor, así que no puedes entrar.',
+        ),
+      LoginUiState.biometricRevoked => (
+          'login-biometric-revoked',
+          'La huella ya no sirve en este teléfono. Entra con tu contraseña y vuelve a activarla.',
         ),
       LoginUiState.initial || LoginUiState.loading => ('', ''),
     };

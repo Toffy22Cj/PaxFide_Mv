@@ -6,9 +6,12 @@ import '../core/network/http_api_client.dart';
 import '../core/network/unconfigured_api_client.dart';
 import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
+import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
+import '../features/auth/biometrics/biometric_authenticator.dart';
+import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/data/http_auth_gateways.dart';
 import '../features/auth/data/login_gateway.dart';
@@ -37,6 +40,8 @@ class AppServices {
     required this.loginGateway,
     required this.outboxStore,
     this.qrScannerBuilder = defaultQrScanner,
+    DeviceCredentialStore? deviceCredentialStore,
+    BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
   })  : authApi = AuthApi(apiClient),
         campaignApi = CampaignApi(apiClient),
         donationIntentApi = DonationIntentApi(apiClient),
@@ -48,6 +53,11 @@ class AppServices {
         publicLinks = PublicLinks(config.publicOrigin),
         syncEngine = SyncEngine(store: outboxStore, apiClient: apiClient) {
     assetOperations = AssetOperations(engine: syncEngine, api: physicalAssetApi);
+    biometricLogin = BiometricLogin(
+      api: authApi,
+      store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
+      authenticator: biometricAuthenticator,
+    );
   }
 
   final AppConfig config;
@@ -68,6 +78,9 @@ class AppServices {
   final PublicLinks publicLinks;
   final SyncEngine syncEngine;
   late final AssetOperations assetOperations;
+
+  /// Entrar con huella o rostro (ADR-043 §8.8).
+  late final BiometricLogin biometricLogin;
   final PendingIntentHolder pendingIntents = PendingIntentHolder();
 
   /// Modo oscuro (por defecto) o claro, para toda la app.
@@ -115,6 +128,11 @@ AppServices buildServices({
     session: session,
     loginGateway: loginGateway,
     outboxStore: SecureOutboxStore(secureStore),
+    deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
+    // local_auth no funciona en Linux ni en la web: ahí la huella no se ofrece y se entra con contraseña.
+    biometricAuthenticator: LocalAuthBiometricAuthenticator.supportedPlatform
+        ? LocalAuthBiometricAuthenticator()
+        : const UnavailableBiometricAuthenticator(),
   );
 }
 
