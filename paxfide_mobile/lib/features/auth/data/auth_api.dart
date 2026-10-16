@@ -86,17 +86,6 @@ class AuthApi {
     return token;
   }
 
-  /// `POST /auth/device-credentials/{credentialId}/revoke`: 204. Un 404 (ya revocada o de otra cuenta) se lanza como
-  /// [NotFoundException].
-  Future<void> revokeDevice(String credentialId) async {
-    final r = await _api.post(
-      '/auth/device-credentials/${Uri.encodeComponent(credentialId)}/revoke',
-      credentialMode: CredentialMode.jwt,
-    );
-    final e = r.error;
-    if (e != null) throw e;
-  }
-
   /// `GET /me` con el JWT guardado. Un 401 lo gestiona T-1 en el cliente HTTP.
   Future<Principal> me() async {
     final r = await _api.get('/me', credentialMode: CredentialMode.jwt);

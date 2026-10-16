@@ -30,8 +30,8 @@ class BiometricLoginNetworkError extends BiometricLoginResult {
   const BiometricLoginNetworkError();
 }
 
-/// Resultado de activar la huella.
-enum BiometricEnableResult { enabled, canceled, unavailable, tooManyDevices, networkError }
+/// Resultado de registrar este teléfono para entrar con biometría.
+enum BiometricEnableResult { enabled, tooManyDevices, networkError }
 
 /// Entrar con biometría (ADR-043 §8.8). El teléfono comprueba la huella o el rostro; si es correcta, envía el token
 /// de este dispositivo y recibe un JWT como en el login normal. Nunca se guarda la contraseña.
@@ -84,18 +84,19 @@ class BiometricLogin {
     }
   }
 
-  /// Con la sesión iniciada: confirma la huella y da de alta este dispositivo.
-  Future<BiometricEnableResult> enable({String? deviceName}) async {
-    if (!await _authenticator.isAvailable()) return BiometricEnableResult.unavailable;
-    if (await _authenticator.authenticate(enableReason) != BiometricCheck.success) {
-      return BiometricEnableResult.canceled;
-    }
+  /// Tras entrar con contraseña: se ofrece activarla si el teléfono tiene biometría y aún no está activada.
+  Future<bool> canOfferEnrollment() async => !await isEnabled() && await _authenticator.isAvailable();
+
+  /// En el login, antes de entrar: el usuario confirma con su huella que quiere activarla.
+  Future<bool> confirmEnrollment() async =>
+      await _authenticator.authenticate(enableReason) == BiometricCheck.success;
+
+  /// Con la sesión ya iniciada (justo después de [confirmEnrollment]): da de alta este teléfono y guarda la
+  /// credencial.
+  Future<BiometricEnableResult> register({String? deviceName}) async {
     try {
-      final previous = await _stored();
       final e = await _api.enrollDevice(deviceName: deviceName);
       await _store.write(StoredDeviceCredential(credentialId: e.credentialId, deviceToken: e.deviceToken));
-      // Si ya había una de este teléfono (p. ej. de otra cuenta), se revoca en lo posible.
-      if (previous != null) await _revokeQuietly(previous.credentialId);
       return BiometricEnableResult.enabled;
     } on ConflictException {
       return BiometricEnableResult.tooManyDevices;
@@ -104,26 +105,7 @@ class BiometricLogin {
     }
   }
 
-  /// Con la sesión iniciada: la revoca en el backend y la borra de este teléfono. Si ya no existía en el backend
-  /// (404) también se borra. Sin conexión no se borra nada y lanza la excepción, para no dejarla viva en el backend.
-  Future<void> disable() async {
-    final stored = await _stored();
-    if (stored == null) return;
-    try {
-      await _api.revokeDevice(stored.credentialId);
-    } on NotFoundException {
-      // ya no servía
-    } on UnauthorizedException {
-      // de otra sesión: el backend la anulará al cambiar la contraseña; aquí se borra igual
-    }
-    await _store.clear();
-  }
-
-  Future<void> _revokeQuietly(String credentialId) async {
-    try {
-      await _api.revokeDevice(credentialId);
-    } on AppException {
-      // de otra cuenta o sin conexión: queda sin uso, porque este teléfono ya no guarda su token
-    }
-  }
+  /// Desde el login, sin sesión: deja de usar la huella en este teléfono. Se borra el token del teléfono, así que la
+  /// credencial del backend queda sin uso (nadie más tiene el token); se anula del todo al cambiar la contraseña.
+  Future<void> forget() => _store.clear();
 }

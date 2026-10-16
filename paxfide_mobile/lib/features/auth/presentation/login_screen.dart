@@ -98,6 +98,71 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// "¿Quieres entrar con tu huella la próxima vez?" tras un login con contraseña. Devuelve true si el usuario dijo
+  /// que sí y confirmó con su huella.
+  Future<bool> _askToEnableBiometric() async {
+    final biometric = widget.biometricLogin;
+    if (biometric == null || !await biometric.canOfferEnrollment() || !mounted) return false;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const Key('biometric-offer'),
+        icon: const Icon(Icons.fingerprint, size: 40, color: Color(0xFF1E4A38)),
+        title: const Text('¿Entrar con tu huella la próxima vez?'),
+        content: const Text('Podrás entrar con tu huella o tu rostro sin escribir la contraseña. Tu contraseña no se '
+            'guarda en el teléfono.'),
+        actions: [
+          TextButton(
+            key: const Key('biometric-offer-no'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Ahora no'),
+          ),
+          FilledButton(
+            key: const Key('biometric-offer-yes'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Activar'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return false;
+    return biometric.confirmEnrollment();
+  }
+
+  /// Con la sesión ya iniciada (el guard ya llevó a `/home`): registra el teléfono y avisa del resultado.
+  Future<void> _registerBiometric(ScaffoldMessengerState messenger) async {
+    final result = await widget.biometricLogin!.register();
+    final text = switch (result) {
+      BiometricEnableResult.enabled => 'Listo. La próxima vez podrás entrar con tu huella.',
+      BiometricEnableResult.tooManyDevices =>
+        'No se activó la huella: ya está activada en 10 teléfonos con esta cuenta.',
+      BiometricEnableResult.networkError => 'No se pudo activar la huella. Inténtalo la próxima vez que entres.',
+    };
+    messenger.showSnackBar(SnackBar(key: const Key('biometric-registered'), content: Text(text)));
+  }
+
+  /// Dejar de usar la huella en este teléfono, desde el login.
+  Future<void> _forgetBiometric() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Dejar de usar la huella en este teléfono?'),
+        content: const Text('Para entrar usarás tu contraseña. Podrás volver a activarla después de entrar.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+          FilledButton(
+            key: const Key('biometric-forget-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Dejar de usarla'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    await widget.biometricLogin?.forget();
+    if (mounted) setState(() => _biometricOffered = false);
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -131,7 +196,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     switch (result) {
       case LoginSucceeded(:final token):
+        // Antes de salir del login: ofrecer la huella si el teléfono la tiene y aún no está activada.
+        final enroll = await _askToEnableBiometric();
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
         final established = await widget.session.establish(token);
+        if (enroll && established == EstablishResult.authenticated) _registerBiometric(messenger);
         if (!mounted) return;
         // Con éxito el guard sustituye esta pantalla por /home.
         if (established != EstablishResult.authenticated) widget.pendingIntents?.clear();
@@ -362,6 +432,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
+            ),
+            TextButton(
+              key: const Key('login-biometric-forget'),
+              onPressed: _state == LoginUiState.loading ? null : _forgetBiometric,
+              child: const Text('No usar la huella en este teléfono', style: TextStyle(fontSize: 12.5)),
             ),
           ],
           const SizedBox(height: 18),
