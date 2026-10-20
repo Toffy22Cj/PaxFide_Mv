@@ -1,7 +1,7 @@
 import 'package:flutter/painting.dart';
 
-/// Paleta oficial de PaxFide. Es el **único** lugar de la app donde se escribe un color: el resto lo toma del tema
-/// (`Theme.of(context).colorScheme`) o, si hace falta un color de marca concreto, de aquí. Lo vigila
+/// Paleta oficial de PaxFide, la del **modo claro**. Este archivo es el **único** lugar de la app donde se escribe un
+/// color (aquí y en [PaxDarkTokens]): el resto lo toma del tema (`Theme.of(context).colorScheme`). Lo vigila
 /// `test/architecture/design_tokens_test.dart`.
 abstract final class PaxTokens {
   static const Color brandGreen900 = Color(0xFF1B5141);
@@ -38,5 +38,65 @@ abstract final class PaxTokens {
     'brand-neutral-700': brandNeutral700,
     'white': white,
     'danger-700': danger700,
+  };
+}
+
+/// Colores del **modo oscuro**. No son de la paleta oficial, que es del modo claro: el modo oscuro tiene que ser
+/// oscuro (grises casi negros, sin fondo verde). Los colores de marca aparecen solo como acentos, aclarados lo justo
+/// para leerse sobre negro.
+abstract final class PaxDarkTokens {
+  // Fondo y superficies: grises neutros, de más oscuro a más claro.
+  static const Color background = Color(0xFF121417);
+  static const Color surface = Color(0xFF1B1E22);
+  static const Color surfaceHigh = Color(0xFF23272C);
+  static const Color surfaceHighest = Color(0xFF2C3137);
+  static const Color outline = Color(0xFF5C636B);
+  static const Color outlineVariant = Color(0xFF33383E);
+
+  // Texto.
+  static const Color text = Color(0xFFE6E8EB);
+  static const Color textMuted = Color(0xFFA8AFB7);
+
+  // Acentos de marca aclarados (verde, azul) y sus fondos.
+  static const Color green = Color(0xFF8CCB94);
+  static const Color onGreen = Color(0xFF0E2A16);
+  static const Color greenContainer = Color(0xFF27402D);
+  static const Color onGreenContainer = Color(0xFFCDEBD1);
+  static const Color blue = Color(0xFF8CC8E3);
+  static const Color onBlue = Color(0xFF0B2B3A);
+  static const Color blueContainer = Color(0xFF1E3A4A);
+  static const Color onBlueContainer = Color(0xFFCFE8F4);
+  static const Color yellowContainer = Color(0xFF3D2E0F);
+  static const Color onYellowContainer = Color(0xFFFBE3B5);
+
+  // Error: rojo claro para texto y un fondo rojo oscuro para los avisos.
+  static const Color error = Color(0xFFFF8A7A);
+  static const Color onError = Color(0xFF3B0A05);
+  static const Color errorContainer = Color(0xFF5A1610);
+  static const Color onErrorContainer = Color(0xFFFFDAD5);
+
+  static const Map<String, Color> all = {
+    'background': background,
+    'surface': surface,
+    'surfaceHigh': surfaceHigh,
+    'surfaceHighest': surfaceHighest,
+    'outline': outline,
+    'outlineVariant': outlineVariant,
+    'text': text,
+    'textMuted': textMuted,
+    'green': green,
+    'onGreen': onGreen,
+    'greenContainer': greenContainer,
+    'onGreenContainer': onGreenContainer,
+    'blue': blue,
+    'onBlue': onBlue,
+    'blueContainer': blueContainer,
+    'onBlueContainer': onBlueContainer,
+    'yellowContainer': yellowContainer,
+    'onYellowContainer': onYellowContainer,
+    'error': error,
+    'onError': onError,
+    'errorContainer': errorContainer,
+    'onErrorContainer': onErrorContainer,
   };
 }

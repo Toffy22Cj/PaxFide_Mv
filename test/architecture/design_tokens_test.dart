@@ -48,9 +48,9 @@ void main() {
     expect(bad, isEmpty, reason: 'Usa el tema (colorScheme) o PaxTokens');
   });
 
-  /// Todos los colores del esquema: un token, o un token con transparencia.
-  List<String> offPalette(ColorScheme s) {
-    final rgb = PaxTokens.all.values.map((c) => c.toARGB32() & 0xFFFFFF).toSet();
+  /// Colores del esquema que no salen de [allowed] (un token, o un token con transparencia).
+  List<String> outside(ColorScheme s, Iterable<Color> allowed) {
+    final rgb = allowed.map((c) => c.toARGB32() & 0xFFFFFF).toSet();
     final colors = <String, Color>{
       'primary': s.primary,
       'onPrimary': s.onPrimary,
@@ -96,8 +96,23 @@ void main() {
     ];
   }
 
-  test('el tema claro solo usa la paleta oficial', () => expect(offPalette(PaxTheme.lightScheme), isEmpty));
-  test('el tema oscuro solo usa la paleta oficial', () => expect(offPalette(PaxTheme.darkScheme), isEmpty));
+  test('el modo claro solo usa la paleta oficial', () {
+    expect(outside(PaxTheme.lightScheme, PaxTokens.all.values), isEmpty);
+  });
+
+  test('el modo oscuro usa sus tokens oscuros (y la marca solo como acento)', () {
+    expect(outside(PaxTheme.darkScheme, [...PaxDarkTokens.all.values, ...PaxTokens.all.values]), isEmpty);
+  });
+
+  test('el modo oscuro es oscuro de verdad: fondo y superficies casi negros y grises, no verdes', () {
+    final s = PaxTheme.darkScheme;
+    for (final c in [s.surface, s.surfaceContainerLow, s.surfaceContainer, s.surfaceContainerHigh]) {
+      expect(c.computeLuminance(), lessThan(0.03), reason: '$c no es oscuro');
+      final ch = [(c.r * 255).round(), (c.g * 255).round(), (c.b * 255).round()]..sort();
+      expect(ch.last - ch.first, lessThanOrEqualTo(12), reason: '$c tiene color: debe ser gris');
+    }
+    expect(s.surface, isNot(PaxTokens.brandGreen900));
+  });
 
   /// Contraste WCAG entre dos colores opacos.
   double contrast(Color a, Color b) {

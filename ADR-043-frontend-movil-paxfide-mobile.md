@@ -315,7 +315,7 @@ Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `d
 
 ### 8.1 Paleta oficial
 
-`lib/shared/theme/pax_tokens.dart` es el **único** archivo con colores escritos. Contiene los 14 tokens:
+`lib/shared/theme/pax_tokens.dart` es el **único** archivo con colores escritos. **La paleta oficial es la del modo claro**; el modo oscuro tiene sus propios colores oscuros (§8.1 bis). Los 14 tokens:
 
 | Token | Hex | Token | Hex |
 |---|---|---|---|
@@ -327,25 +327,27 @@ Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `d
 | `brand-blue-700` | `#327DA2` | `white` | `#FFFFFF` |
 | `brand-blue-500` | `#3688B0` | `danger-700` | `#B42318` |
 
-`lib/shared/theme/pax_theme.dart` arma los temas claro y oscuro **solo con esos tokens**. Donde hace falta un tono más suave se usa un token con transparencia, nunca un color nuevo.
+`lib/shared/theme/pax_theme.dart` arma el **modo claro solo con esos tokens**. Donde hace falta un tono más suave se usa un token con transparencia, nunca un color nuevo.
 
-| Papel | Modo claro | Modo oscuro |
+| Papel | Modo claro (paleta oficial) | Modo oscuro (`PaxDarkTokens`) |
 |---|---|---|
-| Fondo y superficies | `white`; tarjetas y campos `brand-green-50` | `brand-green-900`; tarjetas y campos `brand-green-800` |
-| Texto | `brand-neutral-700` | `white`; secundario `brand-green-50` |
-| Botón principal | `brand-green-800` con texto `white` | `brand-green-50` con texto `brand-green-900` |
-| Enlaces y progreso | `brand-blue-700` | `brand-green-50` |
-| Pestaña elegida | `brand-green-800`, ícono `white` | `brand-blue-800`, ícono `white` |
-| Acento (barras de predicción) | `brand-yellow-400` | `brand-yellow-400` |
-| Error | `danger-700` | aviso con fondo `danger-700` y texto `white`; error de campo en `white` con borde `danger-700` |
+| Fondo | `white` | `#121417` (casi negro) |
+| Tarjetas, campos, barra inferior | `brand-green-50` | `#1B1E22`; más elevadas `#23272C` y `#2C3137` |
+| Bordes | `brand-neutral-700` con transparencia | `#5C636B` / `#33383E` |
+| Texto | `brand-neutral-700` | `#E6E8EB`; secundario `#A8AFB7` |
+| Botón principal | `brand-green-800` con texto `white` | verde de marca aclarado `#8CCB94` con texto `#0E2A16` |
+| Enlaces y progreso | `brand-blue-700` | `#8CCB94` |
+| Pestaña elegida | `brand-green-800`, ícono `white` | `#27402D`, ícono `white` |
+| Acento (barras de predicción) | `brand-yellow-400` | `brand-yellow-400` (se lee bien sobre negro) |
+| Error | `danger-700` | rojo claro `#FF8A7A`; avisos con fondo `#5A1610` y texto `#FFDAD5` |
 
-**Decisión (modo oscuro):** la paleta no tiene grises oscuros. Por eso el fondo oscuro es el verde más oscuro de la marca (`brand-green-900`). Si se quiere un oscuro gris, hay que agregar tokens neutros oscuros a la paleta oficial.
+**Decisión (2026-10-20, dueño del producto): el modo oscuro es oscuro de verdad, aunque esos colores no estén en la paleta.** La paleta oficial es del modo claro y no tiene grises oscuros. Una primera versión usó `brand-green-900` como fondo oscuro y salió un "modo verde"; se rechazó. Ahora el oscuro usa grises neutros casi negros (`PaxDarkTokens`, en el mismo archivo de tokens) y la marca aparece solo como acento, aclarada lo justo para leerse sobre negro.
 
-**Errores:** `danger-700` no se lee como texto sobre `brand-green-900`. Los avisos de error de las pantallas pasan a `ErrorMessage` (`lib/shared/widgets/error_message.dart`): fondo `danger-700` y texto `white`, legible en los dos modos. Cubre login, registro, donar (dos avisos), seguimiento y predicción.
+**Errores:** los avisos de error de las pantallas pasan a `ErrorMessage` (`lib/shared/widgets/error_message.dart`). En claro llevan fondo `danger-700` y texto `white`; en oscuro, fondo rojo oscuro y texto rojo claro. Cubre login, registro, donar (dos avisos), seguimiento y predicción.
 
 ### 8.2 Modo claro, oscuro o "como el teléfono"
 
-- `ThemeController` (`lib/shared/theme/theme_controller.dart`): empieza en "como el teléfono" y recuerda la elección en `flutter_secure_storage` (clave `paxfide.ui.theme`, sin dependencias nuevas). Se carga al arrancar (`startServices`).
+- `ThemeController` (`lib/shared/theme/theme_controller.dart`): empieza en "como el teléfono" (lo que ya hacía `develop` sin selector; la opción la añadió Claude sin que se pidiera, pendiente de confirmar si se queda) y recuerda la elección en `flutter_secure_storage` (clave `paxfide.ui.theme`, sin dependencias nuevas). Se carga al arrancar (`startServices`).
 - `ThemeModeButton` (`lib/app/theme_mode_button.dart`): menú con Modo claro, Modo oscuro y Como el teléfono. Está en **todas** las pantallas:
   - login y registro (`AuthLayout`, arriba a la derecha);
   - las de la sesión (`AppShell`);
@@ -358,7 +360,8 @@ Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `d
 - `test/architecture/design_tokens_test.dart`:
   - los 14 tokens con sus valores exactos;
   - **ningún color escrito fuera de `pax_tokens.dart`** (falla si alguien escribe `Color(0x…)` o `Colors.*`, salvo `transparent`);
-  - todos los colores del esquema claro y del oscuro son tokens;
+  - el esquema claro solo usa la paleta oficial;
+  - el oscuro solo usa `PaxDarkTokens` (y la marca como acento), y **es oscuro de verdad**: fondo y superficies con luminancia < 0,03 y grises (sin tono verde), nunca `brand-green-900`;
   - contraste AA (≥ 4,5) del texto principal, los botones, los errores y la pestaña elegida.
 - `test/shared/theme_controller_test.dart`: recuerda la elección; un valor desconocido vuelve a "como el teléfono".
 - `test/flows/theme_flow_test.dart`:
@@ -366,13 +369,11 @@ Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `d
   - el modo guardado se aplica al abrir;
   - el registro tiene el selector;
   - con la sesión iniciada, el selector cambia toda la app.
-- Suite completa: 222 en verde (eran 210). `flutter analyze` sin avisos; `flutter build linux` compila. Auditoría de colores: 14 de 14 colores escritos son tokens, todos en `pax_tokens.dart`.
+- Suite completa: 223 en verde (eran 210). `flutter analyze` sin avisos; `flutter build linux` compila. Fuera de `pax_tokens.dart` no hay ningún color escrito; el modo claro usa el 100 % de la paleta oficial.
 - Revisión visual con capturas del login, el registro y el inicio en los dos modos. Corrigió el marco del menú en modo claro, la pestaña elegida que casi no se veía y una fila del menú que se salía en pantallas angostas.
 
 ### 8.4 Pendiente
 
-- **Tokens que faltan en la paleta oficial**, a decidir por el equipo de diseño:
-  - grises oscuros, para un modo oscuro neutro;
-  - `danger-50`, para un fondo de error suave;
-  - un gris claro para bordes (hoy `brand-neutral-700` con transparencia).
+- **Paleta oficial:** si diseño quiere aprobar los colores del modo oscuro (`PaxDarkTokens`), que los agregue a la paleta. También faltan en el modo claro `danger-50` (fondo de error suave) y un gris claro para bordes (hoy `brand-neutral-700` con transparencia).
+- **Confirmar si se queda la opción "Como el teléfono"** del selector.
 - La biometría, el gráfico solo para la organización y los scripts de prueba siguen en `claude/focused-goodall-meb6sh` y aún no están en esta rama.

@@ -17,7 +17,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('login: pasa a modo oscuro con la paleta oficial y lo recuerda', (tester) async {
+  testWidgets('login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda', (
+    tester,
+  ) async {
     final h = AppHarness();
     await h.start(tester);
     expect(h.location, AppRoutes.login);
@@ -25,7 +27,7 @@ void main() {
 
     await choose(tester, ThemeMode.dark);
     expect(brightnessAt(tester, submit), Brightness.dark);
-    expect(Theme.of(tester.element(submit)).scaffoldBackgroundColor, PaxTokens.brandGreen900);
+    expect(Theme.of(tester.element(submit)).scaffoldBackgroundColor, PaxDarkTokens.background);
     expect(h.secure.values[ThemeController.storageKey], 'dark');
 
     await choose(tester, ThemeMode.light);

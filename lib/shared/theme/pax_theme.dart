@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'pax_tokens.dart';
 
-/// Temas claro y oscuro de toda la app, construidos solo con [PaxTokens]. Donde hace falta un tono más suave se usa
-/// un token con transparencia, nunca un color nuevo.
-///
-/// La paleta oficial no tiene fondos oscuros neutros: el modo oscuro usa el verde más oscuro de la marca
-/// (`brand-green-900`) como fondo y `brand-green-800` / `brand-neutral-700` para las superficies elevadas.
+/// Temas de toda la app. El **claro** usa solo la paleta oficial ([PaxTokens]); donde hace falta un tono más suave, un
+/// token con transparencia, nunca un color nuevo. El **oscuro** es oscuro de verdad ([PaxDarkTokens]): grises casi
+/// negros y la marca solo como acento.
 abstract final class PaxTheme {
   static final ColorScheme lightScheme = ColorScheme(
     brightness: Brightness.light,
@@ -44,40 +42,42 @@ abstract final class PaxTheme {
     surfaceTint: PaxTokens.brandGreen800,
   );
 
+  /// Modo oscuro: grises casi negros ([PaxDarkTokens]); la marca solo como acento. El amarillo oficial se lee bien
+  /// sobre negro y se usa tal cual.
   static final ColorScheme darkScheme = ColorScheme(
     brightness: Brightness.dark,
-    primary: PaxTokens.brandGreen50,
-    onPrimary: PaxTokens.brandGreen900,
-    primaryContainer: PaxTokens.brandGreen800,
-    onPrimaryContainer: PaxTokens.white,
-    secondary: PaxTokens.brandBlue50,
-    onSecondary: PaxTokens.brandBlue800,
-    secondaryContainer: PaxTokens.brandBlue800,
-    onSecondaryContainer: PaxTokens.white,
+    primary: PaxDarkTokens.green,
+    onPrimary: PaxDarkTokens.onGreen,
+    primaryContainer: PaxDarkTokens.greenContainer,
+    onPrimaryContainer: PaxDarkTokens.onGreenContainer,
+    secondary: PaxDarkTokens.blue,
+    onSecondary: PaxDarkTokens.onBlue,
+    secondaryContainer: PaxDarkTokens.blueContainer,
+    onSecondaryContainer: PaxDarkTokens.onBlueContainer,
     tertiary: PaxTokens.brandYellow400,
     onTertiary: PaxTokens.brandYellow900,
-    tertiaryContainer: PaxTokens.brandYellow900,
-    onTertiaryContainer: PaxTokens.brandYellow50,
-    error: PaxTokens.danger700,
-    onError: PaxTokens.white,
-    errorContainer: PaxTokens.danger700,
-    onErrorContainer: PaxTokens.white,
-    surface: PaxTokens.brandGreen900,
-    onSurface: PaxTokens.white,
-    onSurfaceVariant: PaxTokens.brandGreen50,
-    surfaceContainerLowest: PaxTokens.brandGreen900,
-    surfaceContainerLow: PaxTokens.brandGreen900,
-    surfaceContainer: PaxTokens.brandGreen800,
-    surfaceContainerHigh: PaxTokens.brandGreen800,
-    surfaceContainerHighest: PaxTokens.brandNeutral700,
-    outline: PaxTokens.brandGreen50.withValues(alpha: 0.5),
-    outlineVariant: PaxTokens.white.withValues(alpha: 0.15),
-    shadow: PaxTokens.brandGreen900,
-    scrim: PaxTokens.brandGreen900,
-    inverseSurface: PaxTokens.brandGreen50,
-    onInverseSurface: PaxTokens.brandGreen900,
+    tertiaryContainer: PaxDarkTokens.yellowContainer,
+    onTertiaryContainer: PaxDarkTokens.onYellowContainer,
+    error: PaxDarkTokens.error,
+    onError: PaxDarkTokens.onError,
+    errorContainer: PaxDarkTokens.errorContainer,
+    onErrorContainer: PaxDarkTokens.onErrorContainer,
+    surface: PaxDarkTokens.background,
+    onSurface: PaxDarkTokens.text,
+    onSurfaceVariant: PaxDarkTokens.textMuted,
+    surfaceContainerLowest: PaxDarkTokens.background,
+    surfaceContainerLow: PaxDarkTokens.surface,
+    surfaceContainer: PaxDarkTokens.surface,
+    surfaceContainerHigh: PaxDarkTokens.surfaceHigh,
+    surfaceContainerHighest: PaxDarkTokens.surfaceHighest,
+    outline: PaxDarkTokens.outline,
+    outlineVariant: PaxDarkTokens.outlineVariant,
+    shadow: PaxDarkTokens.background,
+    scrim: PaxDarkTokens.background,
+    inverseSurface: PaxDarkTokens.text,
+    onInverseSurface: PaxDarkTokens.background,
     inversePrimary: PaxTokens.brandGreen800,
-    surfaceTint: PaxTokens.brandGreen50,
+    surfaceTint: PaxDarkTokens.green,
   );
 
   static final ThemeData light = _build(lightScheme);
@@ -86,10 +86,8 @@ abstract final class PaxTheme {
   static ThemeData _build(ColorScheme s) {
     final dark = s.brightness == Brightness.dark;
     final radius = BorderRadius.circular(12);
-    // Sobre el fondo oscuro, danger-700 no se lee como texto: el mensaje de error del campo va en blanco y el borde
-    // en danger-700. Los avisos de error de las pantallas usan ErrorMessage (fondo danger-700, texto blanco).
-    final errorText = dark ? PaxTokens.white : PaxTokens.danger700;
-    final indicator = dark ? PaxTokens.brandBlue800 : PaxTokens.brandGreen800;
+    // Pestaña elegida: brand-green-800 (claro) o el verde oscuro de acento (oscuro), siempre con ícono blanco.
+    final indicator = dark ? PaxDarkTokens.greenContainer : PaxTokens.brandGreen800;
     return ThemeData(
       useMaterial3: true,
       colorScheme: s,
@@ -127,13 +125,13 @@ abstract final class PaxTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: const BorderSide(color: PaxTokens.danger700, width: 2),
+          borderSide: BorderSide(color: s.error, width: 2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: const BorderSide(color: PaxTokens.danger700, width: 2),
+          borderSide: BorderSide(color: s.error, width: 2),
         ),
-        errorStyle: TextStyle(color: errorText),
+        errorStyle: TextStyle(color: s.error),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

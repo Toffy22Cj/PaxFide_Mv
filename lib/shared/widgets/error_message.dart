@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Aviso de error de una pantalla: fondo `danger-700` y texto blanco, legible en modo claro y oscuro. [textKey] va en
-/// el texto, para encontrarlo como antes.
+/// Aviso de error de una pantalla, legible en los dos modos: en claro, fondo `danger-700` y texto blanco; en oscuro,
+/// fondo rojo oscuro y texto rojo claro. [textKey] va en el texto, para encontrarlo como antes.
 class ErrorMessage extends StatelessWidget {
   const ErrorMessage(this.text, {super.key, this.textKey});
 
