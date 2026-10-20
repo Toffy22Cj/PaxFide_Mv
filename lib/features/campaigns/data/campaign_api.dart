@@ -16,6 +16,7 @@ class PublicCampaign {
     this.currency,
     this.targetAmount,
     this.clearedAmount,
+    this.verificationStatus,
   });
   final String organizationName;
   final String title;
@@ -28,6 +29,10 @@ class PublicCampaign {
   final String? currency;
   final String? targetAmount;
   final String? clearedAmount;
+
+  /// Verificación de la organización (ADR-038). Hoy la respuesta pública no la trae (M-07, pendiente de backend):
+  /// si falta, es null y la app no afirma nada.
+  final String? verificationStatus;
 }
 
 /// Hechos de la narrativa de convocatoria (B5, DD-39): son los datos verificables; la narrativa se apoya en ellos.
@@ -80,6 +85,7 @@ class CampaignApi {
       currency: _opt(j, 'currency'),
       targetAmount: _opt(j, 'targetAmount'),
       clearedAmount: _opt(j, 'clearedAmount'),
+      verificationStatus: _opt(j, 'verificationStatus'),
     );
   }
 

@@ -5,6 +5,7 @@ import '../core/offline/sync_engine.dart';
 import '../core/storage/outbox_store.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/campaigns/domain/organization_verification.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
@@ -23,6 +24,7 @@ class AppServices {
     required this.outboxStore,
     required this.syncEngine,
     this.qrScannerBuilder = defaultQrScanner,
+    this.organizationVerification = const PublicFieldVerification(),
     ThemeController? theme,
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController();
@@ -36,6 +38,9 @@ class AppServices {
   final QrScannerBuilder qrScannerBuilder;
   final OutboxStore outboxStore;
   final SyncEngine syncEngine;
+
+  /// Insignia de organización verificada (M-07).
+  final OrganizationVerification organizationVerification;
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;

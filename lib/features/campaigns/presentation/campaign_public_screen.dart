@@ -113,7 +113,25 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Text(c.title, style: theme.textTheme.headlineSmall),
-        if (c.organizationName.isNotEmpty) Text(c.organizationName, style: theme.textTheme.titleSmall),
+        if (c.organizationName.isNotEmpty)
+          Row(
+            children: [
+              Flexible(child: Text(c.organizationName, style: theme.textTheme.titleSmall)),
+              if (_services.organizationVerification.isVerified(c)) ...[
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: 'Organización verificada por PaxFide',
+                  child: Icon(
+                    Icons.verified,
+                    key: const Key('campaign.verified'),
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                    semanticLabel: 'Organización verificada',
+                  ),
+                ),
+              ],
+            ],
+          ),
         const SizedBox(height: 8),
         Text('${campaignStatusLabel(c.status)} · del ${c.startDate.split('T').first} al ${c.endDate.split('T').first}'),
         if (c.description != null) ...[const SizedBox(height: 12), Text(c.description!)],

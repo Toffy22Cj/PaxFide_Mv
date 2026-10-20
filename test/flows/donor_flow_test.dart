@@ -365,4 +365,27 @@ void main() {
     expect(find.text('Convocatoria no disponible'), findsOneWidget);
     expect(find.text('1 000,00 COP'), findsOneWidget);
   });
+
+  testWidgets('M-07: insignia de organización verificada solo con VERIFIED', (tester) async {
+    for (final (status, shown) in [('VERIFIED', true), ('PENDING', false), (null, false)]) {
+      final h = AppHarness();
+      h.api.routes['GET /public/campaigns/PUB1'] = (_) => ApiResponse(
+        statusCode: 200,
+        data: {
+          'organizationName': 'Fundación Demo',
+          'title': 'Abrigo',
+          'status': 'OPEN',
+          'startDate': '2026-10-01T00:00:00Z',
+          'endDate': '2026-12-01T00:00:00Z',
+          'verificationStatus': ?status,
+        },
+      );
+      h.api.routes['GET /public/campaigns/PUB1/narrative'] = (_) =>
+          const ApiResponse(statusCode: 202, data: {'status': 'PENDING'});
+      await h.start(tester);
+      await h.services.router.openDeepLink(h.services.deepLinkParser.parse(Uri.parse('$testOrigin/c/PUB1')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('campaign.verified')), shown ? findsOneWidget : findsNothing, reason: '$status');
+    }
+  });
 }
