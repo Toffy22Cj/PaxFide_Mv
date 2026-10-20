@@ -209,15 +209,18 @@ class _PredictionCard extends StatelessWidget {
               )
             else ...[
               if (p.probabilityReachTarget != null) ...[
-                Center(
-                  child: SizedBox(
-                    width: 180,
-                    height: 100,
-                    child: CustomPaint(
-                      painter: _ArcPainter(
-                        fraction: p.probabilityReachTarget!.clamp(0, 1),
-                        color: theme.colorScheme.tertiary,
-                        track: theme.colorScheme.surfaceContainerHighest,
+                // Decorativo: la probabilidad se lee en el texto de debajo (M-04).
+                ExcludeSemantics(
+                  child: Center(
+                    child: SizedBox(
+                      width: 180,
+                      height: 100,
+                      child: CustomPaint(
+                        painter: _ArcPainter(
+                          fraction: p.probabilityReachTarget!.clamp(0, 1),
+                          color: theme.colorScheme.tertiary,
+                          track: theme.colorScheme.surfaceContainerHighest,
+                        ),
                       ),
                     ),
                   ),

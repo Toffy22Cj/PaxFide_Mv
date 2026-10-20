@@ -146,11 +146,14 @@ class _PendingBadge extends StatelessWidget {
                   .catchError((_) => 0),
         builder: (context, snap) {
           final n = snap.data ?? 0;
-          return Badge(
-            key: const Key('nav.pending.count'),
-            isLabelVisible: n > 0,
-            label: Text('$n'),
-            child: Icon(icon),
+          return Semantics(
+            label: n == 1 ? '1 operación pendiente' : '$n operaciones pendientes',
+            child: Badge(
+              key: const Key('nav.pending.count'),
+              isLabelVisible: n > 0,
+              label: Text('$n'),
+              child: Icon(icon),
+            ),
           );
         },
       ),

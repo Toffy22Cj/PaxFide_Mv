@@ -31,14 +31,17 @@ class AmountBars extends StatelessWidget {
               children: [
                 Text('${b.label}: ${b.display}'),
                 const SizedBox(height: 2),
-                SizedBox(
-                  height: 10,
-                  width: double.infinity,
-                  child: CustomPaint(
-                    painter: _BarPainter(
-                      fraction: max <= 0 ? 0 : (b.value / max).clamp(0, 1).toDouble(),
-                      color: scheme.primary,
-                      track: scheme.surfaceContainerHighest,
+                // Decorativa: el lector de pantalla ya lee la cifra del texto de arriba (M-04).
+                ExcludeSemantics(
+                  child: SizedBox(
+                    height: 10,
+                    width: double.infinity,
+                    child: CustomPaint(
+                      painter: _BarPainter(
+                        fraction: max <= 0 ? 0 : (b.value / max).clamp(0, 1).toDouble(),
+                        color: scheme.primary,
+                        track: scheme.surfaceContainerHighest,
+                      ),
                     ),
                   ),
                 ),

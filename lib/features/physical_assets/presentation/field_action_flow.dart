@@ -277,22 +277,27 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       ),
     };
     return [
-      Container(
-        key: Key('result.${_outcome!.name}'),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          children: [
-            Icon(icon, size: 48, color: fg),
-            const SizedBox(height: 8),
-            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: fg)),
-            const SizedBox(height: 8),
-            Text(
-              detail,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: fg),
-            ),
-          ],
+      // Se anuncia en el lector de pantalla en cuanto aparece (M-04).
+      Semantics(
+        liveRegion: true,
+        container: true,
+        child: Container(
+          key: Key('result.${_outcome!.name}'),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            children: [
+              Icon(icon, size: 48, color: fg),
+              const SizedBox(height: 8),
+              Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: fg)),
+              const SizedBox(height: 8),
+              Text(
+                detail,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: fg),
+              ),
+            ],
+          ),
         ),
       ),
       const SizedBox(height: 16),
