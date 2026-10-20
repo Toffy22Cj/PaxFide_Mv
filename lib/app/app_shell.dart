@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/offline/outbox_status.dart';
 import '../features/auth/domain/principal.dart';
 import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
+import 'qr_scanner_sheet.dart';
 import 'theme_mode_button.dart';
 
 class _Destination {
@@ -13,13 +15,27 @@ class _Destination {
   final IconData icon;
 }
 
+/// Pestaña "Escanear" del empleado: abre el escáner, no es una ruta.
+const _scan = '#scan';
+
 /// Destinos según `/me`. Es **representación**: el guard no lee roles y el backend autoriza cada petición.
-List<_Destination> _destinationsFor(Principal? p) => [
-  const _Destination(AppRoutes.home, 'Inicio', Icons.home_outlined),
-  const _Destination(AppRoutes.donations, 'Mis donaciones', Icons.favorite_outline),
-  if (p?.showsOperatorActions ?? false) const _Destination(AppRoutes.operator, 'Operaciones', Icons.qr_code_scanner),
-  if (p?.showsPrediction ?? false) const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
-];
+List<_Destination> _destinationsFor(Principal? p) => (p?.showsOperatorActions ?? false)
+    // Empleado (M-03): Mi día · Escanear (centro) · Pendientes. Cuenta (E-12) llega con la enmienda de ADR-043.
+    ? [
+        const _Destination(AppRoutes.operator, 'Mi día', Icons.today_outlined),
+        const _Destination(_scan, 'Escanear', Icons.qr_code_scanner),
+        const _Destination(AppRoutes.operatorPending, 'Pendientes', Icons.pending_actions),
+        if (p?.showsPrediction ?? false)
+          const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
+      ]
+    : [
+        const _Destination(AppRoutes.home, 'Inicio', Icons.home_outlined),
+        const _Destination(AppRoutes.donations, 'Mis donaciones', Icons.favorite_outline),
+        if (p?.showsOperatorActions ?? false)
+          const _Destination(AppRoutes.operator, 'Operaciones', Icons.qr_code_scanner),
+        if (p?.showsPrediction ?? false)
+          const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
+      ];
 
 /// Navegación adaptable de las rutas autenticadas: barra inferior en el móvil, carril lateral en anchos grandes.
 class AppShell extends StatelessWidget {
@@ -37,11 +53,16 @@ class AppShell extends StatelessWidget {
       listenable: services.session,
       builder: (context, _) {
         final destinations = _destinationsFor(services.session.principal);
-        final top = location.startsWith('/assets/') || location == AppRoutes.operatorPending
+        // Pendientes tiene su propia pestaña para el empleado; para el resto cuelga de Operaciones.
+        final ownPending = destinations.any((d) => d.route == AppRoutes.operatorPending);
+        final top = location.startsWith('/assets/') || (location == AppRoutes.operatorPending && !ownPending)
             ? AppRoutes.operator
             : location;
         final index = destinations.indexWhere((d) => d.route == top);
-        void select(int i) => services.router.go(destinations[i].route);
+        void select(int i) =>
+            destinations[i].route == _scan ? scanQr(context) : services.router.go(destinations[i].route);
+        Widget icon(_Destination d) =>
+            d.route == AppRoutes.operatorPending ? _PendingBadge(icon: d.icon) : Icon(d.icon);
         final appBar = AppBar(
           title: Text(title),
           actions: [
@@ -75,8 +96,7 @@ class AppShell extends StatelessWidget {
                       onDestinationSelected: select,
                       labelType: NavigationRailLabelType.all,
                       destinations: [
-                        for (final d in destinations)
-                          NavigationRailDestination(icon: Icon(d.icon), label: Text(d.label)),
+                        for (final d in destinations) NavigationRailDestination(icon: icon(d), label: Text(d.label)),
                       ],
                     ),
                     const VerticalDivider(width: 1),
@@ -93,7 +113,8 @@ class AppShell extends StatelessWidget {
                       selectedIndex: index < 0 ? 0 : index,
                       onDestinationSelected: select,
                       destinations: [
-                        for (final d in destinations) NavigationDestination(icon: Icon(d.icon), label: d.label),
+                        for (final d in destinations)
+                          NavigationDestination(key: Key('nav.${d.label}'), icon: icon(d), label: d.label),
                       ],
                     )
                   : null,
@@ -101,6 +122,38 @@ class AppShell extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Ícono de Pendientes con el número de operaciones guardadas en el teléfono por esta cuenta (sin las confirmadas).
+class _PendingBadge extends StatelessWidget {
+  const _PendingBadge({required this.icon});
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final account = services.session.principal?.accountId;
+    return ListenableBuilder(
+      listenable: services.syncEngine,
+      builder: (context, _) => FutureBuilder<int>(
+        future: account == null
+            ? Future.value(0)
+            : services.syncEngine
+                  .entriesFor(account)
+                  .then((all) => all.where((i) => i.status != OutboxStatus.acknowledged).length)
+                  .catchError((_) => 0),
+        builder: (context, snap) {
+          final n = snap.data ?? 0;
+          return Badge(
+            key: const Key('nav.pending.count'),
+            isLabelVisible: n > 0,
+            label: Text('$n'),
+            child: Icon(icon),
+          );
+        },
+      ),
     );
   }
 }
