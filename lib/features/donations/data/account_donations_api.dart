@@ -2,19 +2,21 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/credential_mode.dart';
 
-/// Elemento de `GET /account/donations`. Se descartan `intentId` (id interno) y `trackingCode` (secreto): la app
-/// no los muestra ni los guarda (DDM-25).
+/// Elemento de `GET /account/donations`. Se descarta `intentId` (id interno). El `trackingCode` (secreto) solo vive
+/// en memoria mientras dura la sesión, para "Ver el recorrido" (M-16, decisión 3): nunca se guarda ni se registra.
 class AccountDonation {
   const AccountDonation({
     required this.campaignTitle,
     required this.amount,
     required this.currency,
     required this.status,
+    this.trackingCode,
   });
   final String campaignTitle;
   final String amount;
   final String currency;
   final String status;
+  final String? trackingCode;
 }
 
 class AccountDonationsApi {
@@ -35,6 +37,9 @@ class AccountDonationsApi {
             amount: '${i['amount'] ?? ''}',
             currency: '${i['currency'] ?? ''}',
             status: '${i['status'] ?? ''}',
+            trackingCode: i['trackingCode'] is String && (i['trackingCode'] as String).isNotEmpty
+                ? i['trackingCode'] as String
+                : null,
           ),
     ];
   }

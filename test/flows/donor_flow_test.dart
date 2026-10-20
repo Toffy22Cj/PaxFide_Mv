@@ -215,6 +215,50 @@ void main() {
     expect(h.api.calls.last.credentialMode, CredentialMode.jwt);
   });
 
+  testWidgets('M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    h.api.routes['GET /account/donations'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {
+            'campaignTitle': 'Abrigo para el invierno',
+            'amount': '4000000',
+            'currency': 'COP',
+            'status': 'CONFIRMED',
+            'trackingCode': 'CODIGO-DE-LA-CUENTA',
+          },
+          {'campaignTitle': 'Mercados', 'amount': '100000', 'currency': 'COP', 'status': 'PENDING'},
+        ],
+      },
+    );
+    h.api.routes['GET /donations/tracking'] = (_) => trackingBody;
+    h.api.routes['GET /donations/tracking/narrative'] = (_) =>
+        const ApiResponse(statusCode: 200, data: {'status': 'PENDING'});
+    h.services.router.go(AppRoutes.donations);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('donation.1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donation.noRoute')), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('donation.0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('donation.route')));
+    await tester.pumpAndSettle();
+    final call = h.api.calls.firstWhere((c) => c.path == '/donations/tracking');
+    expect(call.headers['Authorization'], 'Bearer CODIGO-DE-LA-CUENTA');
+    expect(find.text('Hechos registrados'), findsOneWidget);
+    expect(h.services.router.stack.join(), isNot(contains('CODIGO-DE-LA-CUENTA')));
+    expect(h.secure.values.values.join(), isNot(contains('CODIGO-DE-LA-CUENTA')));
+  });
+
   testWidgets('mis donaciones vacía → estado vacío', (tester) async {
     final h = AppHarness();
     h.saveToken('jwt');

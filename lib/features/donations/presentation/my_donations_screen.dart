@@ -7,6 +7,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../tracking/presentation/tracking_screen.dart';
 import '../data/account_donations_api.dart';
 import '../domain/achievements.dart';
 
@@ -19,8 +20,9 @@ String donationStatusLabel(String s) => switch (s) {
   _ => s,
 };
 
-/// `/donations` (§12): solo lista, sin detalle (`/donations/:id` no existe). Muestra título de la convocatoria,
-/// importe, moneda y estado. No muestra `intentId` ni el código de seguimiento (DDM-25).
+/// `/donations` (§12): lista con título de la convocatoria, importe, moneda y estado. El detalle (M-16) es una hoja
+/// transitoria, no una ruta (`/donations/:id` no existe). No muestra `intentId`; el código de seguimiento solo
+/// aparece en el detalle, en memoria (decisión 3).
 class MyDonationsScreen extends StatefulWidget {
   const MyDonationsScreen({super.key});
 
@@ -79,24 +81,61 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         children: [
           _AchievementsCard(achievementsFor(items)),
           const SizedBox(height: 12),
-          for (final d in items)
+          for (final (i, d) in items.indexed)
             Card(
               child: ListTile(
-                title: Text(d.campaignTitle.isEmpty ? 'Convocatoria no disponible' : d.campaignTitle),
+                key: Key('donation.$i'),
+                title: Text(_title(d)),
                 subtitle: Text(donationStatusLabel(d.status)),
                 trailing: Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
+                onTap: () => _showDetail(context, d),
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text(
-              'Para ver el recorrido de una donación, usa su código de seguimiento en "Seguir una donación".',
-            ),
-          ),
+          const Padding(padding: EdgeInsets.all(8), child: Text('Toca una donación para ver su detalle.')),
         ],
       ),
     );
   }
+}
+
+String _title(AccountDonation d) => d.campaignTitle.isEmpty ? 'Convocatoria no disponible' : d.campaignTitle;
+
+/// M-16: detalle de una donación. "Ver el recorrido" abre el seguimiento con el código de la cuenta, sin escribirlo.
+void _showDetail(BuildContext context, AccountDonation d) {
+  showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    builder: (sheet) => Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        key: const Key('donation.detail'),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(_title(d), style: Theme.of(sheet).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
+          Text(donationStatusLabel(d.status)),
+          const SizedBox(height: 16),
+          if (d.trackingCode case final code?) ...[
+            FilledButton.icon(
+              key: const Key('donation.route'),
+              icon: const Icon(Icons.route_outlined),
+              label: const Text('Ver el recorrido'),
+              onPressed: () {
+                Navigator.of(sheet).pop();
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TrackingScreen(initialCode: code)));
+              },
+            ),
+          ] else
+            const Text(
+              'El recorrido estará disponible cuando el pago se confirme y los fondos se apliquen.',
+              key: Key('donation.noRoute'),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// "Tus logros" (M-23): solo para el propio donante, sin compartir.

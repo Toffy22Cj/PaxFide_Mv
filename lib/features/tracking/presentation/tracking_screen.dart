@@ -35,7 +35,10 @@ String _lifecycle(String wire) => switch (LifecycleStatus.fromWire(wire)) {
 /// Cualquier fallo del código: un único mensaje "código no válido o expirado", sin tocar la sesión.
 /// Narrativa `PENDING`: "Actualizar" manual, sin polling.
 class TrackingScreen extends StatefulWidget {
-  const TrackingScreen({super.key});
+  const TrackingScreen({super.key, this.initialCode});
+
+  /// Código que llega desde "Mis donaciones" (M-16): se consulta al abrir y vive solo en la memoria de la pantalla.
+  final String? initialCode;
 
   @override
   State<TrackingScreen> createState() => _TrackingScreenState();
@@ -52,6 +55,18 @@ class _TrackingScreenState extends State<TrackingScreen> {
   TrackingNarrative? _narrative;
   bool _narrativeLoading = false;
   final Map<String, List<HistoryEntry>> _history = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.initialCode;
+    if (code != null) {
+      _codeField.text = code;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _submit();
+      });
+    }
+  }
 
   @override
   void dispose() {
