@@ -27,7 +27,6 @@ class OutboxEntryCard extends StatelessWidget {
     this.showAsset = false,
     this.onSend,
     this.onVerify,
-    this.onRetrySame,
     this.onDiscard,
     this.onNewOperation,
     this.onOpenAsset,
@@ -38,7 +37,6 @@ class OutboxEntryCard extends StatelessWidget {
   final bool showAsset;
   final VoidCallback? onSend;
   final VoidCallback? onVerify;
-  final VoidCallback? onRetrySame;
   final VoidCallback? onDiscard;
   final VoidCallback? onNewOperation;
   final VoidCallback? onOpenAsset;
@@ -64,17 +62,12 @@ class OutboxEntryCard extends StatelessWidget {
       OutboxStatus.ambiguous => (
         Icons.help_outline,
         'No pudimos confirmar la operación',
-        'Puede que el servidor la haya registrado. Verifica el estado antes de reintentar.',
+        'Puede que haya quedado registrada. Verifica el estado; no se vuelve a enviar sola.',
         [
           FilledButton(
             key: Key('outbox.verify.${item.commandId}'),
             onPressed: busy ? null : onVerify,
             child: const Text('Verificar estado'),
-          ),
-          TextButton(
-            key: Key('outbox.retry.${item.commandId}'),
-            onPressed: busy ? null : onRetrySame,
-            child: const Text('Reintentar'),
           ),
         ],
       ),

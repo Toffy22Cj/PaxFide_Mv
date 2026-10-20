@@ -117,7 +117,6 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
                   showAsset: true,
                   onOpenAsset: () => _services.router.push(AppRoutes.assetPath(e.resourceRef)),
                   onSend: () => _run(() => _services.syncEngine.send(e.commandId, account)),
-                  onRetrySame: () => _run(() => _services.syncEngine.send(e.commandId, account)),
                   onVerify: () => _run(() async {
                     final ok = await _ops.verify(e, accountId: account);
                     if (!ok && context.mounted) {

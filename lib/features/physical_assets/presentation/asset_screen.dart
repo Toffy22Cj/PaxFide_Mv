@@ -18,6 +18,7 @@ import '../domain/asset_action.dart';
 import '../domain/asset_operations.dart';
 import '../domain/lifecycle_status.dart';
 import 'command_form_sheet.dart';
+import 'field_action_flow.dart';
 import 'outbox_entry_card.dart';
 
 String lifecycleLabel(String wire) => switch (LifecycleStatus.fromWire(wire)) {
@@ -119,12 +120,15 @@ class _AssetScreenState extends State<AssetScreen> {
   Future<void> _startAction(AssetAction action) async {
     final account = _accountId;
     if (account == null) return;
-    final cmd = await showCommandForm(context, action, widget.assetRef);
-    if (cmd == null || !mounted) return;
-    await _run(() async {
-      final (_, outcome) = await _ops.submit(cmd, accountId: account);
-      if (outcome == CommandOutcome.acknowledged) await _load();
-    });
+    final outcome = await runFieldAction(
+      context,
+      action: action,
+      assetRef: widget.assetRef,
+      operations: _ops,
+      accountId: account,
+    );
+    if (outcome == CommandOutcome.acknowledged && mounted) await _load();
+    await _loadEntries();
   }
 
   Future<void> _verify(OutboxItem item) => _run(() async {
@@ -201,11 +205,20 @@ class _AssetScreenState extends State<AssetScreen> {
               busy: _busy,
               onSend: () => _send(e),
               onVerify: () => _verify(e),
-              onRetrySame: () => _send(e),
               onDiscard: () => _discard(e),
               onNewOperation: canShowAction ? () => _startAction(action) : null,
             ),
-          if (canShowAction && !_busy && _entries.isEmpty)
+          // Entregar exige foto (ADR de fotos, pendiente de aprobar): hasta entonces no se ofrece.
+          if (canShowAction && !_busy && _entries.isEmpty && action == AssetAction.deliver)
+            const Card(
+              key: Key('asset.deliver.soon'),
+              child: ListTile(
+                leading: Icon(Icons.photo_camera_outlined),
+                title: Text('Entregar'),
+                subtitle: Text('Para entregar hará falta una foto de la entrega. Estará disponible muy pronto.'),
+              ),
+            ),
+          if (canShowAction && !_busy && _entries.isEmpty && action != AssetAction.deliver)
             FilledButton.icon(
               key: const Key('asset.action'),
               onPressed: () => _startAction(action),
@@ -213,6 +226,11 @@ class _AssetScreenState extends State<AssetScreen> {
               label: Text(actionLabel(action)),
             ),
           if (_busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
+          if (action == AssetAction.readOnly)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Text('Este activo ya fue entregado. Solo se puede consultar.'),
+            ),
           const SizedBox(height: 12),
           Card(
             child: Column(
@@ -229,6 +247,11 @@ class _AssetScreenState extends State<AssetScreen> {
                 ),
                 ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef ?? '—')),
                 ListTile(
+                  key: const Key('asset.campaign'),
+                  title: const Text('Convocatoria'),
+                  subtitle: Text(a.campaignRef ?? 'Sin convocatoria'),
+                ),
+                ListTile(
                   key: const Key('asset.location'),
                   title: const Text('Ubicación actual'),
                   subtitle: Text(a.currentLocation ?? 'Sin ubicación registrada'),
@@ -236,8 +259,6 @@ class _AssetScreenState extends State<AssetScreen> {
               ],
             ),
           ),
-          if (action == AssetAction.readOnly)
-            const Padding(padding: EdgeInsets.all(8), child: Text('Este activo no tiene más acciones.')),
         ],
       ),
     );

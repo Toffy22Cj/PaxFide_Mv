@@ -151,6 +151,11 @@ void main() {
     await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
     await tester.tap(find.byKey(const Key('form.submit')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('review.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('result.notSent')), findsOneWidget, reason: 'Guardado en el teléfono');
+    await tester.tap(find.byKey(const Key('result.close')));
+    await tester.pumpAndSettle();
     final stored = (await SecureOutboxStore(h.secure).getAllItems()).single;
     expect(stored.status, OutboxStatus.pending);
     expect(stored.accountId, 'acc-1');
