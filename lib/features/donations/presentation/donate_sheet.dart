@@ -177,6 +177,28 @@ class _DonateSheetState extends State<DonateSheet> {
             ),
             const SizedBox(height: 12),
             if (intent == null) ...[
+              // M-14: atajos de importe; tocar uno escribe la cifra en el campo (se puede cambiar después).
+              if (suggestedAmounts[widget.currency] case final amounts?) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final v in amounts)
+                      ChoiceChip(
+                        key: Key('donate.suggested.$v'),
+                        label: Text(
+                          formatMinorUnits(
+                            toMinorUnits('$v', widget.currency)!,
+                            widget.currency,
+                          ).replaceFirst(RegExp(r',0+ '), ' '),
+                        ),
+                        selected: _amount.text == '$v',
+                        onSelected: _busy || a != null ? null : (_) => setState(() => _amount.text = '$v'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
               TextField(
                 key: const Key('donate.amount'),
                 controller: _amount,

@@ -31,3 +31,8 @@ String? toMinorUnits(String input, String? currency) {
   final minor = '${m.group(1)}${(m.group(2) ?? '').padRight(exp, '0')}'.replaceFirst(RegExp(r'^0+'), '');
   return minor.isEmpty ? null : minor;
 }
+
+/// Importes sugeridos al donar (M-14), en unidades enteras de la moneda. Vacío si la moneda no tiene sugerencias.
+const Map<String, List<int>> suggestedAmounts = {
+  'COP': [10000, 20000, 50000, 100000],
+};

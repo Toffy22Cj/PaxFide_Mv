@@ -184,4 +184,18 @@ void main() {
     expect(find.text('El servidor no devolvió una dirección de pago para esta donación.'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path.startsWith('/public/donation-intents/')), isEmpty);
   });
+
+  testWidgets('M-14: un importe sugerido escribe la cifra y se puede cambiar', (tester) async {
+    await openCampaign(tester);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.text('20 000 COP'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donate.suggested.20000')));
+    await tester.pumpAndSettle();
+    expect(find.text('Se donarán 20 000,00 COP.'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('donate.amount')), '15000');
+    await tester.pumpAndSettle();
+    expect(find.text('Se donarán 15 000,00 COP.'), findsOneWidget);
+  });
 }
