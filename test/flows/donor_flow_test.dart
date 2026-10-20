@@ -6,6 +6,8 @@ import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 
+import 'package:paxfide_mobile/features/tracking/presentation/tracking_screen.dart';
+
 import '../support/app_harness.dart';
 
 const trackingBody = ApiResponse(
@@ -183,7 +185,10 @@ void main() {
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path.endsWith('/history'));
     expect(call.headers['Authorization'], 'Bearer C');
-    expect(find.textContaining('2026-10-07T10:00:00Z'), findsOneWidget);
+    expect(find.byKey(const Key('tracking.timeline')), findsOneWidget);
+    expect(find.text('Entregado'), findsOneWidget);
+    expect(find.text(formatEventTime('2026-10-07T10:00:00Z')), findsOneWidget);
+    expect(find.text('Zona norte · Aliado local'), findsOneWidget);
   });
 
   testWidgets('mis donaciones: lista real, sin intentId ni código de seguimiento', (tester) async {

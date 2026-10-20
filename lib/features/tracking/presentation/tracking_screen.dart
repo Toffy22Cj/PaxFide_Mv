@@ -250,19 +250,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 if (open) _loadHistory(l.assetRef);
               },
               children: [
-                if (!_history.containsKey(l.assetRef)) const LinearProgressIndicator(),
-                for (final h in _history[l.assetRef] ?? const <HistoryEntry>[])
-                  ListTile(
-                    dense: true,
-                    title: Text(_lifecycle(h.status)),
-                    subtitle: Text(
-                      [
-                        h.timestamp,
-                        h.locationZone,
-                        custodianLabel(h.custodianCategory),
-                      ].where((x) => x.isNotEmpty).join(' · '),
-                    ),
-                  ),
+                if (!_history.containsKey(l.assetRef))
+                  const LinearProgressIndicator()
+                else if (_history[l.assetRef]!.isEmpty)
+                  const ListTile(dense: true, title: Text('Todavía no hay movimientos registrados.'))
+                else
+                  RouteTimeline(_history[l.assetRef]!),
               ],
             ),
           ),
@@ -315,6 +308,76 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "07/10/2026 · 10:00" en la hora del teléfono; el texto original si no es una fecha.
+String formatEventTime(String iso) {
+  final t = DateTime.tryParse(iso)?.toLocal();
+  if (t == null) return iso;
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(t.day)}/${two(t.month)}/${t.year} · ${two(t.hour)}:${two(t.minute)}';
+}
+
+/// M-17: línea de tiempo del recorrido de un bien, del primer movimiento al último (el actual, resaltado).
+class RouteTimeline extends StatelessWidget {
+  const RouteTimeline(this.entries, {super.key});
+  final List<HistoryEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      key: const Key('tracking.timeline'),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Column(
+        children: [
+          for (final (i, h) in entries.indexed)
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          margin: const EdgeInsets.only(top: 3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: i == entries.length - 1 ? scheme.primary : scheme.surface,
+                            border: Border.all(color: scheme.primary, width: 2),
+                          ),
+                        ),
+                        if (i < entries.length - 1) Expanded(child: Container(width: 2, color: scheme.outlineVariant)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_lifecycle(h.status), style: text.titleSmall),
+                          Text(formatEventTime(h.timestamp), style: text.bodySmall),
+                          if ([h.locationZone, custodianLabel(h.custodianCategory)].where((x) => x.isNotEmpty)
+                              case final place when place.isNotEmpty)
+                            Text(place.join(' · '), style: text.bodySmall),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
