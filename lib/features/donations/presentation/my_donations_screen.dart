@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
@@ -10,7 +11,9 @@ import '../../../shared/widgets/state_views.dart';
 import '../../tracking/presentation/tracking_screen.dart';
 import '../data/account_donations_api.dart';
 import '../domain/achievements.dart';
+import '../domain/receipt.dart';
 import 'impact_card.dart';
+import 'receipt_view.dart';
 
 String donationStatusLabel(String s) => switch (s) {
   'PENDING' => 'Pago pendiente',
@@ -217,6 +220,68 @@ void _showDetail(BuildContext context, AccountDonation d) {
               'El recorrido estará disponible cuando el pago se confirme y los fondos se apliquen.',
               key: Key('donation.noRoute'),
             ),
+          if (AppScope.of(context).receiptSource.isAvailable && d.status == 'CONFIRMED') ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('donation.receipt'),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('Ver comprobante'),
+              onPressed: () {
+                Navigator.of(sheet).pop();
+                _showReceipt(context, d);
+              },
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+/// M-22: comprobante como imagen; "Compartir" solo si el teléfono puede compartirla.
+Future<void> _showReceipt(BuildContext context, AccountDonation d) async {
+  final services = AppScope.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  DonationReceipt? receipt;
+  try {
+    receipt = await services.receiptSource.receiptFor(d);
+  } on Object {
+    receipt = null;
+  }
+  if (!context.mounted) return;
+  if (receipt == null) {
+    messenger.showSnackBar(const SnackBar(content: Text('No pudimos obtener el comprobante. Inténtalo más tarde.')));
+    return;
+  }
+  final view = ReceiptView(receipt: receipt);
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (sheet) => SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          view,
+          const SizedBox(height: 16),
+          if (services.receiptSharer.isAvailable)
+            FilledButton.icon(
+              key: const Key('receipt.share'),
+              icon: const Icon(Icons.share_outlined),
+              label: const Text('Compartir'),
+              onPressed: () async {
+                final png = await view.capture();
+                if (png != null) {
+                  await services.receiptSharer.sharePng(
+                    Uint8List.fromList(png),
+                    fileName: 'comprobante-${receipt!.receiptNumber}.png',
+                  );
+                }
+              },
+            ),
+          TextButton(onPressed: () => Navigator.of(sheet).pop(), child: const Text('Cerrar')),
         ],
       ),
     ),

@@ -7,6 +7,7 @@ import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/campaigns/domain/organization_verification.dart';
 import '../features/donations/domain/impact.dart';
+import '../features/donations/domain/receipt.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
@@ -27,6 +28,8 @@ class AppServices {
     this.qrScannerBuilder = defaultQrScanner,
     this.organizationVerification = const PublicFieldVerification(),
     this.impactSource = const UnavailableImpactSource(),
+    this.receiptSource = const UnavailableReceiptSource(),
+    this.receiptSharer = const UnavailableReceiptSharer(),
     ThemeController? theme,
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController();
@@ -46,6 +49,10 @@ class AppServices {
 
   /// Panel "Mi impacto" (M-21).
   final ImpactSource impactSource;
+
+  /// Comprobante de donación y cómo compartirlo (M-22).
+  final ReceiptSource receiptSource;
+  final ReceiptSharer receiptSharer;
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;
