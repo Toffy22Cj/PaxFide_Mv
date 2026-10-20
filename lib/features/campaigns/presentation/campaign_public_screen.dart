@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_services.dart';
 import '../../../app/public_links.dart';
+import '../../../app/theme_mode_button.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
@@ -89,6 +90,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
               icon: const Icon(Icons.qr_code_2),
               onPressed: () => showQrSheet(context, title: 'QR de la convocatoria', url: qr),
             ),
+          const ThemeModeButton(),
         ],
       ),
       body: _body(context),

@@ -7,6 +7,7 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
@@ -172,11 +173,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
       BadRequestException() => 'Escribe una referencia válida.',
       _ => describeError(e),
     };
-    return Text(
-      text,
-      key: const Key('prediction.error'),
-      style: TextStyle(color: Theme.of(context).colorScheme.error),
-    );
+    return ErrorMessage(text, textKey: const Key('prediction.error'));
   }
 }
 

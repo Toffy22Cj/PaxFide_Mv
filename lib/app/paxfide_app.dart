@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../shared/theme/pax_theme.dart';
 import 'app_services.dart';
 
 class PaxFideApp extends StatelessWidget {
@@ -11,15 +12,17 @@ class PaxFideApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScope(
       services: services,
-      child: MaterialApp.router(
-        title: 'PaxFide',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B6E5A))),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B6E5A), brightness: Brightness.dark),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: services.theme,
+        builder: (context, mode, _) => MaterialApp.router(
+          title: 'PaxFide',
+          debugShowCheckedModeBanner: false,
+          theme: PaxTheme.light,
+          darkTheme: PaxTheme.dark,
+          themeMode: mode,
+          routerDelegate: services.router,
+          backButtonDispatcher: RootBackButtonDispatcher(),
         ),
-        routerDelegate: services.router,
-        backButtonDispatcher: RootBackButtonDispatcher(),
       ),
     );
   }

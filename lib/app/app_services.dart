@@ -5,6 +5,7 @@ import '../core/offline/sync_engine.dart';
 import '../core/storage/outbox_store.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
 import 'pending_intent.dart';
@@ -22,7 +23,9 @@ class AppServices {
     required this.outboxStore,
     required this.syncEngine,
     this.qrScannerBuilder = defaultQrScanner,
-  }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin);
+    ThemeController? theme,
+  }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
+       theme = theme ?? ThemeController();
 
   final AppConfig config;
   final ApiClient apiClient;
@@ -33,6 +36,9 @@ class AppServices {
   final QrScannerBuilder qrScannerBuilder;
   final OutboxStore outboxStore;
   final SyncEngine syncEngine;
+
+  /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
+  final ThemeController theme;
   late final AppRouterDelegate router;
 }
 

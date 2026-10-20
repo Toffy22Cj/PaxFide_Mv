@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/error_message.dart';
 import 'auth_layout.dart';
 
 /// `/register`: `POST /auth/register` (`{email, password}` → 201). No inicia sesión: el backend no devuelve token.
@@ -107,10 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               border: OutlineInputBorder(),
             ),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ],
+          if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],
           const SizedBox(height: 20),
           FilledButton(
             key: const Key('register.submit'),

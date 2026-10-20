@@ -4,6 +4,7 @@ import 'app/app_config.dart';
 import 'app/bootstrap.dart';
 import 'app/paxfide_app.dart';
 import 'core/storage/secure_key_value_store.dart';
+import 'shared/theme/pax_theme.dart';
 import 'shared/widgets/state_views.dart';
 
 void main() {
@@ -11,8 +12,10 @@ void main() {
   final config = AppConfig.fromEnvironment();
   if (config.apiBaseUrl == null) {
     runApp(
-      const MaterialApp(
-        home: Scaffold(
+      MaterialApp(
+        theme: PaxTheme.light,
+        darkTheme: PaxTheme.dark,
+        home: const Scaffold(
           body: MessageView(
             icon: Icons.settings,
             title: 'Falta configurar la API',

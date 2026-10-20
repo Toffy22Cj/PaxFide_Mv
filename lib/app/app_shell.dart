@@ -4,6 +4,7 @@ import '../features/auth/domain/principal.dart';
 import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
+import 'theme_mode_button.dart';
 
 class _Destination {
   const _Destination(this.route, this.label, this.icon);
@@ -45,6 +46,7 @@ class AppShell extends StatelessWidget {
           title: Text(title),
           actions: [
             ...?actions,
+            const ThemeModeButton(),
             IconButton(tooltip: 'Salir', icon: const Icon(Icons.logout), onPressed: () => services.session.logout()),
           ],
         );

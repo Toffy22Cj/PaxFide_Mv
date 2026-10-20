@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/error_message.dart';
 import '../../../shared/money.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
@@ -189,15 +190,11 @@ class _DonateSheetState extends State<DonateSheet> {
                 onChanged: (_) => setState(() {}),
               ),
               if (_outcome == CommandOutcome.failed)
-                Text(
-                  switch (_status) {
-                    409 => 'La convocatoria no acepta esta donación ahora.',
-                    404 => 'La convocatoria ya no existe.',
-                    _ => 'El servidor rechazó la donación. Revisa el importe.',
-                  },
-                  key: const Key('donate.rejected'),
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
+                ErrorMessage(switch (_status) {
+                  409 => 'La convocatoria no acepta esta donación ahora.',
+                  404 => 'La convocatoria ya no existe.',
+                  _ => 'El servidor rechazó la donación. Revisa el importe.',
+                }, textKey: const Key('donate.rejected')),
               if (_outcome == CommandOutcome.ambiguous)
                 const Text(
                   'No pudimos confirmar si se creó la donación. Reintentar es seguro: se usa la misma operación.',
@@ -236,11 +233,7 @@ class _DonateSheetState extends State<DonateSheet> {
             ],
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _error!,
-                key: const Key('donate.error'),
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
+              ErrorMessage(_error!, textKey: const Key('donate.error')),
             ],
             if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
           ],

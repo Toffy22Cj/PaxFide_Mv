@@ -5,6 +5,7 @@ import '../../../app/app_services.dart';
 import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/error_message.dart';
 import 'auth_layout.dart';
 
 /// `/login` (§13). Sin selector de rol: el rol sale de `GET /me` tras entrar (encargo §3).
@@ -82,11 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                key: const Key('login.error'),
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              ErrorMessage(_error!, textKey: const Key('login.error')),
             ],
             const SizedBox(height: 20),
             FilledButton(

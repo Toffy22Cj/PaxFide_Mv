@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../theme/pax_tokens.dart';
+
 /// Muestra un QR con su URL debajo (para comprobar a simple vista qué contiene).
 Future<void> showQrSheet(BuildContext context, {required String title, required Uri url}) {
   return showModalBottomSheet<void>(
@@ -15,12 +17,12 @@ Future<void> showQrSheet(BuildContext context, {required String title, required 
           Text(title, style: Theme.of(c).textTheme.titleLarge),
           const SizedBox(height: 16),
           ColoredBox(
-            color: Colors.white,
+            color: PaxTokens.white,
             child: QrImageView(
               key: const Key('qr.image'),
               data: url.toString(),
               size: 260,
-              backgroundColor: Colors.white,
+              backgroundColor: PaxTokens.white,
               errorCorrectionLevel: QrErrorCorrectLevel.M,
             ),
           ),

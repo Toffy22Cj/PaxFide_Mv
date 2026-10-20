@@ -8,6 +8,7 @@ import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../shared/theme/theme_controller.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_config.dart';
 import 'app_pages.dart';
@@ -42,6 +43,7 @@ AppServices buildServices({
     qrScannerBuilder: qrScannerBuilder,
     outboxStore: outboxStore,
     syncEngine: SyncEngine(store: outboxStore, apiClient: api),
+    theme: ThemeController(secureStore),
   );
   services.router = AppRouterDelegate(
     session: session,
@@ -65,6 +67,7 @@ Future<void> runOutboxRecovery(AppServices services) async {
 
 /// Arranque: T-2, posición restaurable y sesión (UNKNOWN → RESTORING → …). El router ya está activo (G-1 a).
 Future<void> startServices(AppServices services) async {
+  await services.theme.load();
   await runOutboxRecovery(services);
   await services.router.loadRestorable();
   await services.session.restore();

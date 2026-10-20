@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_services.dart';
+import '../../../app/theme_mode_button.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
 import '../../../shared/quantity.dart';
 import '../../../shared/widgets/amount_bars.dart';
+import '../../../shared/widgets/error_message.dart';
 import '../../physical_assets/domain/lifecycle_status.dart';
 import '../data/tracking_api.dart';
 
@@ -128,7 +130,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seguimiento de una donación'),
-        actions: [if (_summary != null) TextButton(onPressed: _forget, child: const Text('Usar otro código'))],
+        actions: [
+          if (_summary != null) TextButton(onPressed: _forget, child: const Text('Usar otro código')),
+          const ThemeModeButton(),
+        ],
       ),
       body: _summary == null ? _form(context) : _content(context, _summary!),
     );
@@ -150,14 +155,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         decoration: const InputDecoration(labelText: 'Código de seguimiento', border: OutlineInputBorder()),
         onSubmitted: (_) => _submit(),
       ),
-      if (_error != null) ...[
-        const SizedBox(height: 12),
-        Text(
-          _error!,
-          key: const Key('tracking.error'),
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      ],
+      if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!, textKey: const Key('tracking.error'))],
       const SizedBox(height: 16),
       FilledButton(
         key: const Key('tracking.submit'),
