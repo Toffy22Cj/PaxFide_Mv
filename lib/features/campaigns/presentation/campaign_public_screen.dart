@@ -10,6 +10,7 @@ import '../../../shared/widgets/amount_bars.dart';
 import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/campaign_api.dart';
+import '../domain/campaign_progress.dart';
 
 String campaignStatusLabel(String s) => switch (s) {
   'OPEN' => 'Abierta',
@@ -117,6 +118,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
         Text('${campaignStatusLabel(c.status)} · del ${c.startDate.split('T').first} al ${c.endDate.split('T').first}'),
         if (c.description != null) ...[const SizedBox(height: 12), Text(c.description!)],
         const SizedBox(height: 12),
+        _ProgressCard(CampaignProgress.of(target: target, cleared: cleared, endDate: c.endDate)),
         if (target != null || cleared != null)
           Card(
             child: Padding(
@@ -181,6 +183,46 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
                 style: theme.textTheme.bodySmall,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// M-09: barra con el porcentaje de la meta, días que quedan e insignia "Meta alcanzada".
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard(this.p);
+  final CampaignProgress p;
+
+  @override
+  Widget build(BuildContext context) {
+    if (p.fraction == null && p.daysText == null) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      key: const Key('campaign.progress'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (p.reached)
+              Chip(
+                key: const Key('campaign.reached'),
+                avatar: Icon(Icons.emoji_events, color: scheme.onTertiaryContainer, size: 18),
+                label: const Text('Meta alcanzada'),
+                backgroundColor: scheme.tertiaryContainer,
+              ),
+            if (p.fraction != null) ...[
+              Text(p.percentText!, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(value: p.fraction, minHeight: 10, semanticsLabel: p.percentText),
+              ),
+              const SizedBox(height: 6),
+            ],
+            if (p.daysText != null) Text(p.daysText!, key: const Key('campaign.days')),
           ],
         ),
       ),
