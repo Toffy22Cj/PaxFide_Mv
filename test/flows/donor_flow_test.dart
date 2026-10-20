@@ -213,7 +213,7 @@ void main() {
     h.services.router.go(AppRoutes.donations);
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.text('40 000,00 COP'), findsOneWidget);
+    expect(find.descendant(of: find.byType(ListTile), matching: find.text('40 000,00 COP')), findsOneWidget);
     expect(find.text('Pago confirmado'), findsOneWidget);
     expect(find.textContaining('intent-interno'), findsNothing);
     expect(find.textContaining('CODIGO-DE-LA-CUENTA'), findsNothing);
@@ -247,12 +247,26 @@ void main() {
     h.services.router.go(AppRoutes.donations);
     await tester.pumpAndSettle();
 
+    // M-15: resumen y filtros.
+    expect(find.byKey(const Key('donations.summary')), findsOneWidget);
+    expect(find.text('2 donaciones · 1 con pago confirmado'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donations.filter.pending')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donation.0')), findsNothing);
+    await tester.tap(find.byKey(const Key('donations.filter.problem')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donations.filter.empty')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donations.filter.pending')));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('donation.1')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('donation.noRoute')), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('donations.filter.all')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donation.0')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donation.route')));

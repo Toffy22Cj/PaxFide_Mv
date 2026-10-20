@@ -34,6 +34,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
   late final AccountDonationsApi _api = AccountDonationsApi(AppScope.of(context).apiClient);
   List<AccountDonation>? _items;
   Object? _error;
+  DonationFilter _filter = DonationFilter.all;
   bool _started = false;
 
   @override
@@ -68,23 +69,53 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     final items = _items;
     if (items == null) return const LoadingView();
     if (items.isEmpty) {
-      return const MessageView(
-        icon: Icons.favorite_outline,
-        title: 'Todavía no hay donaciones hechas con esta cuenta.',
-        detail: 'Las donaciones hechas sin entrar en la cuenta no aparecen aquí.',
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          children: const [
+            SizedBox(height: 80),
+            MessageView(
+              icon: Icons.favorite_outline,
+              title: 'Todavía no hay donaciones hechas con esta cuenta.',
+              detail: 'Las donaciones hechas sin entrar en la cuenta no aparecen aquí.',
+            ),
+          ],
+        ),
       );
     }
+    final shown = items.where(_filter.matches).toList();
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _SummaryCard(items),
+          const SizedBox(height: 12),
           _AchievementsCard(achievementsFor(items)),
           const SizedBox(height: 12),
-          for (final (i, d) in items.indexed)
+          // M-15: filtros por estado del pago.
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final f in DonationFilter.values)
+                ChoiceChip(
+                  key: Key('donations.filter.${f.name}'),
+                  label: Text(f.label),
+                  selected: _filter == f,
+                  onSelected: (_) => setState(() => _filter = f),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (shown.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No hay donaciones con este filtro.', key: Key('donations.filter.empty')),
+            ),
+          for (final d in shown)
             Card(
               child: ListTile(
-                key: Key('donation.$i'),
+                key: Key('donation.${items.indexOf(d)}'),
                 title: Text(_title(d)),
                 subtitle: Text(donationStatusLabel(d.status)),
                 trailing: Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
@@ -93,6 +124,58 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
           const Padding(padding: EdgeInsets.all(8), child: Text('Toca una donación para ver su detalle.')),
         ],
+      ),
+    );
+  }
+}
+
+/// Filtros de "Mis donaciones" (M-15).
+enum DonationFilter {
+  all('Todas'),
+  confirmed('Confirmadas'),
+  pending('Pendientes'),
+  problem('Con problema');
+
+  const DonationFilter(this.label);
+  final String label;
+
+  bool matches(AccountDonation d) => switch (this) {
+    all => true,
+    confirmed => d.status == 'CONFIRMED',
+    pending => d.status == 'PENDING',
+    problem => d.status != 'CONFIRMED' && d.status != 'PENDING',
+  };
+}
+
+/// M-15: cuánto se ha donado con pago confirmado (por moneda) y cuántas donaciones hay.
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard(this.items);
+  final List<AccountDonation> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final totals = <String, BigInt>{};
+    for (final d in items.where((d) => d.status == 'CONFIRMED')) {
+      final v = BigInt.tryParse(d.amount);
+      if (v != null) totals[d.currency] = (totals[d.currency] ?? BigInt.zero) + v;
+    }
+    final confirmed = items.where((d) => d.status == 'CONFIRMED').length;
+    final text = Theme.of(context).textTheme;
+    return Card(
+      key: const Key('donations.summary'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Has donado', style: text.titleMedium),
+            if (totals.isEmpty) Text('Aún sin pagos confirmados', style: text.headlineSmall),
+            for (final e in totals.entries)
+              Text(formatMinorUnits(e.value, e.key.isEmpty ? null : e.key), style: text.headlineSmall),
+            const SizedBox(height: 4),
+            Text('${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · $confirmed con pago confirmado'),
+          ],
+        ),
       ),
     );
   }
