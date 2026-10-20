@@ -8,6 +8,7 @@ import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/account_donations_api.dart';
+import '../domain/achievements.dart';
 
 String donationStatusLabel(String s) => switch (s) {
   'PENDING' => 'Pago pendiente',
@@ -76,6 +77,8 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _AchievementsCard(achievementsFor(items)),
+          const SizedBox(height: 12),
           for (final d in items)
             Card(
               child: ListTile(
@@ -91,6 +94,51 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Tus logros" (M-23): solo para el propio donante, sin compartir.
+class _AchievementsCard extends StatelessWidget {
+  const _AchievementsCard(this.achievements);
+  final List<Achievement> achievements;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final done = achievements.where((a) => a.unlocked).length;
+    return Card(
+      key: const Key('achievements'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tus logros · $done de ${achievements.length}', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final a in achievements)
+                  Tooltip(
+                    message: a.unlocked ? a.title : a.howTo,
+                    child: Chip(
+                      key: Key('achievement.${a.id}.${a.unlocked ? 'on' : 'off'}'),
+                      avatar: Icon(
+                        a.unlocked ? Icons.emoji_events : Icons.lock_outline,
+                        size: 18,
+                        color: a.unlocked ? scheme.onTertiaryContainer : scheme.onSurfaceVariant,
+                      ),
+                      label: Text(a.unlocked ? a.title : a.howTo),
+                      backgroundColor: a.unlocked ? scheme.tertiaryContainer : null,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
