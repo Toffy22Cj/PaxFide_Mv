@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
 
@@ -120,5 +121,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.login);
     expect(find.text('Este código QR no es un enlace de PaxFide reconocido.'), findsOneWidget);
+  });
+
+  testWidgets('M-31/M-19: marco de encuadre y "Pegar" desde el portapapeles; una referencia escrita abre la ficha', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse()));
+    h.nextScan = null;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') return {'text': '  A-9  '};
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.tap(find.byIcon(Icons.qr_code_scanner).first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('scanner.frame')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('scanner.paste.clipboard')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-9');
   });
 }
