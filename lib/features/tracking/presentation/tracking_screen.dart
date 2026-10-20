@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/app_services.dart';
 import '../../../app/theme_mode_button.dart';
@@ -152,7 +153,21 @@ class _TrackingScreenState extends State<TrackingScreen> {
         enableSuggestions: false,
         enableIMEPersonalizedLearning: false,
         keyboardType: TextInputType.visiblePassword,
-        decoration: const InputDecoration(labelText: 'Código de seguimiento', border: OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: 'Código de seguimiento',
+          border: const OutlineInputBorder(),
+          // M-19: pegar el código copiado del correo o del mensaje.
+          suffixIcon: TextButton(
+            key: const Key('tracking.paste'),
+            onPressed: _loading
+                ? null
+                : () async {
+                    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+                    if (text != null && text.isNotEmpty && mounted) setState(() => _codeField.text = text);
+                  },
+            child: const Text('Pegar'),
+          ),
+        ),
         onSubmitted: (_) => _submit(),
       ),
       if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!, textKey: const Key('tracking.error'))],

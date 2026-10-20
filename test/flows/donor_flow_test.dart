@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
@@ -83,6 +84,19 @@ void main() {
     );
     expect(find.textContaining('erificada'), findsNothing);
     expect(find.textContaining('A-1'), findsNothing);
+  });
+
+  testWidgets('M-19: "Pegar" trae el código del portapapeles al campo', (tester) async {
+    final h = await openTracking(tester);
+    h.api.routes['GET /donations/tracking'] = (_) => trackingBody;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') return {'text': '  CODIGO-PEGADO \n'};
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.tap(find.byKey(const Key('tracking.paste')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byKey(const Key('tracking.code'))).controller!.text, 'CODIGO-PEGADO');
   });
 
   testWidgets('código inválido (404) → un único mensaje y la sesión no cambia', (tester) async {
