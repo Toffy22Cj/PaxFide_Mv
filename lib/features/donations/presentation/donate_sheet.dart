@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
+import '../../../app/pending_intent.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../shared/error_messages.dart';
@@ -176,6 +178,7 @@ class _DonateSheetState extends State<DonateSheet> {
               style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            if (intent == null && a == null) ...[_accountCard(theme), const SizedBox(height: 12)],
             if (intent == null) ...[
               // M-14: atajos de importe; tocar uno escribe la cifra en el campo (se puede cambiar después).
               if (suggestedAmounts[widget.currency] case final amounts?) ...[
@@ -262,6 +265,43 @@ class _DonateSheetState extends State<DonateSheet> {
         ),
       ),
     );
+  }
+
+  /// M-11: se puede donar sin cuenta, o iniciar sesión antes de pagar para verla luego en "Mis donaciones".
+  Widget _accountCard(ThemeData theme) {
+    final withAccount = _services.session.state.status == SessionStatus.authenticated;
+    if (withAccount) {
+      return const Text('Donas con tu cuenta: la verás en "Mis donaciones".', key: Key('donate.withAccount'));
+    }
+    return Card(
+      key: const Key('donate.guest'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Estás donando sin cuenta. Guarda el código de seguimiento que te daremos al final.'),
+            TextButton.icon(
+              key: const Key('donate.login'),
+              icon: const Icon(Icons.login),
+              label: const Text('Iniciar sesión antes de pagar'),
+              onPressed: _busy ? null : _loginFirst,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Cierra la hoja y abre el login; al entrar, la app vuelve a esta convocatoria (intención en memoria, R2).
+  void _loginFirst() {
+    final router = _services.router;
+    _services.pendingIntents.retain(
+      PendingIntent(route: AppRoutes.campaignPath(widget.publicCode), params: {'publicCode': widget.publicCode}),
+    );
+    Navigator.of(context).pop();
+    router.push(AppRoutes.login);
   }
 
   Widget _statusView(ThemeData theme, IntentStatus? s) {

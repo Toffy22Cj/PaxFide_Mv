@@ -198,4 +198,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Se donarán 15 000,00 COP.'), findsOneWidget);
   });
+
+  testWidgets('M-11: sin cuenta se puede donar o iniciar sesión antes de pagar y volver a la convocatoria', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.guest')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donate.login')));
+    await tester.pumpAndSettle();
+    expect(h.services.router.currentLocation, '/login');
+    expect(h.services.pendingIntents.current?.route, '/c/PUB1');
+  });
+
+  testWidgets('M-11: con sesión, la hoja dice que la donación queda en Mis donaciones', (tester) async {
+    await openCampaign(tester, loggedIn: true);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.withAccount')), findsOneWidget);
+    expect(find.byKey(const Key('donate.login')), findsNothing);
+  });
 }
