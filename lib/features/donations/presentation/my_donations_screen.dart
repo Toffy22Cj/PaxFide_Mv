@@ -10,6 +10,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../tracking/presentation/tracking_screen.dart';
 import '../data/account_donations_api.dart';
 import '../domain/achievements.dart';
+import 'impact_card.dart';
 
 String donationStatusLabel(String s) => switch (s) {
   'PENDING' => 'Pago pendiente',
@@ -91,6 +92,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         children: [
           _SummaryCard(items),
           const SizedBox(height: 12),
+          ImpactCard(source: AppScope.of(context).impactSource),
           _AchievementsCard(achievementsFor(items)),
           const SizedBox(height: 12),
           // M-15: filtros por estado del pago.

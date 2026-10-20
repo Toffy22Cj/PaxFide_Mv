@@ -6,6 +6,7 @@ import '../core/storage/outbox_store.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/campaigns/domain/organization_verification.dart';
+import '../features/donations/domain/impact.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
@@ -25,6 +26,7 @@ class AppServices {
     required this.syncEngine,
     this.qrScannerBuilder = defaultQrScanner,
     this.organizationVerification = const PublicFieldVerification(),
+    this.impactSource = const UnavailableImpactSource(),
     ThemeController? theme,
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController();
@@ -41,6 +43,9 @@ class AppServices {
 
   /// Insignia de organización verificada (M-07).
   final OrganizationVerification organizationVerification;
+
+  /// Panel "Mi impacto" (M-21).
+  final ImpactSource impactSource;
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;
