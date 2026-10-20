@@ -25,6 +25,9 @@ class AppHarness {
     );
     // Lecturas por defecto para los flujos que solo navegan: un activo cualquiera en REGISTERED.
     api.fallback = (call) {
+      if (call.method == 'GET' && call.path.endsWith('/physical-assets') && call.path.startsWith('/organizations/')) {
+        return const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
+      }
       if (call.method == 'GET' && call.path.startsWith('/physical-assets/')) {
         final ref = Uri.decodeComponent(call.path.split('/').last);
         return ApiResponse(

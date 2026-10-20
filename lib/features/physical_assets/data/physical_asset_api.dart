@@ -60,6 +60,20 @@ class PhysicalAssetApi {
     return PhysicalAssetDto.fromJson(r.requireData());
   }
 
+  /// `GET /organizations/{organizationId}/physical-assets`: hasta 200 activos de la organización (sin cursor).
+  Future<List<PhysicalAssetDto>> listForOrganization(String organizationId) async {
+    final r = await _api.get(
+      '/organizations/${Uri.encodeComponent(organizationId)}/physical-assets',
+      credentialMode: CredentialMode.jwt,
+    );
+    final items = r.requireData()['items'];
+    if (items is! List) throw const MalformedResponseException();
+    return [
+      for (final i in items)
+        if (i is Map<String, dynamic>) PhysicalAssetDto.fromJson(i),
+    ];
+  }
+
   /// Envía un comando con su `Command-Id`. Devuelve la respuesta HTTP tal cual; los fallos de transporte se lanzan.
   Future<ApiResponse> postCommand({
     required String path,
