@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme_mode_button.dart';
+import '../../../shared/widgets/pax_logo.dart';
 
 /// Pantalla partida en anchos grandes (panel de marca + formulario); una columna en el móvil. Arriba a la derecha,
 /// el botón de modo claro u oscuro.
@@ -21,6 +22,8 @@ class AuthLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Center(child: PaxLogo()),
+              const SizedBox(height: 16),
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 24),
               child,
@@ -48,7 +51,7 @@ class AuthLayout extends StatelessWidget {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.volunteer_activism, size: 72, color: scheme.onPrimaryContainer),
+                                  const PaxLogo(size: 200),
                                   const SizedBox(height: 16),
                                   Text(
                                     'PaxFide',
