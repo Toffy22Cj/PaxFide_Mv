@@ -29,16 +29,26 @@ class AppRoutes {
   static const String asset = '/assets/:assetRef';
   static const String prediction = '/prediction';
 
+  // Enmienda 2 de ADR-043 (aprobada 2026-10-21). Mi día sigue en `/operator`.
+  static const String account = '/account';
+  static const String myCampaigns = '/employee/campaigns';
+  static const String assetQr = '/assets/:assetRef/qr';
+
   // Fuera de v1 (diferida por secuenciación contractual, §9)
   static const String campaignsDiferido = '/campaigns';
 
   /// Longitud máxima defensiva de un parámetro (§10: no se inventa formato).
   static const int maxParamLength = 256;
 
-  static const _fixedAuthenticated = {home, donations, operator, operatorPending, prediction};
+  static const _fixedAuthenticated = {home, donations, operator, operatorPending, prediction, account, myCampaigns};
 
   static String campaignPath(String publicCode) => '/c/$publicCode';
   static String assetPath(String assetRef) => '/assets/$assetRef';
+  static String assetQrPath(String assetRef) => '/assets/$assetRef/qr';
+
+  /// `/assets/X/qr`: el QR del activo a pantalla completa (E-11).
+  static bool isAssetQr(String path) =>
+      path.startsWith('/assets/') && path.endsWith('/qr') && path.split('/').length == 4;
 
   /// Validación estructural de un parámetro: no vacío, sin espacios, sin '/', longitud máxima.
   static bool isValidParam(String value) =>
@@ -60,6 +70,12 @@ class AppRoutes {
       if (!isValidParam(value)) return null;
       if (segments[1] == 'c') return {'publicCode': value};
       if (segments[1] == 'assets') return {'assetRef': value};
+    }
+    // '/assets/X/qr' → ['', 'assets', 'X', 'qr']
+    if (segments.length == 4 && segments[0].isEmpty && segments[1] == 'assets' && segments[3] == 'qr') {
+      final value = Uri.decodeComponent(segments[2]);
+      if (!isValidParam(value)) return null;
+      return {'assetRef': value};
     }
     return null;
   }

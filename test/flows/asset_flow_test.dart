@@ -222,13 +222,18 @@ void main() {
     expect(posts(), isEmpty);
   });
 
-  testWidgets('QR del activo: misma URL que la web (origen + /assets/{assetRef})', (tester) async {
+  testWidgets('E-11: QR del activo a pantalla completa, con la misma URL que la web y la referencia', (tester) async {
     await openAsset(tester);
     await tester.tap(find.byKey(const Key('asset.qr')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('qr.image')), findsOneWidget);
-    expect(find.text('$testOrigin/assets/A-1'), findsOneWidget);
-    expect(tester.widget(find.byKey(const Key('qr.image'))), isA<QrImageView>());
+    expect(h.location, '/assets/A-1/qr');
+    final qr = tester.widget<QrImageView>(find.byKey(const Key('assetqr.image')));
+    expect(qr, isNotNull);
+    expect(find.byKey(const Key('assetqr.ref')), findsOneWidget);
+    expect(find.text('A-1'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('assetqr.close')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-1');
   });
 
   testWidgets('sin acceso al activo (403) no se ofrece su QR', (tester) async {

@@ -10,7 +10,6 @@ import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/quantity.dart';
-import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
@@ -162,7 +161,7 @@ class _AssetScreenState extends State<AssetScreen> {
             key: const Key('asset.qr'),
             tooltip: 'Mostrar QR del activo',
             icon: const Icon(Icons.qr_code_2),
-            onPressed: () => showQrSheet(context, title: 'QR del activo ${widget.assetRef}', url: qr),
+            onPressed: () => _services.router.push(AppRoutes.assetQrPath(widget.assetRef)),
           ),
       ],
       body: _body(context),

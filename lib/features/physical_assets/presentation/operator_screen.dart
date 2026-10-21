@@ -153,6 +153,13 @@ class _MyDayState extends State<_MyDay> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const Key('operator.campaigns'),
+            onPressed: () => _services.router.push(AppRoutes.myCampaigns),
+            icon: const Icon(Icons.campaign_outlined),
+            label: const Text('Mis convocatorias'),
+          ),
           const SizedBox(height: 16),
           if (_loading && assets == null) const LoadingView(),
           if (error != null && error is! TransportException && assets == null)

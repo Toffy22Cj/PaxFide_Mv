@@ -107,4 +107,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.operator);
   });
+
+  testWidgets('E-08: Mis convocatorias con sus activos por estado; tocar uno abre la ficha', (tester) async {
+    final h = await start(tester);
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'campaignRef': 'CAMP-1', 'publicCode': 'PUB1', 'title': 'Abrigo', 'status': 'OPEN'},
+        ],
+      },
+    );
+    h.api.routes['GET /organizations/org-1/physical-assets'] = (_) => ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {...a('A-1', 'REGISTERED'), 'campaignRef': 'CAMP-1'},
+          {...a('A-2', 'DELIVERED'), 'campaignRef': 'CAMP-1'},
+          {...a('B-1', 'REGISTERED'), 'campaignRef': 'OTRA'},
+        ],
+      },
+    );
+    h.services.router.go(AppRoutes.operator);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('operator.campaigns')));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.myCampaigns);
+    expect(find.text('Abierta · 2 activos'), findsOneWidget);
+    await tester.tap(find.text('Abrigo'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mycampaigns.asset.B-1')), findsNothing);
+    await tester.tap(find.byKey(const Key('mycampaigns.asset.A-1')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-1');
+  });
 }

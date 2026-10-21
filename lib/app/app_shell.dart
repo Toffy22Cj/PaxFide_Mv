@@ -21,21 +21,22 @@ const _scan = '#scan';
 
 /// Destinos según `/me`. Es **representación**: el guard no lee roles y el backend autoriza cada petición.
 List<_Destination> _destinationsFor(Principal? p) => (p?.showsOperatorActions ?? false)
-    // Empleado (M-03): Mi día · Escanear (centro) · Pendientes. Cuenta (E-12) llega con la enmienda de ADR-043.
+    // Empleado (M-03, E-07): Mi día · Escanear (centro) · Pendientes · Cuenta.
     ? [
         const _Destination(AppRoutes.operator, 'Mi día', Icons.today_outlined),
         const _Destination(_scan, 'Escanear', Icons.qr_code_scanner),
         const _Destination(AppRoutes.operatorPending, 'Pendientes', Icons.pending_actions),
         if (p?.showsPrediction ?? false)
           const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
+        const _Destination(AppRoutes.account, 'Cuenta', Icons.person_outline),
       ]
+    // Donante y demás perfiles: Inicio · Mis donaciones · Cuenta.
     : [
         const _Destination(AppRoutes.home, 'Inicio', Icons.home_outlined),
         const _Destination(AppRoutes.donations, 'Mis donaciones', Icons.favorite_outline),
-        if (p?.showsOperatorActions ?? false)
-          const _Destination(AppRoutes.operator, 'Operaciones', Icons.qr_code_scanner),
         if (p?.showsPrediction ?? false)
           const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
+        const _Destination(AppRoutes.account, 'Cuenta', Icons.person_outline),
       ];
 
 /// Navegación adaptable de las rutas autenticadas: barra inferior en el móvil, carril lateral en anchos grandes.
@@ -56,7 +57,10 @@ class AppShell extends StatelessWidget {
         final destinations = _destinationsFor(services.session.principal);
         // Pendientes tiene su propia pestaña para el empleado; para el resto cuelga de Operaciones.
         final ownPending = destinations.any((d) => d.route == AppRoutes.operatorPending);
-        final top = location.startsWith('/assets/') || (location == AppRoutes.operatorPending && !ownPending)
+        final top =
+            location.startsWith('/assets/') ||
+                location == AppRoutes.myCampaigns ||
+                (location == AppRoutes.operatorPending && !ownPending)
             ? AppRoutes.operator
             : location;
         final index = destinations.indexWhere((d) => d.route == top);
@@ -66,12 +70,7 @@ class AppShell extends StatelessWidget {
             d.route == AppRoutes.operatorPending ? _PendingBadge(icon: d.icon) : Icon(d.icon);
         final appBar = AppBar(
           title: Text(title),
-          actions: [
-            ...?actions,
-            const TextSizeButton(),
-            const ThemeModeButton(),
-            IconButton(tooltip: 'Salir', icon: const Icon(Icons.logout), onPressed: () => services.session.logout()),
-          ],
+          actions: [...?actions, const TextSizeButton(), const ThemeModeButton()],
         );
         final banner = services.session.profileStatus == ProfileStatus.unavailable
             ? MaterialBanner(

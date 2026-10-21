@@ -183,7 +183,11 @@ void main() {
       h.saveToken('jwt');
       h.saveDeviceCredential();
       await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
-      await tester.tap(find.byTooltip('Salir'));
+      h.services.router.go('/account');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('account.logout')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('account.logout.yes')));
       await tester.pumpAndSettle();
       expect(h.secure.values[_deviceKey], isNotNull);
       expect(find.byKey(const Key('biometric-login-dialog')), findsOneWidget);
