@@ -10,6 +10,7 @@ import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/theme/text_size_controller.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
@@ -206,15 +207,15 @@ class _InvitationCardState extends State<_InvitationCard> {
           children: [
             Text('¿Te invitaron a una organización?', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
-            TextField(
-              key: const Key('account.invitation.token'),
-              controller: _token,
-              enabled: !_busy,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'Código de la invitación',
-                helperText: 'Viene en el correo de invitación.',
+            LabeledField(
+              label: 'Código de la invitación',
+              child: TextField(
+                key: const Key('account.invitation.token'),
+                controller: _token,
+                enabled: !_busy,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: const InputDecoration(helperText: 'Viene en el correo de invitación.'),
               ),
             ),
             if (_error != null) ...[

@@ -52,9 +52,9 @@ void main() {
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
       expect(find.text(predictionLabel), findsOneWidget);
-      expect(find.text('Probabilidad estimada de alcanzar la meta: 85.2 %'), findsOneWidget);
-      expect(find.text('Porcentaje final estimado de la meta: 104.1 %'), findsOneWidget);
-      expect(find.text('Tiempo transcurrido de la convocatoria: 25.0 %'), findsOneWidget);
+      expect(find.text('Probabilidad estimada de alcanzar la meta: 85,2 %'), findsOneWidget);
+      expect(find.text('Porcentaje final estimado de la meta: 104,1 %'), findsOneWidget);
+      expect(find.text('Tiempo transcurrido de la convocatoria: 25,0 %'), findsOneWidget);
       // Solo lo que devuelve el backend: nada de bandas de confianza.
       expect(find.textContaining('confianza'), findsNothing);
       // Gráfico histórico: el backend no lo expone todavía → "No disponible", sin cortes inventados.
@@ -147,7 +147,7 @@ void main() {
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
-    expect(find.text('Probabilidad estimada de alcanzar la meta: 50.0 %'), findsOneWidget);
+    expect(find.text('Probabilidad estimada de alcanzar la meta: 50,0 %'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
   });
 

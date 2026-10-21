@@ -8,6 +8,7 @@ import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
@@ -16,7 +17,7 @@ import '../data/prediction_api.dart';
 /// Etiqueta obligatoria (encargo §4.7). Siempre visible encima de cualquier cifra de la predicción.
 const predictionLabel = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
 
-String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1)} %';
+String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
 
 /// `/prediction`: excepción de alcance (ADR-043 §0 A3), solo representada para `ADMINISTRATOR`/`REPRESENTATIVE`
 /// según `/me`. Muestra únicamente lo que devuelve el backend; sin bandas ni cifras propias.
@@ -113,40 +114,65 @@ class _PredictionScreenState extends State<PredictionScreen> {
             children: [
               if (choices == null) const LinearProgressIndicator(),
               if (choices != null && choices.isNotEmpty) ...[
-                Text('Elige una convocatoria', style: Theme.of(context).textTheme.titleMedium),
+                Text('Elige una convocatoria', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
                 for (final c in choices)
-                  ListTile(
+                  Card(
                     key: Key('prediction.choice.${c.campaignRef}'),
-                    leading: Icon(_selected == c.campaignRef ? Icons.radio_button_checked : Icons.radio_button_off),
-                    title: Text(c.title),
-                    subtitle: Text(c.status == 'OPEN' ? 'Abierta' : (c.status == 'CLOSED' ? 'Cerrada' : c.status)),
-                    enabled: !_loading,
-                    onTap: () => _query(p.organizationId!, c.campaignRef),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _loading ? null : () => _query(p.organizationId!, c.campaignRef),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _selected == c.campaignRef ? Icons.radio_button_checked : Icons.radio_button_off,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(c.title, style: Theme.of(context).textTheme.titleSmall)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            StatusChip(
+                              c.status == 'OPEN' ? 'Abierta' : (c.status == 'CLOSED' ? 'Cerrada' : c.status),
+                              icon: Icons.inventory_2_outlined,
+                              tone: Tone.info,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
               ],
               if (choices != null && choices.isEmpty) ...[
-                const Text('No hay un listado de convocatorias disponible para tu cuenta.'),
+                Text('Consulta por código', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
-                TextField(
-                  key: const Key('prediction.campaignRef'),
-                  controller: _campaignRef,
-                  enabled: !_loading,
-                  decoration: const InputDecoration(
-                    labelText: 'Referencia de la convocatoria (campaignRef)',
-                    helperText: 'La muestra el panel de la organización en la web.',
-                    border: OutlineInputBorder(),
+                LabeledField(
+                  label: 'Código de la convocatoria',
+                  child: TextField(
+                    key: const Key('prediction.campaignRef'),
+                    controller: _campaignRef,
+                    enabled: !_loading,
+                    decoration: InputDecoration(
+                      helperText: 'Lo muestra el panel de la organización en la web.',
+                      suffixIcon: TextButton(
+                        key: const Key('prediction.submit'),
+                        onPressed: _loading ? null : () => _query(p.organizationId!),
+                        child: const Text('Consultar'),
+                      ),
+                    ),
+                    onSubmitted: (_) => _query(p.organizationId!),
                   ),
-                  onSubmitted: (_) => _query(p.organizationId!),
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  key: const Key('prediction.submit'),
-                  onPressed: _loading ? null : () => _query(p.organizationId!),
-                  child: const Text('Consultar'),
                 ),
               ],
               const SizedBox(height: 16),
-              if (_loading) const LinearProgressIndicator(),
+              if (_loading) const LoadingView(label: 'Cargando predicción…'),
               if (_error != null) _errorView(_error!),
               if (_prediction != null) ...[
                 _PredictionCard(prediction: _prediction!),
@@ -187,7 +213,11 @@ class _PredictionCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       key: const Key('prediction.card'),
-      color: theme.colorScheme.tertiaryContainer,
+      color: theme.colorScheme.secondaryContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.secondary),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -196,7 +226,7 @@ class _PredictionCard extends StatelessWidget {
             Text(
               predictionLabel,
               key: const Key('prediction.label'),
-              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer),
             ),
             const SizedBox(height: 4),
             Text('No es un hecho registrado. Modelo ${p.modelVersion} · calculado el ${p.asOf}'),
@@ -218,11 +248,18 @@ class _PredictionCard extends StatelessWidget {
                       child: CustomPaint(
                         painter: _ArcPainter(
                           fraction: p.probabilityReachTarget!.clamp(0, 1),
-                          color: theme.colorScheme.tertiary,
+                          color: theme.colorScheme.secondary,
                           track: theme.colorScheme.surfaceContainerHighest,
                         ),
                       ),
                     ),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    percent(p.probabilityReachTarget!),
+                    key: const Key('prediction.percent'),
+                    style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.secondary),
                   ),
                 ),
                 Center(child: Text('Probabilidad estimada de alcanzar la meta: ${percent(p.probabilityReachTarget!)}')),

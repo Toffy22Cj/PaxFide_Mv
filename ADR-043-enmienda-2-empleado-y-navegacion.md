@@ -40,3 +40,10 @@ Sin estas dependencias: M-12 se queda en "copiar el enlace"; E-11 muestra el QR 
 | M-12 | `2fc102a` | «Abrir el pago» con `url_launcher`; el enlace sigue visible para copiarlo. |
 
 Límites del contrato actual: `GET /me` no trae el correo ni el nombre de la organización, así que Cuenta muestra el rol y si la cuenta pertenece a una organización. No hay listado de invitaciones pendientes para quien las recibe: se acepta pegando el código del correo.
+
+## 5. Diseño visual (Figma «Sin título», 2026-10-21)
+
+Las pantallas siguen el diseño de Figma (01 Acceso e inicio, 02 Convocatoria y donación, 03 Seguimiento y recorrido, 04 Operación, 05 Predicción y sistema), con la **navegación de esta enmienda** (no la del Figma) y con las funciones que el Figma no dibuja (logros, filtros, importes sugeridos, progreso, Mis convocatorias, QR a pantalla completa).
+
+- **Colores:** el modo claro usa solo la paleta oficial. El modo oscuro es la misma paleta en contraste oscuro: cada color se invierte en luminosidad (HSL, `L → 1 − L`), de modo que los verdes oscuros de los botones pasan a verdes claros y los fondos claros pasan a casi negros; las tarjetas destacadas y los chips usan los tonos oscuros de la paleta tal cual. Lo comprueba `test/architecture/design_tokens_test.dart`.
+- **Diferencias con el Figma:** el donante no ve la referencia del bien («Lote …») en el seguimiento (regla de privacidad existente); la tarjeta de predicción usa el azul de la paleta en lugar del morado, que no está en la paleta; el aviso de la revisión dice «Esto queda registrado para siempre» (texto pedido en la reunión).
