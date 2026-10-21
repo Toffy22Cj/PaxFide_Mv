@@ -145,6 +145,11 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
       if (status == SessionStatus.authenticated && _stack.first != AppRoutes.home) {
         if (AppRoutes.categorize(_stack.first) == RouteCategory.authenticated) _stack.insert(0, AppRoutes.home);
       }
+      // Una pública sola (restaurada al reabrir o abierta por enlace en frío) no tiene barra ni a dónde volver:
+      // debajo va /home con sesión o /login sin ella, para que "volver" siempre lleve a algún sitio.
+      if (_stack.length == 1 && AppRoutes.categorize(_stack.first) == RouteCategory.public) {
+        _stack.insert(0, status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.login);
+      }
       _persist();
     }
     notifyListeners();

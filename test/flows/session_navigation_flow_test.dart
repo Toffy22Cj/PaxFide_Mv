@@ -29,6 +29,22 @@ void main() {
       },
     );
     expect(h.location, '/c/PUB1');
+    // Con la sesión resuelta, debajo queda el login: hay a dónde volver.
+    expect(h.services.router.stack, [AppRoutes.login, '/c/PUB1']);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.login);
+  });
+
+  testWidgets('ruta pública restaurada con sesión → debajo queda Inicio', (tester) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    h.saveNavigation(AppRoutes.tracking);
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    expect(h.services.router.stack, [AppRoutes.home, AppRoutes.tracking]);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.home);
   });
 
   testWidgets('ruta autenticada durante RESTORING → UI de espera (no es una ruta)', (tester) async {
