@@ -28,3 +28,15 @@ Sin estas dependencias: M-12 se queda en "copiar el enlace"; E-11 muestra el QR 
 - Los campos de referencia (`carrierRef`, `receiverRef`, `beneficiaryRef`, `facilityLocation`) nunca piden nombres ni documentos: aviso fijo bajo cada campo.
 - Una operación ambigua jamás se reenvía sola: solo "Verificar estado".
 - Toda acción de campo: Formulario (E-04) → Revisión (E-05, "Esto queda registrado para siempre") → Resultado (E-06: Confirmado / Guardado en el teléfono / No pudimos confirmarlo).
+
+## 4. Implementación (rama `develop-Vprueba`, 2026-10-21)
+
+| Función | Commit | Cómo quedó |
+|---|---|---|
+| M-28 | `f27f444` | Huella o rostro, solo en el login, con el logo. Android acepta biometría fuerte y débil (huella y desbloqueo facial); iOS usa Face ID. Necesita `/auth/device-credentials` y `/auth/device-login` en el backend. |
+| M-03 | `ea3a827` | Deslizar a los lados cambia de pestaña (Escanear se salta); en la ficha del activo, deslizar a la derecha vuelve; en Pendientes, deslizar hacia abajo actualiza y deslizar una rechazada la descarta con confirmación. |
+| M-04 | `06b2225` | Botón «Tamaño del texto» (Normal, Grande, Muy grande) en todas las pantallas y en Cuenta; se suma al del teléfono y se recuerda. |
+| E-12, M-26, E-08, E-11 | `f67836c` | Rutas `/account`, `/employee/campaigns` y `/assets/:assetRef/qr`. Cerrar sesión pasa de la barra superior a Cuenta. Mi día se queda en `/operator` (no se crea `/employee/day`). |
+| M-12 | `2fc102a` | «Abrir el pago» con `url_launcher`; el enlace sigue visible para copiarlo. |
+
+Límites del contrato actual: `GET /me` no trae el correo ni el nombre de la organización, así que Cuenta muestra el rol y si la cuenta pertenece a una organización. No hay listado de invitaciones pendientes para quien las recibe: se acepta pegando el código del correo.
