@@ -1,6 +1,6 @@
 # Enmienda 2 de ADR-043 — Navegación del empleado, Cuenta y dependencias nuevas
 
-**Estado:** Propuesto · **Fecha:** 2026-10-20 · **Autor:** Adonis · **Revisa:** Carlos
+**Estado:** Aprobado (Adonis, 2026-10-21) · **Fecha:** 2026-10-20 · **Autor:** Adonis · **Revisa:** Carlos
 **Origen:** "Funciones de la app móvil y pantallas del empleado" (reunión del 16 de octubre de 2026).
 
 ## 1. Qué cambia
