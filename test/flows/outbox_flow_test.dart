@@ -173,7 +173,8 @@ void main() {
     final stored = (await SecureOutboxStore(h.secure).getAllItems()).single;
     expect(stored.status, OutboxStatus.pending);
     expect(stored.accountId, 'acc-1');
-    expect(find.text('Pendiente de enviar\nGuardada en este dispositivo. No se ha enviado.'), findsOneWidget);
+    expect(find.text('Pendiente de enviar'), findsOneWidget);
+    expect(find.text('Guardada en este dispositivo. No se ha enviado.'), findsOneWidget);
     expect(find.byKey(const Key('asset.action')), findsNothing, reason: 'no se apila otra operación');
 
     h.api.enqueue(const ApiResponse(statusCode: 200, data: {}));

@@ -39,6 +39,7 @@ void main() {
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
     expect(find.text('Mi día'), findsWidgets);
+    await tester.scrollUntilVisible(find.byKey(const Key('myday.delivered')), 200);
     String count(String g) =>
         tester.widget<Text>(find.descendant(of: find.byKey(Key('myday.$g')), matching: find.byType(Text)).last).data!;
     expect(count('toDispatch'), '1');
@@ -47,6 +48,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('myday.inTransit')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('myday.asset.A-2')), 200);
     expect(find.byKey(const Key('myday.asset.A-2')), findsOneWidget);
     expect(find.byKey(const Key('myday.asset.A-1')), findsNothing);
   });

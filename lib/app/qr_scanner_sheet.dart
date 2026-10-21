@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../shared/widgets/pax_ui.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 
@@ -62,12 +63,13 @@ class _CameraScannerState extends State<_CameraScanner> {
         },
       ),
       Positioned(
+        left: 12,
         right: 12,
         bottom: 12,
-        child: IconButton.filled(
+        child: FilledButton.tonalIcon(
           key: const Key('scanner.torch'),
-          tooltip: _torch ? 'Apagar la linterna' : 'Encender la linterna',
           icon: Icon(_torch ? Icons.flashlight_off : Icons.flashlight_on),
+          label: Text(_torch ? 'Apagar linterna' : 'Linterna'),
           onPressed: () async {
             await _controller.toggleTorch();
             if (mounted) setState(() => _torch = !_torch);
@@ -82,11 +84,8 @@ class _CameraScannerState extends State<_CameraScanner> {
 /// `DeepLinkParser` y entra por `openDeepLink` (D9 R1). Nunca ejecuta comandos ni toca el Outbox (R3).
 Future<void> scanQr(BuildContext context) async {
   final services = AppScope.of(context);
-  final raw = await showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    builder: (sheetContext) => _ScannerSheet(builder: services.qrScannerBuilder),
+  final raw = await Navigator.of(context).push<String>(
+    MaterialPageRoute(fullscreenDialog: true, builder: (_) => _ScannerSheet(builder: services.qrScannerBuilder)),
   );
   if (raw == null || !context.mounted) return;
   // Una referencia escrita a mano (sin enlace) abre directamente la ficha del activo.
@@ -138,72 +137,84 @@ class _ScannerSheetState extends State<_ScannerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.8,
-      child: Column(
-        children: [
-          ListTile(
-            title: const Text('Escanear un código QR'),
-            subtitle: const Text('Pon el código dentro del marco'),
-            trailing: IconButton(
-              tooltip: 'Cerrar',
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          Expanded(
-            child: ClipRect(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  widget.builder(context, _onCode),
-                  // Marco de encuadre.
-                  IgnorePointer(
-                    child: Center(
-                      child: Container(
-                        key: const Key('scanner.frame'),
-                        width: 240,
-                        height: 240,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Theme.of(context).colorScheme.primary, width: 4),
-                          borderRadius: BorderRadius.circular(24),
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          tooltip: 'Cerrar',
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Escanear un código QR'),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text('Activo o convocatoria', style: theme.textTheme.labelMedium?.copyWith(color: muted)),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 320.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
+                    widget.builder(context, _onCode),
+                    // Marco de encuadre.
+                    IgnorePointer(
+                      child: FractionallySizedBox(
+                        widthFactor: 0.7,
+                        heightFactor: 0.7,
+                        child: Container(
+                          key: const Key('scanner.frame'),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.colorScheme.primary, width: 3),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Alternativa sin cámara (escritorio, QR dañado): el texto pegado pasa por el mismo DeepLinkParser.
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              key: const Key('scanner.paste'),
-              controller: _pasted,
-              decoration: InputDecoration(
-                labelText: 'Pegar o escribir la referencia',
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton(
-                      key: const Key('scanner.paste.clipboard'),
-                      onPressed: _paste,
-                      child: const Text('Pegar'),
-                    ),
-                    IconButton(
-                      key: const Key('scanner.paste.open'),
-                      tooltip: 'Abrir',
-                      icon: const Icon(Icons.arrow_forward),
-                      onPressed: () => _pasted.text.trim().isEmpty ? null : _onCode(_pasted.text.trim()),
                     ),
                   ],
                 ),
               ),
-              onSubmitted: (v) => v.trim().isEmpty ? null : _onCode(v.trim()),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text('Apunta al código QR', textAlign: TextAlign.center, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 18),
+            // Alternativa sin cámara (escritorio, QR dañado): el texto pegado pasa por el mismo DeepLinkParser.
+            LabeledField(
+              label: 'O pega el enlace del QR',
+              child: TextField(
+                key: const Key('scanner.paste'),
+                controller: _pasted,
+                decoration: InputDecoration(
+                  hintText: 'Enlace o referencia',
+                  suffixIcon: TextButton(
+                    key: const Key('scanner.paste.clipboard'),
+                    onPressed: _paste,
+                    child: const Text('Pegar'),
+                  ),
+                ),
+                onSubmitted: (v) => v.trim().isEmpty ? null : _onCode(v.trim()),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              key: const Key('scanner.paste.open'),
+              onPressed: () => _pasted.text.trim().isEmpty ? null : _onCode(_pasted.text.trim()),
+              child: const Text('Abrir enlace'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Para seguir una donación, escribe o pega su código en Seguir una donación.',
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
+            ),
+          ],
+        ),
       ),
     );
   }

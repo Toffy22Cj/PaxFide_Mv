@@ -7,6 +7,7 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../domain/asset_action.dart';
 import '../domain/asset_command.dart';
 import '../domain/asset_operations.dart';
@@ -27,7 +28,8 @@ enum _Step { form, review, result }
 
 /// Toda acción de campo (E-04 → E-05 → E-06), una sola hoja parametrizada por [action]: formulario, revisión
 /// ("Esto queda registrado para siempre") y resultado (Confirmado / Guardado en el teléfono / No pudimos
-/// confirmarlo). Transitoria: no es una ruta (§12). Devuelve el resultado del envío, o null si se cerró antes.
+/// confirmarlo). Pantalla completa transitoria (Figma 04): no es una ruta (§12). Devuelve el resultado del envío, o
+/// null si se cerró antes.
 Future<CommandOutcome?> runFieldAction(
   BuildContext context, {
   required AssetAction action,
@@ -35,11 +37,11 @@ Future<CommandOutcome?> runFieldAction(
   required AssetOperations operations,
   required String accountId,
 }) {
-  return showModalBottomSheet<CommandOutcome>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    builder: (_) => _FieldActionFlow(action: action, assetRef: assetRef, ops: operations, accountId: accountId),
+  return Navigator.of(context).push<CommandOutcome>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _FieldActionFlow(action: action, assetRef: assetRef, ops: operations, accountId: accountId),
+    ),
   );
 }
 
@@ -157,17 +159,48 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
     }
   }
 
+  /// La X: con datos escritos pide confirmación; en la revisión o el resultado cierra sin más.
+  Future<void> _close() async {
+    if (_busy) return;
+    if (!_dirty) {
+      Navigator.of(context).pop(_outcome);
+      return;
+    }
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('¿Salir sin enviar?'),
+        content: const Text('Los datos escritos no se enviarán. La operación todavía no queda registrada.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Salir sin enviar')),
+        ],
+      ),
+    );
+    if (leave == true && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_busy,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      canPop: !_busy && !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            key: const Key('form.close'),
+            tooltip: 'Cerrar',
+            icon: const Icon(Icons.close),
+            onPressed: _close,
+          ),
+          title: Text('${actionLabel(widget.action)} · ${widget.assetRef}', overflow: TextOverflow.ellipsis),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: switch (_step) {
               _Step.form => _form(context),
               _Step.review => _review(context),
@@ -179,54 +212,55 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
     );
   }
 
-  List<Widget> _header(BuildContext context, String subtitle) => [
-    Text(actionLabel(widget.action), style: Theme.of(context).textTheme.titleLarge),
-    const SizedBox(height: 4),
-    Text(subtitle),
+  List<Widget> _header(BuildContext context, String overline, String title) => [
+    Overline(overline),
+    const SizedBox(height: 6),
+    Text(widget.assetRef, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontFamily: 'monospace')),
+    const SizedBox(height: 6),
+    Text(title, style: Theme.of(context).textTheme.titleLarge),
     const SizedBox(height: 16),
   ];
 
   List<Widget> _form(BuildContext context) => [
-    ..._header(context, 'Activo ${widget.assetRef}'),
+    ..._header(context, 'Paso 1 de 2 / Datos', 'Datos de la operación'),
     for (final f in AssetCommand.fields[widget.action]!) ...[
-      TextField(
-        key: Key('form.${f.key}'),
-        controller: _controllers[f.key],
-        maxLength: AssetCommand.maxLength,
-        decoration: InputDecoration(
-          labelText: fieldLabels[f.key] ?? f.label,
-          helperText: referenceWarning,
-          helperMaxLines: 2,
-          errorText: _invalid.contains(f.key)
-              ? 'Escribe la referencia (máximo ${AssetCommand.maxLength} caracteres)'
-              : null,
+      LabeledField(
+        label: fieldLabels[f.key] ?? f.label,
+        child: TextField(
+          key: Key('form.${f.key}'),
+          controller: _controllers[f.key],
+          maxLength: AssetCommand.maxLength,
+          decoration: InputDecoration(
+            counterText: '',
+            helperText: referenceWarning,
+            helperMaxLines: 2,
+            errorText: _invalid.contains(f.key)
+                ? 'Escribe la referencia (máximo ${AssetCommand.maxLength} caracteres)'
+                : null,
+          ),
         ),
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: 14),
     ],
-    const SizedBox(height: 8),
-    FilledButton(key: const Key('form.submit'), onPressed: _toReview, child: const Text('Revisar')),
+    const SizedBox(height: 4),
+    FilledButton(key: const Key('form.submit'), onPressed: _toReview, child: const Text('Revisar operación')),
   ];
 
   List<Widget> _review(BuildContext context) {
     final cmd = _command!;
     return [
-      ..._header(context, 'Revisa antes de enviar'),
-      Card(
+      ..._header(context, 'Paso 2 de 2 / Revisión', 'Revisa antes de enviar'),
+      SectionCard(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(title: const Text('Activo'), subtitle: Text(widget.assetRef)),
-            for (final e in cmd.values.entries)
-              ListTile(title: Text(fieldLabels[e.key] ?? e.key), subtitle: Text(e.value)),
+            LabeledValue('Acción', actionLabel(widget.action)),
+            for (final e in cmd.values.entries) LabeledValue(fieldLabels[e.key] ?? e.key, e.value, mono: true),
           ],
         ),
       ),
       const SizedBox(height: 12),
-      Text(
-        'Esto queda registrado para siempre.',
-        key: const Key('review.permanent'),
-        style: Theme.of(context).textTheme.titleSmall,
-      ),
+      const NoticeBanner('Esto queda registrado para siempre.', textKey: Key('review.permanent')),
       if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],
       const SizedBox(height: 16),
       FilledButton(
@@ -239,7 +273,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       TextButton(
         key: const Key('review.edit'),
         onPressed: _busy ? null : () => setState(() => _step = _Step.form),
-        child: const Text('Volver a editar'),
+        child: const Text('Volver'),
       ),
     ];
   }

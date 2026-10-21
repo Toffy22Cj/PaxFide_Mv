@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../domain/asset_action.dart';
 import 'command_form_sheet.dart';
 
@@ -44,7 +45,7 @@ class OutboxEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = kindLabel(item.kind);
-    final title = showAsset ? '$label · activo ${item.resourceRef}' : label;
+    final title = '$label · ${item.resourceRef}';
     final (IconData icon, String state, String detail, List<Widget> actions) = switch (item.status) {
       OutboxStatus.pending => (
         Icons.schedule,
@@ -87,20 +88,35 @@ class OutboxEntryCard extends StatelessWidget {
       ),
       OutboxStatus.acknowledged => (Icons.check_circle, 'Confirmada', '', <Widget>[]),
     };
+    final tone = switch (item.status) {
+      OutboxStatus.failed => Tone.error,
+      OutboxStatus.acknowledged => Tone.success,
+      OutboxStatus.inFlight => Tone.info,
+      _ => Tone.pending,
+    };
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Card(
       key: Key('outbox.entry.${item.commandId}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ListTile(
-            leading: Icon(icon),
-            title: Text(title),
-            subtitle: Text('$state\n$detail'),
-            isThreeLine: true,
-            onTap: onOpenAsset,
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpenAsset,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: StatusChip(state, icon: icon, tone: tone),
+              ),
+              if (detail.isNotEmpty) ...[const SizedBox(height: 8), Text(detail, style: TextStyle(color: muted))],
+              if (actions.isNotEmpty) ...[const SizedBox(height: 10), ...actions],
+            ],
           ),
-          if (actions.isNotEmpty) OverflowBar(alignment: MainAxisAlignment.end, children: actions),
-        ],
+        ),
       ),
     );
   }

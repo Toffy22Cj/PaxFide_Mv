@@ -112,6 +112,8 @@ void main() {
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('scanner.paste')), '  $testOrigin/c/PUB-7  ');
+    await tester.ensureVisible(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('scanner.paste.open')));
     await tester.pumpAndSettle();
     expect(h.location, '/c/PUB-7');
@@ -122,6 +124,8 @@ void main() {
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('scanner.paste')), 'https://otro.example/assets/A-1');
+    await tester.ensureVisible(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('scanner.paste.open')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.login);
@@ -144,6 +148,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('scanner.frame')), findsOneWidget);
     await tester.tap(find.byKey(const Key('scanner.paste.clipboard')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('scanner.paste.open')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('scanner.paste.open')));
     await tester.pumpAndSettle();

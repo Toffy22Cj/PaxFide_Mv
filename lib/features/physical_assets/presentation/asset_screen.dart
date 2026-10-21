@@ -10,6 +10,7 @@ import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/quantity.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
@@ -190,6 +191,7 @@ class _AssetScreenState extends State<AssetScreen> {
     final unresolved = _entries.any((e) => e.status != OutboxStatus.failed);
     final canShowAction = (principal?.showsOperatorActions ?? false) && action != AssetAction.readOnly && !unresolved;
 
+    final theme = Theme.of(context);
     return RefreshIndicator(
       onRefresh: () async {
         await _load();
@@ -198,7 +200,28 @@ class _AssetScreenState extends State<AssetScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final e in _entries)
+          Text('Activo', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 2),
+          Text(
+            a.assetRef,
+            style: theme.textTheme.headlineSmall?.copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StatusChip(
+              lifecycleLabel(a.lifecycleStatus),
+              key: const Key('asset.status'),
+              icon: Icons.inventory_2_outlined,
+              tone: action == AssetAction.readOnly ? Tone.neutral : Tone.success,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (action == AssetAction.readOnly) ...[
+            const NoticeBanner('Este activo ya fue entregado. Solo se puede consultar.', tone: Tone.info),
+            const SizedBox(height: 12),
+          ],
+          for (final e in _entries) ...[
             OutboxEntryCard(
               item: e,
               busy: _busy,
@@ -207,53 +230,39 @@ class _AssetScreenState extends State<AssetScreen> {
               onDiscard: () => _discard(e),
               onNewOperation: canShowAction ? () => _startAction(action) : null,
             ),
+            const SizedBox(height: 8),
+          ],
           // Entregar exige foto (ADR de fotos, pendiente de aprobar): hasta entonces no se ofrece.
-          if (canShowAction && !_busy && _entries.isEmpty && action == AssetAction.deliver)
-            const Card(
+          if (canShowAction && !_busy && _entries.isEmpty && action == AssetAction.deliver) ...[
+            const SectionCard(
               key: Key('asset.deliver.soon'),
-              child: ListTile(
-                leading: Icon(Icons.photo_camera_outlined),
-                title: Text('Entregar'),
-                subtitle: Text('Para entregar hará falta una foto de la entrega. Estará disponible muy pronto.'),
-              ),
+              title: 'Entregar',
+              child: Text('Para entregar hará falta una foto de la entrega. Estará disponible muy pronto.'),
             ),
-          if (canShowAction && !_busy && _entries.isEmpty && action != AssetAction.deliver)
-            FilledButton.icon(
+            const SizedBox(height: 12),
+          ],
+          if (canShowAction && !_busy && _entries.isEmpty && action != AssetAction.deliver) ...[
+            FilledButton(
               key: const Key('asset.action'),
               onPressed: () => _startAction(action),
-              icon: const Icon(Icons.play_arrow),
-              label: Text(actionLabel(action)),
+              child: Text(actionLabel(action)),
             ),
+            const SizedBox(height: 12),
+          ],
           if (_busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
-          if (action == AssetAction.readOnly)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text('Este activo ya fue entregado. Solo se puede consultar.'),
-            ),
-          const SizedBox(height: 12),
-          Card(
+          SectionCard(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(title: const Text('Referencia'), subtitle: Text(a.assetRef)),
-                ListTile(
-                  key: const Key('asset.status'),
-                  title: const Text('Estado'),
-                  subtitle: Text(lifecycleLabel(a.lifecycleStatus)),
-                ),
-                ListTile(
-                  title: const Text('Cantidad'),
-                  subtitle: Text(formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
-                ),
-                ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef ?? '—')),
-                ListTile(
-                  key: const Key('asset.campaign'),
-                  title: const Text('Convocatoria'),
-                  subtitle: Text(a.campaignRef ?? 'Sin convocatoria'),
-                ),
-                ListTile(
+                LabeledValue('Cantidad', formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
+                LabeledValue('Custodio actual', a.currentCustodianRef ?? '—', mono: true),
+                KeyedSubtree(
                   key: const Key('asset.location'),
-                  title: const Text('Ubicación actual'),
-                  subtitle: Text(a.currentLocation ?? 'Sin ubicación registrada'),
+                  child: LabeledValue('Ubicación actual', a.currentLocation ?? 'Sin ubicación registrada'),
+                ),
+                KeyedSubtree(
+                  key: const Key('asset.campaign'),
+                  child: LabeledValue('Convocatoria', a.campaignRef ?? 'Sin convocatoria', mono: a.campaignRef != null),
                 ),
               ],
             ),

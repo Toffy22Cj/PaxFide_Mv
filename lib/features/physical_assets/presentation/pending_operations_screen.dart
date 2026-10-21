@@ -122,27 +122,48 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                for (final e in entries)
-                  _swipeToDiscard(
-                    e,
-                    discard,
-                    OutboxEntryCard(
-                      item: e,
-                      busy: _busy,
-                      showAsset: true,
-                      onOpenAsset: () => _services.router.push(AppRoutes.assetPath(e.resourceRef)),
-                      onSend: () => _run(() => _services.syncEngine.send(e.commandId, account)),
-                      onVerify: () => _run(() async {
-                        final ok = await _ops.verify(e, accountId: account);
-                        if (!ok && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')),
-                          );
-                        }
-                      }),
-                      onDiscard: () => discard(e),
-                    ),
-                  ),
+                Text(
+                  'Guardadas en este dispositivo por tu cuenta',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${entries.length} ${entries.length == 1 ? 'operación pendiente' : 'operaciones pendientes'} en este '
+                  'dispositivo',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                for (final (title, group) in [
+                  ('No confirmadas', entries.where((e) => e.status != OutboxStatus.failed).toList()),
+                  ('Rechazadas', entries.where((e) => e.status == OutboxStatus.failed).toList()),
+                ])
+                  if (group.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(title, style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    for (final e in group) ...[
+                      _swipeToDiscard(
+                        e,
+                        discard,
+                        OutboxEntryCard(
+                          item: e,
+                          busy: _busy,
+                          showAsset: true,
+                          onOpenAsset: () => _services.router.push(AppRoutes.assetPath(e.resourceRef)),
+                          onSend: () => _run(() => _services.syncEngine.send(e.commandId, account)),
+                          onVerify: () => _run(() async {
+                            final ok = await _ops.verify(e, accountId: account);
+                            if (!ok && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')),
+                              );
+                            }
+                          }),
+                          onDiscard: () => discard(e),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
               ],
             ),
           );

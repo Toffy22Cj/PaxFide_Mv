@@ -5,8 +5,10 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
+import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/quantity.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/physical_asset_api.dart';
@@ -125,35 +127,34 @@ class _MyDayState extends State<_MyDay> {
                 subtitle: Text('Puedes escanear y guardar operaciones; se envían desde Pendientes.'),
               ),
             ),
-          FilledButton.icon(
-            key: const Key('operator.scan'),
-            onPressed: () => scanQr(context),
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Escanear un activo'),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const Key('operator.type'),
-                  onPressed: _typeRef,
-                  icon: const Icon(Icons.keyboard),
-                  label: const Text('Escribir referencia'),
+          HighlightCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 32, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 8),
+                Text('Escanear el QR de un activo', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    key: const Key('operator.scan'),
+                    onPressed: () => scanQr(context),
+                    child: const Text('Escanear activo'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const Key('operator.pending'),
-                  onPressed: () => _services.router.push(AppRoutes.operatorPending),
-                  icon: const Icon(Icons.pending_actions),
-                  label: const Text('Pendientes'),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            key: const Key('operator.type'),
+            onPressed: _typeRef,
+            child: const Text('Escribir el código del activo'),
+          ),
+          const SizedBox(height: 10),
+          _PendingCard(onOpen: () => _services.router.push(AppRoutes.operatorPending)),
+          const SizedBox(height: 10),
           OutlinedButton.icon(
             key: const Key('operator.campaigns'),
             onPressed: () => _services.router.push(AppRoutes.myCampaigns),
@@ -197,6 +198,50 @@ class _MyDayState extends State<_MyDay> {
             ],
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// "Operaciones pendientes" con su número (las de esta cuenta guardadas en el teléfono, sin las confirmadas).
+class _PendingCard extends StatelessWidget {
+  const _PendingCard({required this.onOpen});
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final account = services.session.principal?.accountId;
+    final scheme = Theme.of(context).colorScheme;
+    return SectionCard(
+      child: ListenableBuilder(
+        listenable: services.syncEngine,
+        builder: (context, _) => FutureBuilder<int>(
+          future: account == null
+              ? Future.value(0)
+              : services.syncEngine
+                    .entriesFor(account)
+                    .then((all) => all.where((i) => i.status != OutboxStatus.acknowledged).length)
+                    .catchError((_) => 0),
+          builder: (context, snap) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text('Operaciones pendientes', style: Theme.of(context).textTheme.titleSmall)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                    decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(99)),
+                    child: Text('${snap.data ?? 0}', style: TextStyle(color: scheme.onPrimaryContainer)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text('Guardadas en este dispositivo por tu cuenta', style: TextStyle(color: scheme.onSurfaceVariant)),
+              TextButton(key: const Key('operator.pending'), onPressed: onOpen, child: const Text('Ver pendientes')),
+            ],
+          ),
+        ),
       ),
     );
   }
