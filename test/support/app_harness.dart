@@ -16,12 +16,15 @@ ApiResponse meResponse({List<String> roles = const ['EMPLOYEE'], String? org = '
 
 /// Arranca la app completa con un `ApiClient` falso y almacenamiento en memoria.
 class AppHarness {
-  AppHarness() {
+  /// [biometric]: biometría del teléfono simulada; sin ella, el equipo no tiene (como Linux).
+  AppHarness({FakeBiometricAuthenticator? biometric})
+    : biometric = biometric ?? FakeBiometricAuthenticator(available: false) {
     services = buildServices(
       config: AppConfig(apiBaseUrl: Uri.parse('http://api.test/api/v1'), publicOrigin: AppConfig.originOf(testOrigin)),
       secureStore: secure,
       apiClientFactory: (tokens, handler) => api..authHandler = handler,
       qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),
+      biometricAuthenticator: this.biometric,
     );
     // Lecturas por defecto para los flujos que solo navegan: un activo cualquiera en REGISTERED.
     api.fallback = (call) {
@@ -63,6 +66,11 @@ class AppHarness {
   }
 
   final secure = InMemorySecureKeyValueStore();
+  final FakeBiometricAuthenticator biometric;
+
+  /// Biometría ya activada en este teléfono.
+  void saveDeviceCredential() =>
+      secure.values['paxfide.biometric.device'] = '{"credentialId":"cred-1","deviceToken":"tok-1"}';
 
   /// Lo que "leerá" la cámara falsa en el próximo escaneo.
   String? nextScan;

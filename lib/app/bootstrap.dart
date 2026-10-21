@@ -3,9 +3,11 @@ import '../core/network/auth_response_handler.dart';
 import '../core/network/http_api_client.dart';
 import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
+import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
+import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../shared/theme/theme_controller.dart';
@@ -24,6 +26,7 @@ AppServices buildServices({
   required SecureKeyValueStore secureStore,
   ApiClient Function(TokenStore tokenStore, AuthResponseHandler handler)? apiClientFactory,
   QrScannerBuilder qrScannerBuilder = defaultQrScanner,
+  BiometricAuthenticator? biometricAuthenticator,
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
@@ -44,6 +47,13 @@ AppServices buildServices({
     outboxStore: outboxStore,
     syncEngine: SyncEngine(store: outboxStore, apiClient: api),
     theme: ThemeController(secureStore),
+    deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
+    // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
+    biometricAuthenticator:
+        biometricAuthenticator ??
+        (LocalAuthBiometricAuthenticator.supportedPlatform
+            ? LocalAuthBiometricAuthenticator()
+            : const UnavailableBiometricAuthenticator()),
   );
   services.router = AppRouterDelegate(
     session: session,

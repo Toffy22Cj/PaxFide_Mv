@@ -2,7 +2,10 @@ import 'package:flutter/widgets.dart';
 
 import '../core/network/api_client.dart';
 import '../core/offline/sync_engine.dart';
+import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
+import '../features/auth/biometrics/biometric_authenticator.dart';
+import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/campaigns/domain/organization_verification.dart';
@@ -31,8 +34,15 @@ class AppServices {
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
     ThemeController? theme,
+    DeviceCredentialStore? deviceCredentialStore,
+    BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
-       theme = theme ?? ThemeController();
+       theme = theme ?? ThemeController(),
+       biometricLogin = BiometricLogin(
+         api: authApi,
+         store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
+         authenticator: biometricAuthenticator,
+       );
 
   final AppConfig config;
   final ApiClient apiClient;
@@ -57,6 +67,9 @@ class AppServices {
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;
   late final AppRouterDelegate router;
+
+  /// Entrar con huella o rostro, solo desde el login (M-28).
+  final BiometricLogin biometricLogin;
 }
 
 /// Acceso a [AppServices] desde la presentación.

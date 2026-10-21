@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:paxfide_mobile/core/network/api_client.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
@@ -6,6 +8,7 @@ import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/storage/outbox_store.dart';
 import 'package:paxfide_mobile/core/storage/secure_key_value_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
+import 'package:paxfide_mobile/features/auth/biometrics/biometric_authenticator.dart';
 
 class InMemoryTokenStore implements TokenStore {
   String? _token;
@@ -119,4 +122,28 @@ class InMemorySecureKeyValueStore implements SecureKeyValueStore {
 
   @override
   Future<void> delete(String key) async => values.remove(key);
+}
+
+/// Biometría del teléfono simulada. Con [pending] la huella queda esperando hasta [complete].
+class FakeBiometricAuthenticator implements BiometricAuthenticator {
+  FakeBiometricAuthenticator({this.available = true, this.result = BiometricCheck.success, this.pending = false});
+
+  bool available;
+  BiometricCheck result;
+  bool pending;
+  int calls = 0;
+  Completer<BiometricCheck>? _waiting;
+
+  void complete(BiometricCheck r) => _waiting?.complete(r);
+
+  @override
+  Future<bool> isAvailable() async => available;
+
+  @override
+  Future<BiometricCheck> authenticate(String reason) {
+    calls++;
+    if (!pending) return Future.value(result);
+    _waiting = Completer<BiometricCheck>();
+    return _waiting!.future;
+  }
 }
