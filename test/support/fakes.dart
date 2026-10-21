@@ -58,6 +58,10 @@ class FakeApiClient implements ApiClient {
   /// Respuestas por ruta para las pruebas de flujo (se usan si la cola está vacía).
   final Map<String, Object Function(RecordedCall call)> routes = {};
 
+  /// Rutas que se responden siempre con [routes], aunque haya respuestas en la cola (lecturas de fondo, como el
+  /// resumen de donaciones de Inicio, que no deben quedarse con respuestas pensadas para otra llamada).
+  final Set<String> routeFirst = {};
+
   /// Último recurso: si devuelve `null`, la llamada sin respuesta programada falla.
   Object? Function(RecordedCall call)? fallback;
 
@@ -68,7 +72,10 @@ class FakeApiClient implements ApiClient {
     calls.add(call);
     if (call.beforeSend != null) await call.beforeSend!();
     final Object r;
-    if (_queue.isNotEmpty) {
+    final key = '${call.method} ${call.path}';
+    if (routeFirst.contains(key) && routes.containsKey(key)) {
+      r = routes[key]!(call);
+    } else if (_queue.isNotEmpty) {
       r = _queue.removeAt(0);
     } else if (routes.containsKey('${call.method} ${call.path}')) {
       r = routes['${call.method} ${call.path}']!(call);

@@ -213,7 +213,8 @@ void main() {
     h.services.router.go(AppRoutes.donations);
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.descendant(of: find.byType(ListTile), matching: find.text('40 000,00 COP')), findsOneWidget);
+    expect(find.byKey(const Key('donation.amount.0')), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('donation.amount.0'))).data, '40 000,00 COP');
     expect(find.text('Pago confirmado'), findsOneWidget);
     expect(find.textContaining('intent-interno'), findsNothing);
     expect(find.textContaining('CODIGO-DE-LA-CUENTA'), findsNothing);

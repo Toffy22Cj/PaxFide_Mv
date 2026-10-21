@@ -7,6 +7,7 @@ import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/money.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../tracking/presentation/tracking_screen.dart';
 import '../data/account_donations_api.dart';
@@ -14,6 +15,24 @@ import '../domain/achievements.dart';
 import '../domain/receipt.dart';
 import 'impact_card.dart';
 import 'receipt_view.dart';
+
+/// Chip del estado del pago, con el tono del Figma (confirmado en verde, pendiente en amarillo, fallos en rojo).
+Widget donationStatusChip(String status) => StatusChip(
+  donationStatusLabel(status),
+  key: Key('donation.status.$status'),
+  icon: switch (status) {
+    'CONFIRMED' => Icons.check_circle_outline,
+    'PENDING' => Icons.credit_card,
+    'EXPIRED_UNKNOWN' => Icons.help_outline,
+    _ => Icons.error_outline,
+  },
+  tone: switch (status) {
+    'CONFIRMED' => Tone.success,
+    'PENDING' => Tone.pending,
+    'EXPIRED_UNKNOWN' => Tone.neutral,
+    _ => Tone.error,
+  },
+);
 
 String donationStatusLabel(String s) => switch (s) {
   'PENDING' => 'Pago pendiente',
@@ -88,28 +107,36 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       );
     }
     final shown = items.where(_filter.matches).toList();
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            '${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · Desliza hacia abajo para actualizar',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: muted),
+          ),
+          const SizedBox(height: 12),
           _SummaryCard(items),
           const SizedBox(height: 12),
-          ImpactCard(source: AppScope.of(context).impactSource),
-          _AchievementsCard(achievementsFor(items)),
-          const SizedBox(height: 12),
           // M-15: filtros por estado del pago.
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final f in DonationFilter.values)
-                ChoiceChip(
-                  key: Key('donations.filter.${f.name}'),
-                  label: Text(f.label),
-                  selected: _filter == f,
-                  onSelected: (_) => setState(() => _filter = f),
-                ),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final f in DonationFilter.values) ...[
+                  ChoiceChip(
+                    key: Key('donations.filter.${f.name}'),
+                    label: Text(f.label),
+                    selected: _filter == f,
+                    showCheckmark: false,
+                    onSelected: (_) => setState(() => _filter = f),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           if (shown.isEmpty)
@@ -119,15 +146,41 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
           for (final d in shown)
             Card(
-              child: ListTile(
-                key: Key('donation.${items.indexOf(d)}'),
-                title: Text(_title(d)),
-                subtitle: Text(donationStatusLabel(d.status)),
-                trailing: Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
+              key: Key('donation.${items.indexOf(d)}'),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
                 onTap: () => _showDetail(context, d),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_title(d), style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 6),
+                      Text(
+                        formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency),
+                        key: Key('donation.amount.${items.indexOf(d)}'),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      donationStatusChip(d.status),
+                    ],
+                  ),
+                ),
               ),
             ),
-          const Padding(padding: EdgeInsets.all(8), child: Text('Toca una donación para ver su detalle.')),
+          const SizedBox(height: 12),
+          ImpactCard(source: AppScope.of(context).impactSource),
+          _AchievementsCard(achievementsFor(items)),
+          const SizedBox(height: 12),
+          Text(
+            'Toca una donación para ver su detalle y su recorrido. Las hechas sin cuenta se siguen con su código.',
+            style: TextStyle(color: muted),
+          ),
+          TextButton(
+            onPressed: () => AppScope.of(context).router.push(AppRoutes.tracking),
+            child: const Text('Seguir una donación'),
+          ),
         ],
       ),
     );
@@ -166,21 +219,22 @@ class _SummaryCard extends StatelessWidget {
     }
     final confirmed = items.where((d) => d.status == 'CONFIRMED').length;
     final text = Theme.of(context).textTheme;
-    return Card(
+    return HighlightCard(
       key: const Key('donations.summary'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Has donado', style: text.titleMedium),
-            if (totals.isEmpty) Text('Aún sin pagos confirmados', style: text.headlineSmall),
-            for (final e in totals.entries)
-              Text(formatMinorUnits(e.value, e.key.isEmpty ? null : e.key), style: text.headlineSmall),
-            const SizedBox(height: 4),
-            Text('${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · $confirmed con pago confirmado'),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Has donado', style: text.titleSmall),
+          const SizedBox(height: 4),
+          if (totals.isEmpty) Text('Aún sin pagos confirmados', style: text.titleLarge),
+          for (final e in totals.entries)
+            Text(
+              formatMinorUnits(e.value, e.key.isEmpty ? null : e.key),
+              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          const SizedBox(height: 4),
+          Text('${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · $confirmed con pago confirmado'),
+        ],
       ),
     );
   }

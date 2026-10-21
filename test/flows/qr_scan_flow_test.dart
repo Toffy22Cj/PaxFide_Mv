@@ -41,6 +41,7 @@ void main() {
     final h = AppHarness();
     await h.start(tester);
     h.nextScan = '$testOrigin/c/PUB-1';
+    await tester.ensureVisible(find.byKey(const Key('login.scan')));
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     expect(h.location, '/c/PUB-1');
@@ -50,6 +51,7 @@ void main() {
     final h = AppHarness();
     await h.start(tester);
     h.nextScan = '$testOrigin/tracking/CODIGO-SECRETO';
+    await tester.ensureVisible(find.byKey(const Key('login.scan')));
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.tracking);
@@ -61,6 +63,7 @@ void main() {
     final h = AppHarness();
     await h.start(tester);
     h.nextScan = '$testOrigin/assets/A-55';
+    await tester.ensureVisible(find.byKey(const Key('login.scan')));
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.login);
@@ -105,6 +108,7 @@ void main() {
     final h = AppHarness();
     await h.start(tester);
     h.nextScan = null; // la cámara no lee nada
+    await tester.ensureVisible(find.byKey(const Key('login.scan')));
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('scanner.paste')), '  $testOrigin/c/PUB-7  ');
@@ -114,6 +118,7 @@ void main() {
 
     h.services.router.back();
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('login.scan')));
     await tester.tap(find.byKey(const Key('login.scan')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('scanner.paste')), 'https://otro.example/assets/A-1');

@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import 'auth_layout.dart';
 
 /// `/register`: `POST /auth/register` (`{email, password}` → 201). No inicia sesión: el backend no devuelve token.
@@ -73,11 +74,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final services = AppScope.of(context);
     if (_done) {
       return AuthLayout(
-        title: 'Cuenta creada',
+        title: 'Crear una cuenta',
+        back: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Ya puedes entrar con tu email y tu contraseña.'),
+            const IconCircle(Icons.check),
+            const SizedBox(height: 16),
+            Text('Cuenta creada', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            const Text('Ya puedes entrar con tu email y tu contraseña.', textAlign: TextAlign.center),
             const SizedBox(height: 20),
             FilledButton(onPressed: services.router.back, child: const Text('Ir a entrar')),
           ],
@@ -86,35 +92,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     return AuthLayout(
       title: 'Crear una cuenta',
+      back: true,
+      subtitle: 'Consulta tus donaciones desde una misma cuenta.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
-            key: const Key('register.email'),
-            controller: _email,
-            enabled: !_sending,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+          LabeledField(
+            label: 'Email',
+            child: TextField(
+              key: const Key('register.email'),
+              controller: _email,
+              enabled: !_sending,
+              keyboardType: TextInputType.emailAddress,
+            ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('register.password'),
-            controller: _password,
-            enabled: !_sending,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Contraseña',
+          const SizedBox(height: 14),
+          LabeledField(
+            label: 'Contraseña',
+            child: PasswordField(
+              key: const Key('register.password'),
+              controller: _password,
+              enabled: !_sending,
               helperText: 'Al menos $minPasswordLength caracteres',
-              border: OutlineInputBorder(),
             ),
           ),
           if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           FilledButton(
             key: const Key('register.submit'),
             onPressed: _sending ? null : _submit,
-            child: const Text('Crear cuenta'),
+            child: Text(_sending ? 'Crear cuenta…' : 'Crear cuenta'),
           ),
+          const SizedBox(height: 8),
           TextButton(onPressed: _sending ? null : services.router.back, child: const Text('Ya tengo cuenta')),
         ],
       ),

@@ -13,8 +13,8 @@ abstract final class PaxTheme {
     brightness: Brightness.light,
     primary: PaxTokens.brandGreen800,
     onPrimary: PaxTokens.white,
-    // Tarjeta destacada e indicador de la pestaña: verde-800 suave sobre blanco.
-    primaryContainer: PaxTokens.brandGreen800.withValues(alpha: 0.16),
+    // Tarjeta destacada e indicador de la pestaña: verde-500 suave sobre blanco.
+    primaryContainer: PaxTokens.brandGreen500.withValues(alpha: 0.22),
     onPrimaryContainer: PaxTokens.brandGreen900,
     secondary: PaxTokens.brandBlue700,
     onSecondary: PaxTokens.white,

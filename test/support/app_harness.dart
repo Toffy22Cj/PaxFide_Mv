@@ -27,6 +27,9 @@ class AppHarness {
       biometricAuthenticator: this.biometric,
       linkOpener: links,
     );
+    // Inicio lee el resumen de donaciones en segundo plano: por defecto, ninguna (cada prueba puede cambiarla).
+    api.routes['GET /account/donations'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
+    api.routeFirst.add('GET /account/donations');
     // Lecturas por defecto para los flujos que solo navegan: un activo cualquiera en REGISTERED.
     api.fallback = (call) {
       if (call.method == 'GET' && call.path.endsWith('/physical-assets') && call.path.startsWith('/organizations/')) {

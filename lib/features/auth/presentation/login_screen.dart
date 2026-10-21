@@ -6,6 +6,7 @@ import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../biometrics/biometric_login.dart';
 import 'auth_layout.dart';
 import 'biometric_login_dialog.dart';
@@ -184,35 +185,40 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return AuthLayout(
       title: 'Entrar',
+      brand: true,
       child: AutofillGroup(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              key: const Key('login.email'),
-              controller: _email,
-              enabled: !_sending,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+            LabeledField(
+              label: 'Email',
+              child: TextField(
+                key: const Key('login.email'),
+                controller: _email,
+                enabled: !_sending,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('login.password'),
-              controller: _password,
-              enabled: !_sending,
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-              onSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder()),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Contraseña',
+              child: PasswordField(
+                key: const Key('login.password'),
+                controller: _password,
+                enabled: !_sending,
+                autofillHints: const [AutofillHints.password],
+                onSubmitted: (_) => _submit(),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               ErrorMessage(_error!, textKey: const Key('login.error')),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             FilledButton(
               key: const Key('login.submit'),
               onPressed: _sending ? null : _submit,
@@ -221,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   : const Text('Entrar'),
             ),
             if (_biometricOffered) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               OutlinedButton.icon(
                 key: const Key('login-biometric'),
                 onPressed: _sending ? null : _biometricLogin,
@@ -234,20 +240,46 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: const Text('No usar la biometría en este teléfono'),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Text(
+              '¿No tienes cuenta?',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: muted),
+            ),
             TextButton(
               onPressed: _sending ? null : () => services.router.push(AppRoutes.register),
               child: const Text('Crear una cuenta'),
             ),
-            TextButton(
-              onPressed: _sending ? null : () => services.router.push(AppRoutes.tracking),
-              child: const Text('Seguir una donación con su código'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('o', style: TextStyle(color: muted)),
+                ),
+                const Expanded(child: Divider()),
+              ],
             ),
-            TextButton.icon(
-              key: const Key('login.scan'),
-              onPressed: _sending ? null : () => scanQr(context),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Escanear un código QR'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('login.tracking'),
+                    onPressed: _sending ? null : () => services.router.push(AppRoutes.tracking),
+                    child: const Text('Seguir una donación', textAlign: TextAlign.center),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('login.scan'),
+                    onPressed: _sending ? null : () => scanQr(context),
+                    child: const Text('Escanear QR', textAlign: TextAlign.center),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
