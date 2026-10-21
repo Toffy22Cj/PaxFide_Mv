@@ -1,3 +1,4 @@
+import '../core/links/link_opener.dart';
 import '../core/network/api_client.dart';
 import '../core/network/auth_response_handler.dart';
 import '../core/network/http_api_client.dart';
@@ -28,6 +29,7 @@ AppServices buildServices({
   ApiClient Function(TokenStore tokenStore, AuthResponseHandler handler)? apiClientFactory,
   QrScannerBuilder qrScannerBuilder = defaultQrScanner,
   BiometricAuthenticator? biometricAuthenticator,
+  LinkOpener linkOpener = const UrlLauncherLinkOpener(),
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
@@ -49,6 +51,7 @@ AppServices buildServices({
     syncEngine: SyncEngine(store: outboxStore, apiClient: api),
     theme: ThemeController(secureStore),
     textSize: TextSizeController(secureStore),
+    linkOpener: linkOpener,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
     // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
     biometricAuthenticator:

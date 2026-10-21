@@ -135,6 +135,16 @@ class _DonateSheetState extends State<DonateSheet> {
     if (mounted) setState(() => _busy = false);
   }
 
+  Future<void> _openPayment(String url) async {
+    final uri = Uri.tryParse(url);
+    final ok = uri != null && uri.hasScheme && await _services.linkOpener.open(uri);
+    if (!ok && mounted) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(const SnackBar(content: Text('No pudimos abrir el navegador. Copia el enlace y ábrelo a mano.')));
+    }
+  }
+
   String _checkoutUrl(String redirect) {
     final uri = Uri.tryParse(redirect);
     if (uri != null && uri.hasScheme) return redirect;
@@ -236,8 +246,17 @@ class _DonateSheetState extends State<DonateSheet> {
               ),
             ] else ...[
               if (intent.paymentRedirectUrl != null) ...[
-                const Text('Completa el pago en el checkout simulado de la web de PaxFide:'),
-                const SizedBox(height: 4),
+                const Text('Completa el pago en el checkout simulado de la web de PaxFide.'),
+                const SizedBox(height: 8),
+                // M-12: un botón abre el pago en el navegador; el enlace queda debajo por si hay que copiarlo.
+                FilledButton.icon(
+                  key: const Key('donate.openPayment'),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Abrir el pago'),
+                  onPressed: () => _openPayment(_checkoutUrl(intent.paymentRedirectUrl!)),
+                ),
+                const SizedBox(height: 8),
+                Text('O copia este enlace:', style: theme.textTheme.bodySmall),
                 SelectableText(_checkoutUrl(intent.paymentRedirectUrl!), key: const Key('donate.checkout')),
               ] else
                 const Text('El servidor no devolvió una dirección de pago para esta donación.'),

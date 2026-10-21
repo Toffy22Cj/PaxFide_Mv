@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../core/links/link_opener.dart';
 import '../core/network/api_client.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
@@ -34,6 +35,7 @@ class AppServices {
     this.impactSource = const UnavailableImpactSource(),
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
+    this.linkOpener = const UrlLauncherLinkOpener(),
     ThemeController? theme,
     TextSizeController? textSize,
     DeviceCredentialStore? deviceCredentialStore,
@@ -66,6 +68,9 @@ class AppServices {
   /// Comprobante de donación y cómo compartirlo (M-22).
   final ReceiptSource receiptSource;
   final ReceiptSharer receiptSharer;
+
+  /// Abre enlaces fuera de la app (M-12).
+  final LinkOpener linkOpener;
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;

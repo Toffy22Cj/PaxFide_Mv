@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:paxfide_mobile/core/links/link_opener.dart';
 import 'package:paxfide_mobile/core/network/api_client.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
@@ -145,5 +146,17 @@ class FakeBiometricAuthenticator implements BiometricAuthenticator {
     if (!pending) return Future.value(result);
     _waiting = Completer<BiometricCheck>();
     return _waiting!.future;
+  }
+}
+
+/// Navegador simulado: registra los enlaces abiertos.
+class FakeLinkOpener implements LinkOpener {
+  final opened = <Uri>[];
+  bool succeed = true;
+
+  @override
+  Future<bool> open(Uri url) async {
+    opened.add(url);
+    return succeed;
   }
 }

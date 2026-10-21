@@ -221,4 +221,22 @@ void main() {
     expect(find.byKey(const Key('donate.withAccount')), findsOneWidget);
     expect(find.byKey(const Key('donate.login')), findsNothing);
   });
+
+  testWidgets('M-12: «Abrir el pago» abre el checkout en el navegador; si falla, avisa y queda el enlace', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    h.api.routes[createPath] = (_) => created;
+    await donate(tester, '1000');
+    await tester.ensureVisible(find.byKey(const Key('donate.openPayment')));
+    await tester.tap(find.byKey(const Key('donate.openPayment')));
+    await tester.pumpAndSettle();
+    expect(h.links.opened.single.toString(), '$testOrigin/demo/checkout/sim_abc');
+
+    h.links.succeed = false;
+    await tester.tap(find.byKey(const Key('donate.openPayment')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No pudimos abrir el navegador'), findsOneWidget);
+    expect(find.byKey(const Key('donate.checkout')), findsOneWidget);
+  });
 }

@@ -25,6 +25,7 @@ class AppHarness {
       apiClientFactory: (tokens, handler) => api..authHandler = handler,
       qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),
       biometricAuthenticator: this.biometric,
+      linkOpener: links,
     );
     // Lecturas por defecto para los flujos que solo navegan: un activo cualquiera en REGISTERED.
     api.fallback = (call) {
@@ -67,6 +68,9 @@ class AppHarness {
 
   final secure = InMemorySecureKeyValueStore();
   final FakeBiometricAuthenticator biometric;
+
+  /// Navegador simulado (M-12).
+  final links = FakeLinkOpener();
 
   /// Biometría ya activada en este teléfono.
   void saveDeviceCredential() =>
