@@ -93,6 +93,20 @@ void main() {
     expect(posts(h), 0, reason: 'descartar no envía nada');
   });
 
+  testWidgets('M-03: deslizar una rechazada la descarta con la misma confirmación', (tester) async {
+    final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.failed), entry('cmd-2', OutboxStatus.pending)]);
+    h.services.router.go(AppRoutes.operatorPending);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('outbox.swipe.cmd-2')), findsNothing, reason: 'solo las rechazadas');
+    await tester.drag(find.byKey(const Key('outbox.swipe.cmd-1')), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Descartar la operación?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Descartar'));
+    await tester.pumpAndSettle();
+    expect((await SecureOutboxStore(h.secure).getAllItems()).map((i) => i.commandId), ['cmd-2']);
+    expect(find.byKey(const Key('outbox.entry.cmd-1')), findsNothing);
+  });
+
   testWidgets('H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen', (tester) async {
     final h = await start(
       tester,

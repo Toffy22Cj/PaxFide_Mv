@@ -77,11 +77,34 @@ class AppShell extends StatelessWidget {
                 actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],
               )
             : null;
-        final content = Column(
-          children: [
-            ?banner,
-            Expanded(child: body),
-          ],
+        // M-03: deslizar a los lados cambia de pestaña (Escanear no, porque abre la cámara); en una pantalla que no
+        // es pestaña (la ficha de un activo), deslizar hacia la derecha vuelve atrás.
+        final swipeable = [
+          for (final d in destinations)
+            if (d.route != _scan) d.route,
+        ];
+        void swipe(DragEndDetails d) {
+          final v = d.primaryVelocity ?? 0;
+          if (v.abs() < 300) return;
+          final i = swipeable.indexOf(location);
+          if (i < 0) {
+            if (v > 0 && services.router.stack.length > 1) services.router.back();
+            return;
+          }
+          final next = i + (v < 0 ? 1 : -1);
+          if (next >= 0 && next < swipeable.length) services.router.go(swipeable[next]);
+        }
+
+        final content = GestureDetector(
+          key: const Key('shell.swipe'),
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: swipe,
+          child: Column(
+            children: [
+              ?banner,
+              Expanded(child: body),
+            ],
+          ),
         );
 
         return LayoutBuilder(

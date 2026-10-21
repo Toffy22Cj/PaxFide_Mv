@@ -89,4 +89,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.operatorPending);
   });
+
+  testWidgets('M-03: deslizar cambia de pestaña (sin abrir la cámara) y en la ficha vuelve atrás', (tester) async {
+    final h = await start(tester);
+    h.services.router.go(AppRoutes.operator);
+    await tester.pumpAndSettle();
+    await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(-400, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operatorPending, reason: 'Escanear se salta al deslizar');
+    await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operator);
+
+    h.services.router.push(AppRoutes.assetPath('A-1'));
+    await tester.pumpAndSettle();
+    await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operator);
+  });
 }

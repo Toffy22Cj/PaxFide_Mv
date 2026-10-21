@@ -5,6 +5,7 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/outbox_item.dart';
+import '../../../core/offline/outbox_status.dart';
 import '../../../core/storage/outbox_store.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -107,34 +108,68 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
           if (entries.isEmpty) {
             return const MessageView(icon: Icons.inbox_outlined, title: 'No hay operaciones pendientes de tu cuenta.');
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              for (final e in entries)
-                OutboxEntryCard(
-                  item: e,
-                  busy: _busy,
-                  showAsset: true,
-                  onOpenAsset: () => _services.router.push(AppRoutes.assetPath(e.resourceRef)),
-                  onSend: () => _run(() => _services.syncEngine.send(e.commandId, account)),
-                  onVerify: () => _run(() async {
-                    final ok = await _ops.verify(e, accountId: account);
-                    if (!ok && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')),
-                      );
-                    }
-                  }),
-                  onDiscard: () async {
-                    if (await confirmDiscard(context)) {
-                      await _run(() => _services.syncEngine.discard(e.commandId, account));
-                    }
-                  },
-                ),
-            ],
+          Future<bool> discard(OutboxItem e) async {
+            if (!await confirmDiscard(context)) return false;
+            await _run(() => _services.syncEngine.discard(e.commandId, account));
+            // Se quita ya de la lista: una tarjeta deslizada no puede seguir en pantalla hasta la recarga.
+            if (mounted) setState(() => _entries = [...?_entries]..removeWhere((x) => x.commandId == e.commandId));
+            return true;
+          }
+
+          // M-03: deslizar hacia abajo actualiza; una rechazada se puede descartar deslizándola (con confirmación).
+          return RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final e in entries)
+                  _swipeToDiscard(
+                    e,
+                    discard,
+                    OutboxEntryCard(
+                      item: e,
+                      busy: _busy,
+                      showAsset: true,
+                      onOpenAsset: () => _services.router.push(AppRoutes.assetPath(e.resourceRef)),
+                      onSend: () => _run(() => _services.syncEngine.send(e.commandId, account)),
+                      onVerify: () => _run(() async {
+                        final ok = await _ops.verify(e, accountId: account);
+                        if (!ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Todavía no podemos confirmarla: el estado no coincide.')),
+                          );
+                        }
+                      }),
+                      onDiscard: () => discard(e),
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
     );
   }
+}
+
+/// Solo las rechazadas por el servidor (FAILED) se pueden descartar; deslizarla pide la misma confirmación.
+Widget _swipeToDiscard(OutboxItem e, Future<bool> Function(OutboxItem) discard, Widget child) {
+  if (e.status != OutboxStatus.failed) return child;
+  return Builder(
+    builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return Dismissible(
+        key: Key('outbox.swipe.${e.commandId}'),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (_) => discard(e),
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(12)),
+          child: Icon(Icons.delete_outline, color: scheme.onErrorContainer, semanticLabel: 'Descartar'),
+        ),
+        child: child,
+      );
+    },
+  );
 }
