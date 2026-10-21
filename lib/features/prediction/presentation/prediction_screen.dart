@@ -41,11 +41,12 @@ class _PredictionScreenState extends State<PredictionScreen> {
   String? _selected;
   bool _listRequested = false;
 
-  /// ADMINISTRATOR: listado de la organización. Si no lo hay (otro rol, 403 o vacío): `GET /me/campaigns` (DDM-38).
+  /// ADMINISTRATOR o REPRESENTATIVE: listado de la organización. Si no lo hay (403 de un backend anterior o vacío):
+  /// `GET /me/campaigns` (DDM-38). Nunca se pide escribir una referencia interna.
   Future<void> _loadChoices(Principal p) async {
     _listRequested = true;
     var list = <CampaignChoice>[];
-    if (p.roles.contains(Principal.administrator)) {
+    if (p.roles.contains(Principal.administrator) || p.roles.contains(Principal.representative)) {
       try {
         list = await _api.organizationCampaigns(p.organizationId!);
       } on AppException {
@@ -150,27 +151,13 @@ class _PredictionScreenState extends State<PredictionScreen> {
                     ),
                   ),
               ],
-              if (choices != null && choices.isEmpty) ...[
-                Text('Consulta por código', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
-                LabeledField(
-                  label: 'Código de la convocatoria',
-                  child: TextField(
-                    key: const Key('prediction.campaignRef'),
-                    controller: _campaignRef,
-                    enabled: !_loading,
-                    decoration: InputDecoration(
-                      helperText: 'Lo muestra el panel de la organización en la web.',
-                      suffixIcon: TextButton(
-                        key: const Key('prediction.submit'),
-                        onPressed: _loading ? null : () => _query(p.organizationId!),
-                        child: const Text('Consultar'),
-                      ),
-                    ),
-                    onSubmitted: (_) => _query(p.organizationId!),
-                  ),
+              if (choices != null && choices.isEmpty)
+                const MessageView(
+                  key: Key('prediction.noCampaigns'),
+                  icon: Icons.campaign_outlined,
+                  title: 'Tu organización todavía no tiene convocatorias.',
+                  detail: 'Cuando se cree una desde la web, aparecerá aquí para consultar su predicción.',
                 ),
-              ],
               const SizedBox(height: 16),
               if (_loading) const LoadingView(label: 'Cargando predicción…'),
               if (_error != null) _errorView(_error!),

@@ -10,13 +10,16 @@ import '../support/app_harness.dart';
 const path = '/organizations/org-1/campaigns/camp-9/prediction';
 
 void main() {
-  Future<AppHarness> open(WidgetTester tester, List<String> roles, {bool withList = false}) async {
+  Future<AppHarness> open(WidgetTester tester, List<String> roles) async {
     final h = AppHarness();
-    if (!withList) {
-      // Sin listado: la app ofrece escribir la referencia como último recurso.
-      h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
-      h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
-    }
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'campaignRef': 'camp-9', 'publicCode': 'PUB9', 'title': 'Abrigo para el invierno', 'status': 'OPEN'},
+        ],
+      },
+    );
     h.saveToken('jwt');
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: roles)));
     h.services.router.go(AppRoutes.prediction);
@@ -25,8 +28,7 @@ void main() {
   }
 
   Future<void> query(WidgetTester tester) async {
-    await tester.enterText(find.byKey(const Key('prediction.campaignRef')), 'camp-9');
-    await tester.tap(find.byKey(const Key('prediction.submit')));
+    await tester.tap(find.byKey(const Key('prediction.choice.camp-9')));
     await tester.pumpAndSettle();
   }
 
@@ -143,7 +145,6 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['ADMINISTRATOR'])));
     h.services.router.go(AppRoutes.prediction);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('prediction.campaignRef')), findsNothing, reason: 'con listado no se escribe');
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
@@ -151,10 +152,18 @@ void main() {
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
   });
 
-  testWidgets('REPRESENTATIVE (sin listado de organización) usa sus convocatorias de GET /me/campaigns', (
+  testWidgets('REPRESENTATIVE ve las convocatorias de su organización como tarjetas', (tester) async {
+    final h = await open(tester, ['REPRESENTATIVE']);
+    expect(find.byKey(const Key('prediction.choice.camp-9')), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/organizations/org-1/campaigns'), hasLength(1));
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsNothing);
+  });
+
+  testWidgets('backend anterior (403 en el listado de la organización) → sus convocatorias de GET /me/campaigns', (
     tester,
   ) async {
     final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
     h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(
       statusCode: 200,
       data: {
@@ -168,7 +177,6 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
     h.services.router.go(AppRoutes.prediction);
     await tester.pumpAndSettle();
-    expect(h.api.calls.where((c) => c.path == '/organizations/org-1/campaigns'), isEmpty);
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
@@ -198,5 +206,19 @@ void main() {
     expect(find.textContaining('Probabilidad'), findsNothing);
     expect(find.textContaining('Tiempo transcurrido'), findsNothing);
     expect(find.textContaining('%)'), findsNothing);
+  });
+
+  testWidgets('sin convocatorias → un mensaje claro, nunca un campo para escribir una referencia interna', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 }
