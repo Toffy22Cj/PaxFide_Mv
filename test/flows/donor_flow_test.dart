@@ -323,10 +323,12 @@ void main() {
     await h.services.router.openDeepLink(h.services.deepLinkParser.parse(Uri.parse('$testOrigin/c/PUB1')));
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.text('Meta: 500 000,00 COP'), findsOneWidget);
-    expect(find.text('Recaudado y acreditado: 100 000,00 COP'), findsOneWidget);
-    expect(find.text('Acreditado: 100 000,00 COP'), findsOneWidget);
-    expect(find.text('Unidades entregadas: 6'), findsOneWidget);
+    expect(find.text('de 500 000,00 COP'), findsOneWidget);
+    expect(find.text('Recaudado y acreditado'), findsOneWidget);
+    expect(find.text('100 000,00 COP'), findsNWidgets(2), reason: 'recaudado y el hecho «Acreditado»');
+    expect(find.text('Meta 20 %'), findsOneWidget);
+    expect(find.text('Unidades entregadas'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
     expect(find.text('Narrativa no disponible'), findsOneWidget);
     expect(
       h.api.calls.where((c) => c.path.startsWith('/public/')).every((c) => c.credentialMode == CredentialMode.none),

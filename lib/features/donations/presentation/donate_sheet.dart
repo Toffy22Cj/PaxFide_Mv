@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
@@ -7,6 +8,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/money.dart';
 import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
@@ -21,28 +23,29 @@ bool canDonate(PublicCampaign c) =>
     isKnownCurrency(c.currency) &&
     c.acceptedPaymentMethods.contains('GATEWAY');
 
+/// Botón "Donar" de la convocatoria. Abre el asistente a pantalla completa (no es una ruta).
 Widget donateAction(BuildContext context, PublicCampaign campaign, String publicCode) {
   if (!canDonate(campaign)) return const SizedBox.shrink();
-  return FilledButton.icon(
+  return FilledButton(
     key: const Key('donate.open'),
-    icon: const Icon(Icons.volunteer_activism),
-    label: const Text('Donar'),
-    onPressed: () => showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      isDismissible: false,
-      builder: (_) => DonateSheet(publicCode: publicCode, currency: campaign.currency!),
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => DonateSheet(publicCode: publicCode, currency: campaign.currency!, campaign: campaign),
+      ),
     ),
+    child: const Text('Donar'),
   );
 }
 
-/// Donación con la **pasarela simulada** de la demo (CV-11). Transitoria (no es una ruta). El `statusToken` y el
-/// código de seguimiento viven solo en el estado de esta hoja: al cerrarla desaparecen.
+/// Donación con la **pasarela simulada** de la demo (CV-11), en cuatro pasos (Figma 02): elige tu aporte, completa
+/// el pago, estado del pago y tu código de seguimiento. Transitoria (no es una ruta). El `statusToken` y el código
+/// de seguimiento viven solo en el estado de esta pantalla: al cerrarla desaparecen.
 class DonateSheet extends StatefulWidget {
-  const DonateSheet({super.key, required this.publicCode, required this.currency});
+  const DonateSheet({super.key, required this.publicCode, required this.currency, this.campaign});
   final String publicCode;
   final String currency;
+  final PublicCampaign? campaign;
 
   @override
   State<DonateSheet> createState() => _DonateSheetState();
@@ -152,138 +155,271 @@ class _DonateSheetState extends State<DonateSheet> {
     return origin == null ? redirect : origin.replace(path: redirect).toString();
   }
 
+  /// Paso actual según lo que ya se sabe de la donación.
+  int get _step {
+    final a = _attempt;
+    if (a?.intent == null) return 1;
+    final st = a!.lastStatus;
+    if (st == null) return 2;
+    return st.trackingCode == null ? 3 : 4;
+  }
+
+  static const _titles = {
+    1: 'Elige tu aporte',
+    2: 'Completa el pago',
+    3: 'Estado del pago',
+    4: 'Tu código de seguimiento',
+  };
+
+  void _close() {
+    if (_hasState) {
+      _confirmLeave(); // cierra si se confirma
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _copy(String text, String message) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final a = _attempt;
-    final intent = a?.intent;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text('Donar', style: theme.textTheme.titleLarge)),
-                IconButton(
-                  key: const Key('donate.close'),
-                  tooltip: 'Cerrar',
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    if (_hasState) {
-                      _confirmLeave(); // cierra la hoja si se confirma
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                ),
-              ],
-            ),
-            Text(
-              'Pasarela de pago SIMULADA (demo): no se mueve dinero real.',
-              key: const Key('donate.simulated'),
-              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            if (intent == null && a == null) ...[_accountCard(theme), const SizedBox(height: 12)],
-            if (intent == null) ...[
-              // M-14: atajos de importe; tocar uno escribe la cifra en el campo (se puede cambiar después).
-              if (suggestedAmounts[widget.currency] case final amounts?) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final v in amounts)
-                      ChoiceChip(
-                        key: Key('donate.suggested.$v'),
-                        label: Text(
-                          formatMinorUnits(
-                            toMinorUnits('$v', widget.currency)!,
-                            widget.currency,
-                          ).replaceFirst(RegExp(r',0+ '), ' '),
-                        ),
-                        selected: _amount.text == '$v',
-                        onSelected: _busy || a != null ? null : (_) => setState(() => _amount.text = '$v'),
-                      ),
-                  ],
-                ),
+    final step = _step;
+    return PopScope(
+      canPop: !_hasState && !_busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_busy) _confirmLeave();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            key: const Key('donate.close'),
+            tooltip: 'Cerrar',
+            icon: const Icon(Icons.close),
+            onPressed: _close,
+          ),
+          title: const Text('Donar'),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const NoticeBanner('Pago simulado (demo): no se mueve dinero real.', textKey: Key('donate.simulated')),
+              const SizedBox(height: 16),
+              StepHeader(step: step, total: 4),
+              const SizedBox(height: 8),
+              Text(_titles[step]!, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              ...switch (step) {
+                1 => _amountStep(theme),
+                2 => _payStep(theme),
+                3 => _statusStep(theme),
+                _ => _codeStep(theme),
+              },
+              if (_error != null) ...[
                 const SizedBox(height: 12),
+                ErrorMessage(_error!, textKey: const Key('donate.error')),
               ],
-              TextField(
-                key: const Key('donate.amount'),
-                controller: _amount,
-                enabled: !_busy && a == null,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Importe',
-                  suffixText: widget.currency,
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_outcome == CommandOutcome.failed)
-                ErrorMessage(switch (_status) {
-                  409 => 'La convocatoria no acepta esta donación ahora.',
-                  404 => 'La convocatoria ya no existe.',
-                  _ => 'El servidor rechazó la donación. Revisa el importe.',
-                }, textKey: const Key('donate.rejected')),
-              if (_outcome == CommandOutcome.ambiguous)
-                const Text(
-                  'No pudimos confirmar si se creó la donación. Reintentar es seguro: se usa la misma operación.',
-                  key: Key('donate.ambiguous'),
-                ),
-              if (_outcome == CommandOutcome.notSent) const Text('Sin conexión con el servidor. No se envió nada.'),
-              if (toMinorUnits(_amount.text, widget.currency) case final minor?)
-                Text('Se donarán ${formatMinorUnits(minor, widget.currency)}.', key: const Key('donate.preview')),
-              const SizedBox(height: 12),
-              FilledButton(
-                key: const Key('donate.submit'),
-                onPressed: _busy ? null : _create,
-                child: Text(_outcome == CommandOutcome.ambiguous ? 'Reintentar' : 'Continuar al pago simulado'),
-              ),
-            ] else ...[
-              if (intent.paymentRedirectUrl != null) ...[
-                const Text('Completa el pago en el checkout simulado de la web de PaxFide.'),
-                const SizedBox(height: 8),
-                // M-12: un botón abre el pago en el navegador; el enlace queda debajo por si hay que copiarlo.
-                FilledButton.icon(
-                  key: const Key('donate.openPayment'),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Abrir el pago'),
-                  onPressed: () => _openPayment(_checkoutUrl(intent.paymentRedirectUrl!)),
-                ),
-                const SizedBox(height: 8),
-                Text('O copia este enlace:', style: theme.textTheme.bodySmall),
-                SelectableText(_checkoutUrl(intent.paymentRedirectUrl!), key: const Key('donate.checkout')),
-              ] else
-                const Text('El servidor no devolvió una dirección de pago para esta donación.'),
-              const SizedBox(height: 12),
-              _statusView(theme, a!.lastStatus),
-              const SizedBox(height: 8),
-              if (intent.statusToken == null)
-                const Text(
-                  'Esta donación no se puede consultar desde la app (el servidor no devolvió el permiso de consulta).',
-                  key: Key('donate.noToken'),
-                )
-              else
-                FilledButton.tonal(
-                  key: const Key('donate.refresh'),
-                  onPressed: _busy ? null : _refresh,
-                  child: const Text('Consultar estado del pago'),
-                ),
+              if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
             ],
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              ErrorMessage(_error!, textKey: const Key('donate.error')),
-            ],
-            if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  List<Widget> _amountStep(ThemeData theme) {
+    final c = widget.campaign;
+    final a = _attempt;
+    return [
+      if (c != null)
+        Text(
+          [c.title, c.organizationName].where((x) => x.isNotEmpty).join(' · '),
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      const SizedBox(height: 12),
+      if (a == null) ...[_accountCard(theme), const SizedBox(height: 12)],
+      // M-14: atajos de importe; tocar uno escribe la cifra en el campo (se puede cambiar después).
+      if (suggestedAmounts[widget.currency] case final amounts?) ...[
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final v in amounts)
+              ChoiceChip(
+                key: Key('donate.suggested.$v'),
+                showCheckmark: false,
+                label: Text(
+                  formatMinorUnits(
+                    toMinorUnits('$v', widget.currency)!,
+                    widget.currency,
+                  ).replaceFirst(RegExp(r',0+ '), ' '),
+                ),
+                selected: _amount.text == '$v',
+                onSelected: _busy || a != null ? null : (_) => setState(() => _amount.text = '$v'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+      ],
+      LabeledField(
+        label: 'Importe',
+        child: TextField(
+          key: const Key('donate.amount'),
+          controller: _amount,
+          enabled: !_busy && a == null,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(suffixText: widget.currency),
+          onChanged: (_) => setState(() {}),
+        ),
+      ),
+      if (_outcome == CommandOutcome.failed) ...[
+        const SizedBox(height: 10),
+        ErrorMessage(switch (_status) {
+          409 => 'La convocatoria no acepta esta donación ahora.',
+          404 => 'La convocatoria ya no existe.',
+          _ => 'El servidor rechazó la donación. Revisa el importe.',
+        }, textKey: const Key('donate.rejected')),
+      ],
+      if (_outcome == CommandOutcome.ambiguous) ...[
+        const SizedBox(height: 10),
+        const NoticeBanner(
+          'No pudimos confirmar si se creó la donación. Reintentar es seguro: se usa la misma operación.',
+          textKey: Key('donate.ambiguous'),
+        ),
+      ],
+      if (_outcome == CommandOutcome.notSent) ...[
+        const SizedBox(height: 10),
+        const NoticeBanner('Sin conexión con el servidor. No se envió nada.', tone: Tone.info),
+      ],
+      if (toMinorUnits(_amount.text, widget.currency) case final minor?) ...[
+        const SizedBox(height: 12),
+        Text(
+          'Se donarán ${formatMinorUnits(minor, widget.currency)}.',
+          key: const Key('donate.preview'),
+          style: theme.textTheme.titleSmall,
+        ),
+      ],
+      const SizedBox(height: 14),
+      FilledButton(
+        key: const Key('donate.submit'),
+        onPressed: _busy ? null : _create,
+        child: Text(_outcome == CommandOutcome.ambiguous ? 'Reintentar' : 'Continuar al pago simulado'),
+      ),
+    ];
+  }
+
+  List<Widget> _payStep(ThemeData theme) {
+    final intent = _attempt!.intent!;
+    final redirect = intent.paymentRedirectUrl;
+    return [
+      if (redirect != null) ...[
+        const Text('Completa el pago en el checkout simulado de la web de PaxFide.'),
+        const SizedBox(height: 12),
+        SectionCard(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SelectableText(
+                _checkoutUrl(redirect),
+                key: const Key('donate.checkout'),
+                style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                key: const Key('donate.copyLink'),
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copiar enlace'),
+                onPressed: () => _copy(_checkoutUrl(redirect), 'Enlace copiado.'),
+              ),
+              const SizedBox(height: 8),
+              // M-12: abrir el pago en el navegador.
+              OutlinedButton.icon(
+                key: const Key('donate.openPayment'),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Abrir el pago'),
+                onPressed: () => _openPayment(_checkoutUrl(redirect)),
+              ),
+            ],
+          ),
+        ),
+      ] else
+        const Text('El servidor no devolvió una dirección de pago para esta donación.'),
+      const SizedBox(height: 14),
+      ..._refreshButton(),
+    ];
+  }
+
+  List<Widget> _statusStep(ThemeData theme) {
+    final a = _attempt!;
+    final st = a.lastStatus!;
+    return [
+      Text(formatMinorUnits(a.amount, a.currency), style: theme.textTheme.headlineMedium),
+      const SizedBox(height: 10),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: KeyedSubtree(key: const Key('donate.status'), child: donationStatusChip(st.status)),
+      ),
+      const SizedBox(height: 12),
+      Text(switch (st.status) {
+        'CONFIRMED' => 'El código de seguimiento aparece cuando los fondos se apliquen. Vuelve a consultar.',
+        'PENDING' => 'El pago todavía no se ha completado. Vuelve a consultar cuando lo termines.',
+        _ => 'Consulta de nuevo para ver si cambió el estado.',
+      }),
+      const SizedBox(height: 14),
+      ..._refreshButton(),
+    ];
+  }
+
+  List<Widget> _refreshButton() => [
+    if (_attempt!.intent!.statusToken == null)
+      const Text(
+        'Esta donación no se puede consultar desde la app (el servidor no devolvió el permiso de consulta).',
+        key: Key('donate.noToken'),
+      )
+    else
+      FilledButton(
+        key: const Key('donate.refresh'),
+        onPressed: _busy ? null : _refresh,
+        child: Text(_busy ? 'Consultar estado del pago…' : 'Consultar estado del pago'),
+      ),
+  ];
+
+  List<Widget> _codeStep(ThemeData theme) {
+    final code = _attempt!.lastStatus!.trackingCode!;
+    return [
+      HighlightCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SelectableText(
+              code,
+              key: const Key('donate.trackingCode'),
+              style: theme.textTheme.titleSmall?.copyWith(fontFamily: 'monospace'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('donate.copyCode'),
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('Copiar'),
+              onPressed: () => _copy(code, 'Código copiado. Guárdalo en un lugar seguro.'),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      const NoticeBanner('Guárdalo: la app no lo guarda ni lo vuelve a mostrar.'),
+      const SizedBox(height: 12),
+      Text(
+        'Para consultar el recorrido, escribe o pega este código en Seguir una donación.',
+        style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    ];
   }
 
   /// M-11: se puede donar sin cuenta, o iniciar sesión antes de pagar para verla luego en "Mis donaciones".
@@ -321,21 +457,5 @@ class _DonateSheetState extends State<DonateSheet> {
     );
     Navigator.of(context).pop();
     router.push(AppRoutes.login);
-  }
-
-  Widget _statusView(ThemeData theme, IntentStatus? s) {
-    if (s == null) return const Text('Estado: todavía sin consultar.');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Estado: ${donationStatusLabel(s.status)}', key: const Key('donate.status')),
-        if (s.trackingCode != null) ...[
-          const SizedBox(height: 8),
-          const Text('Tu código de seguimiento (guárdalo: la app no lo guarda ni lo vuelve a mostrar):'),
-          SelectableText(s.trackingCode!, key: const Key('donate.trackingCode'), style: theme.textTheme.titleMedium),
-        ] else if (s.status == 'CONFIRMED')
-          const Text('El código de seguimiento aparece cuando los fondos se apliquen. Vuelve a consultar.'),
-      ],
-    );
   }
 }

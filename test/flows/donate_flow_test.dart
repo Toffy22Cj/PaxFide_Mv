@@ -44,6 +44,8 @@ void main() {
     await tester.tap(find.byKey(const Key('donate.open')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('donate.amount')), amount);
+    await tester.ensureVisible(find.byKey(const Key('donate.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donate.submit')));
     await tester.pumpAndSettle();
   }
@@ -93,7 +95,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('donate.refresh')));
     await tester.pumpAndSettle();
-    expect(find.text('Estado: Pago pendiente'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('donate.status')), matching: find.text('Pago pendiente')),
+      findsOneWidget,
+    );
     final get = h.api.calls.lastWhere((c) => c.path == '/public/donation-intents/int-1');
     expect(get.headers['Intent-Token'], 'TOKEN-SECRETO');
     expect(get.credentialMode, CredentialMode.none);
@@ -141,6 +146,8 @@ void main() {
     h.api.routes[createPath] = (_) => n++ == 0 ? const ApiResponse(statusCode: 409) : created;
     await donate(tester, '1000');
     expect(find.byKey(const Key('donate.rejected')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('donate.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donate.submit')));
     await tester.pumpAndSettle();
     final ids = creates(h).map((c) => c.headers['Command-Id']).toList();
