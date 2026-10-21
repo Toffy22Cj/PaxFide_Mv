@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.Base64
 
 plugins {
@@ -90,7 +91,7 @@ fun paxfideDartDefines(): Map<String, String> {
 /** Host con permiso de HTTP sin cifrar: solo si la URL de la API es http:// y tiene host. Si no, ninguno. */
 fun paxfideCleartextHost(): String? {
     val api = paxfideDartDefines()["PAXFIDE_API_BASE_URL"]?.trim() ?: return null
-    val uri = try { java.net.URI(api) } catch (e: Exception) { return null }
+    val uri = try { URI(api) } catch (e: Exception) { return null }
     if (uri.scheme != "http" || uri.host.isNullOrBlank()) return null
     // Solo letras, dígitos, puntos y guiones: el valor va dentro de un XML.
     return uri.host.takeIf { Regex("^[A-Za-z0-9.-]+$").matches(it) }
