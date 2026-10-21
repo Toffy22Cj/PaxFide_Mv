@@ -11,6 +11,7 @@ import '../features/auth/domain/session_controller.dart';
 import '../features/campaigns/domain/organization_verification.dart';
 import '../features/donations/domain/impact.dart';
 import '../features/donations/domain/receipt.dart';
+import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
@@ -34,10 +35,12 @@ class AppServices {
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
     ThemeController? theme,
+    TextSizeController? textSize,
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController(),
+       textSize = textSize ?? TextSizeController(),
        biometricLogin = BiometricLogin(
          api: authApi,
          store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
@@ -66,6 +69,9 @@ class AppServices {
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;
+
+  /// Tamaño del texto elegido en la app (M-04), recordado entre aperturas.
+  final TextSizeController textSize;
   late final AppRouterDelegate router;
 
   /// Entrar con huella o rostro, solo desde el login (M-28).

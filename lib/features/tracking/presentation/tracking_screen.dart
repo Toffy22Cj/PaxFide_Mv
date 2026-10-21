@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/app_services.dart';
+import '../../../app/text_size_button.dart';
 import '../../../app/theme_mode_button.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
@@ -148,6 +149,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         title: const Text('Seguimiento de una donación'),
         actions: [
           if (_summary != null) TextButton(onPressed: _forget, child: const Text('Usar otro código')),
+          const TextSizeButton(),
           const ThemeModeButton(),
         ],
       ),

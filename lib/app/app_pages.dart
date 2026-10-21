@@ -14,6 +14,7 @@ import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
+import 'text_size_button.dart';
 import 'theme_mode_button.dart';
 
 /// Ruta del árbol → pantalla. Las rutas que aún no tienen pantalla muestran un aviso neutro, sin datos.
@@ -53,7 +54,7 @@ Widget buildPage(BuildContext context, String location) {
     return AppShell(location: location, title: 'PaxFide', body: notYet);
   }
   return Scaffold(
-    appBar: AppBar(title: const Text('PaxFide'), actions: const [ThemeModeButton()]),
+    appBar: AppBar(title: const Text('PaxFide'), actions: const [TextSizeButton(), ThemeModeButton()]),
     body: notYet,
   );
 }

@@ -10,6 +10,7 @@ import '../core/storage/token_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_config.dart';
@@ -47,6 +48,7 @@ AppServices buildServices({
     outboxStore: outboxStore,
     syncEngine: SyncEngine(store: outboxStore, apiClient: api),
     theme: ThemeController(secureStore),
+    textSize: TextSizeController(secureStore),
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
     // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
     biometricAuthenticator:
@@ -78,6 +80,7 @@ Future<void> runOutboxRecovery(AppServices services) async {
 /// Arranque: T-2, posición restaurable y sesión (UNKNOWN → RESTORING → …). El router ya está activo (G-1 a).
 Future<void> startServices(AppServices services) async {
   await services.theme.load();
+  await services.textSize.load();
   await runOutboxRecovery(services);
   await services.router.loadRestorable();
   await services.session.restore();

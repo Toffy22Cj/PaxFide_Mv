@@ -6,6 +6,7 @@ import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 import 'qr_scanner_sheet.dart';
+import 'text_size_button.dart';
 import 'theme_mode_button.dart';
 
 class _Destination {
@@ -67,6 +68,7 @@ class AppShell extends StatelessWidget {
           title: Text(title),
           actions: [
             ...?actions,
+            const TextSizeButton(),
             const ThemeModeButton(),
             IconButton(tooltip: 'Salir', icon: const Icon(Icons.logout), onPressed: () => services.session.logout()),
           ],

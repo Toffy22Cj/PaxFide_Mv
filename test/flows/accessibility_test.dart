@@ -26,4 +26,35 @@ void main() {
       expect(b.tooltip, isNotNull);
     }
   });
+
+  testWidgets('M-04: elegir el tamaño del texto en la app lo agranda, se suma al del teléfono y se recuerda', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final h = AppHarness();
+    await h.start(tester);
+    double scale() => MediaQuery.textScalerOf(tester.element(find.byKey(const Key('login.submit')))).scale(1);
+    expect(scale(), 1.5);
+
+    await tester.tap(find.byKey(const Key('textSize.menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('textSize.extraLarge')));
+    await tester.pumpAndSettle();
+    expect(scale(), closeTo(2.1, 0.001));
+    expect(h.secure.values['paxfide.ui.textSize'], 'extraLarge');
+    expect(tester.takeException(), isNull);
+
+    await h.login(tester);
+    h.services.router.go(AppRoutes.operator);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: 'Mi día sin desbordes con el texto muy grande');
+  });
+
+  testWidgets('M-04: el tamaño guardado se aplica al abrir la app', (tester) async {
+    final h = AppHarness();
+    h.secure.values['paxfide.ui.textSize'] = 'large';
+    await h.start(tester);
+    expect(MediaQuery.textScalerOf(tester.element(find.byKey(const Key('login.submit')))).scale(1), 1.2);
+  });
 }

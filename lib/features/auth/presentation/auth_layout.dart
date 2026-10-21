@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/text_size_button.dart';
 import '../../../app/theme_mode_button.dart';
 import '../../../shared/widgets/pax_logo.dart';
 
@@ -76,7 +77,11 @@ class AuthLayout extends StatelessWidget {
                 },
               ),
             ),
-            const Positioned(top: 8, right: 8, child: ThemeModeButton()),
+            const Positioned(
+              top: 8,
+              right: 8,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [TextSizeButton(), ThemeModeButton()]),
+            ),
           ],
         ),
       ),
