@@ -70,9 +70,11 @@ void main() {
     // Hechos reales y relato separados; sin ids internos.
     expect(find.text('Hechos registrados'), findsOneWidget);
     // Unidades mínimas ISO 4217 (COP, exponente 2): 6000000 → 60 000,00 COP.
-    expect(find.text('Donado: 60 000,00 COP'), findsOneWidget);
-    expect(find.text('Asignación confirmada: 50 000,00 COP'), findsOneWidget);
+    String figure(String label) => tester.widget<Text>(find.byKey(Key('tracking.figure.$label'))).data!;
+    expect(figure('Donado'), '60 000,00 COP');
+    expect(figure('Asignación confirmada'), '50 000,00 COP');
     expect(find.text('BLANKET · 6 UNITS'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const Key('tracking.narrative')), 300);
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);
     expect(find.textContaining('interno-no-mostrar'), findsNothing);
@@ -147,6 +149,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('tracking.code')), 'C');
     await tester.tap(find.byKey(const Key('tracking.submit')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('tracking.narrative')), 300);
     expect(find.text('El relato todavía se está preparando.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 30));
     expect(narrativeCalls, 1, reason: 'sin polling');
@@ -186,9 +189,10 @@ void main() {
     final call = h.api.calls.firstWhere((c) => c.path.endsWith('/history'));
     expect(call.headers['Authorization'], 'Bearer C');
     expect(find.byKey(const Key('tracking.timeline')), findsOneWidget);
-    expect(find.text('Entregado'), findsOneWidget);
+    expect(find.text('Entregado · Actual'), findsOneWidget);
     expect(find.text(formatEventTime('2026-10-07T10:00:00Z')), findsOneWidget);
-    expect(find.text('Zona norte · Aliado local'), findsOneWidget);
+    expect(find.text('Zona norte'), findsOneWidget);
+    expect(find.text('Aliado local'), findsOneWidget);
   });
 
   testWidgets('mis donaciones: lista real, sin intentId ni código de seguimiento', (tester) async {
