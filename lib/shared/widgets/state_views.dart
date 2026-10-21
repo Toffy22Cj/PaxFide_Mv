@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'pax_ui.dart';
+
 /// Estados de pantalla (no son rutas, §12 regla 1).
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.label = 'Cargando…'});
@@ -31,12 +33,16 @@ class MessageView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
+            IconCircle(icon),
+            const SizedBox(height: 16),
             Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
             if (detail != null) ...[
               const SizedBox(height: 8),
-              Text(detail!, textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+              Text(
+                detail!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ],
             if (action != null) ...[const SizedBox(height: 16), action!],
           ],
@@ -55,7 +61,7 @@ class ErrorRetryView extends StatelessWidget {
   Widget build(BuildContext context) => MessageView(
     icon: Icons.cloud_off,
     title: message,
-    action: FilledButton.tonal(onPressed: onRetry, child: const Text('Reintentar')),
+    action: OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
   );
 }
 
@@ -64,5 +70,28 @@ class WaitingView extends StatelessWidget {
   const WaitingView({super.key});
 
   @override
-  Widget build(BuildContext context) => const Scaffold(body: LoadingView(label: 'Comprobando la sesión…'));
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('PaxFide')),
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BrandHeader(),
+          const SizedBox(height: 40),
+          Container(
+            width: 56,
+            height: 56,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: const CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+          const SizedBox(height: 16),
+          Text('Comprobando la sesión…', style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    ),
+  );
 }

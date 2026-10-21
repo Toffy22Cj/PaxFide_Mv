@@ -32,7 +32,7 @@ void main() {
 
     await choose(tester, ThemeMode.light);
     expect(brightnessAt(tester, submit), Brightness.light);
-    expect(Theme.of(tester.element(submit)).scaffoldBackgroundColor, PaxTokens.white);
+    expect(Theme.of(tester.element(submit)).colorScheme.primary, PaxTokens.brandGreen800);
   });
 
   testWidgets('el modo guardado se aplica al abrir la app', (tester) async {

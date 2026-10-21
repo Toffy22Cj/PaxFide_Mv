@@ -41,62 +41,53 @@ abstract final class PaxTokens {
   };
 }
 
-/// Colores del **modo oscuro**. No son de la paleta oficial, que es del modo claro: el modo oscuro tiene que ser
-/// oscuro (grises casi negros, sin fondo verde). Los colores de marca aparecen solo como acentos, aclarados lo justo
-/// para leerse sobre negro.
+/// Colores del **modo oscuro**: la **misma paleta** llevada a contraste oscuro. Cada color es un token oficial con su
+/// luminosidad invertida (HSL: mismo tono y saturación, `L → 1 − L`), así el verde-800 de los botones pasa a un verde
+/// claro y el verde-50 de los fondos pasa a casi negro. Los fondos de tarjetas y chips son, a la inversa, los tonos
+/// oscuros de la paleta tal cual (verde-900, azul-800, amarillo-900, danger-700). Lo comprueba
+/// `test/architecture/design_tokens_test.dart`.
 abstract final class PaxDarkTokens {
-  // Fondo y superficies: grises neutros, de más oscuro a más claro.
-  static const Color background = Color(0xFF121417);
-  static const Color surface = Color(0xFF1B1E22);
-  static const Color surfaceHigh = Color(0xFF23272C);
-  static const Color surfaceHighest = Color(0xFF2C3137);
-  static const Color outline = Color(0xFF5C636B);
-  static const Color outlineVariant = Color(0xFF33383E);
+  // Fondos: brand-green-50 invertido, y dos pasos un poco más claros para superficies y campos.
+  static const Color background = Color(0xFF09110A); // inverso de brand-green-50
+  static const Color surface = Color(0xFF111A15);
+  static const Color surfaceHigh = Color(0xFF19241E);
 
-  // Texto.
-  static const Color text = Color(0xFFE6E8EB);
-  static const Color textMuted = Color(0xFFA8AFB7);
+  // Texto y bordes: brand-neutral-700 invertido.
+  static const Color neutral = Color(0xFFA9BFBF); // inverso de brand-neutral-700
 
-  // Acentos de marca aclarados (verde, azul) y sus fondos.
-  static const Color green = Color(0xFF8CCB94);
-  static const Color onGreen = Color(0xFF0E2A16);
-  static const Color greenContainer = Color(0xFF27402D);
-  static const Color onGreenContainer = Color(0xFFCDEBD1);
-  static const Color blue = Color(0xFF8CC8E3);
-  static const Color onBlue = Color(0xFF0B2B3A);
-  static const Color blueContainer = Color(0xFF1E3A4A);
-  static const Color onBlueContainer = Color(0xFFCFE8F4);
-  static const Color yellowContainer = Color(0xFF3D2E0F);
-  static const Color onYellowContainer = Color(0xFFFBE3B5);
+  // Acentos: los tonos 800/700/400 invertidos.
+  static const Color green = Color(0xFF9FDFCB); // inverso de brand-green-800
+  static const Color greenStrong = Color(0xFFAEE4D4); // inverso de brand-green-900
+  static const Color blue = Color(0xFF5DA8CD); // inverso de brand-blue-700
+  static const Color blueStrong = Color(0xFF86BFDA); // inverso de brand-blue-800
+  static const Color yellow = Color(0xFFF7CF87); // inverso de brand-yellow-900
+  static const Color danger = Color(0xFFE7564B); // inverso de danger-700
+  static const Color ink = Color(0xFF061014); // inverso de brand-blue-50 (texto sobre acentos)
 
-  // Error: rojo claro para texto y un fondo rojo oscuro para los avisos.
-  static const Color error = Color(0xFFFF8A7A);
-  static const Color onError = Color(0xFF3B0A05);
-  static const Color errorContainer = Color(0xFF5A1610);
-  static const Color onErrorContainer = Color(0xFFFFDAD5);
+  /// Pares (token oficial → su inverso) que deben cumplir la regla `L → 1 − L`.
+  static const List<(Color, Color)> inverseOf = [
+    (PaxTokens.brandGreen50, background),
+    (PaxTokens.brandNeutral700, neutral),
+    (PaxTokens.brandGreen800, green),
+    (PaxTokens.brandGreen900, greenStrong),
+    (PaxTokens.brandBlue700, blue),
+    (PaxTokens.brandBlue800, blueStrong),
+    (PaxTokens.brandYellow900, yellow),
+    (PaxTokens.danger700, danger),
+    (PaxTokens.brandBlue50, ink),
+  ];
 
   static const Map<String, Color> all = {
     'background': background,
     'surface': surface,
     'surfaceHigh': surfaceHigh,
-    'surfaceHighest': surfaceHighest,
-    'outline': outline,
-    'outlineVariant': outlineVariant,
-    'text': text,
-    'textMuted': textMuted,
+    'neutral': neutral,
     'green': green,
-    'onGreen': onGreen,
-    'greenContainer': greenContainer,
-    'onGreenContainer': onGreenContainer,
+    'greenStrong': greenStrong,
     'blue': blue,
-    'onBlue': onBlue,
-    'blueContainer': blueContainer,
-    'onBlueContainer': onBlueContainer,
-    'yellowContainer': yellowContainer,
-    'onYellowContainer': onYellowContainer,
-    'error': error,
-    'onError': onError,
-    'errorContainer': errorContainer,
-    'onErrorContainer': onErrorContainer,
+    'blueStrong': blueStrong,
+    'yellow': yellow,
+    'danger': danger,
+    'ink': ink,
   };
 }

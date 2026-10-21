@@ -100,18 +100,28 @@ void main() {
     expect(outside(PaxTheme.lightScheme, PaxTokens.all.values), isEmpty);
   });
 
-  test('el modo oscuro usa sus tokens oscuros (y la marca solo como acento)', () {
+  test('el modo oscuro usa la paleta y sus inversos', () {
     expect(outside(PaxTheme.darkScheme, [...PaxDarkTokens.all.values, ...PaxTokens.all.values]), isEmpty);
   });
 
-  test('el modo oscuro es oscuro de verdad: fondo y superficies casi negros y grises, no verdes', () {
+  test('el modo oscuro es la paleta en contraste oscuro: cada inverso tiene L → 1 − L', () {
+    double lightness(Color c) {
+      final mx = [c.r, c.g, c.b].reduce((a, b) => a > b ? a : b);
+      final mn = [c.r, c.g, c.b].reduce((a, b) => a < b ? a : b);
+      return (mx + mn) / 2;
+    }
+
+    for (final (token, inverse) in PaxDarkTokens.inverseOf) {
+      expect(lightness(inverse), closeTo(1 - lightness(token), 0.02), reason: '$token → $inverse');
+    }
+  });
+
+  test('el modo oscuro es oscuro: fondo y superficies casi negros', () {
     final s = PaxTheme.darkScheme;
     for (final c in [s.surface, s.surfaceContainerLow, s.surfaceContainer, s.surfaceContainerHigh]) {
       expect(c.computeLuminance(), lessThan(0.03), reason: '$c no es oscuro');
-      final ch = [(c.r * 255).round(), (c.g * 255).round(), (c.b * 255).round()]..sort();
-      expect(ch.last - ch.first, lessThanOrEqualTo(12), reason: '$c tiene color: debe ser gris');
     }
-    expect(s.surface, isNot(PaxTokens.brandGreen900));
+    expect(PaxTheme.pageBackground(s).computeLuminance(), lessThan(0.01));
   });
 
   /// Contraste WCAG entre dos colores opacos.
@@ -126,6 +136,8 @@ void main() {
       expect(contrast(s.onPrimary, s.primary), greaterThanOrEqualTo(4.5));
       expect(contrast(s.onErrorContainer, s.errorContainer), greaterThanOrEqualTo(4.5));
       expect(contrast(s.onSecondaryContainer, s.secondaryContainer), greaterThanOrEqualTo(4.5));
+      expect(contrast(s.onTertiaryContainer, s.tertiaryContainer), greaterThanOrEqualTo(4.5));
+      expect(contrast(s.primary, PaxTheme.pageBackground(s)), greaterThanOrEqualTo(4.5));
     });
   }
 }
