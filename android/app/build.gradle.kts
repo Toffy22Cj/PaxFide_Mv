@@ -51,7 +51,9 @@ android {
 
     sourceSets {
         getByName("demo") {
-            res.srcDir(layout.buildDirectory.dir("generated/paxfide/demoRes"))
+            // Ruta fija (File), no un Provider: AGP 9 ya no acepta Providers aquí. La tarea que genera el XML va
+            // antes por las dependencias declaradas abajo (preDemo*/generateDemo*Resources).
+            res.srcDir(layout.buildDirectory.dir("generated/paxfide/demoRes").get().asFile)
         }
     }
 
