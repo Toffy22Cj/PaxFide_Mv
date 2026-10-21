@@ -18,7 +18,7 @@ La enmienda 2 de ADR-043 está aprobada y ya están hechas M-03, M-04 (tamaño d
 | ID | Interfaz | Archivo | Siguiente paso exacto |
 |---|---|---|---|
 | M07 | `OrganizationVerification` (`PublicFieldVerification`) | `lib/features/campaigns/domain/organization_verification.dart` | Backend (Manuel): exponer `verificationStatus` en `GET /public/campaigns/{publicCode}`. La app ya lo lee; con `VERIFIED` se ve la insignia. |
-| M10 | `CampaignSearch` (`UnavailableCampaignSearch`) | `lib/features/campaigns/domain/campaign_search.dart`, `presentation/campaign_search_view.dart` | Enmienda de ADR-041 con búsqueda y filtros en `GET /public/campaigns`; implementar `CampaignSearch` con ese contrato y montar `CampaignSearchView` en la ruta `/campaigns` (hoy diferida). |
+| M10 | `CampaignSearch` (`PublicCampaignSearch`) | `lib/features/campaigns/domain/public_campaign_search.dart`, `presentation/campaign_search_view.dart` | Ya funciona en Inicio y en «Ver todas» buscando en el teléfono sobre `GET /public/campaigns` (hasta 5 páginas). Cuando la enmienda de ADR-041 traiga búsqueda en el backend, implementar otra `CampaignSearch` con ese contrato. |
 | M21 | `ImpactSource` (`UnavailableImpactSource`) | `lib/features/donations/domain/impact.dart`, `presentation/impact_card.dart` | Endpoint de impacto de la cuenta (Carlos/Manuel); implementar `ImpactSource` y pasarlo en `AppServices`. El panel ya está en Mis donaciones y se oculta sin datos. |
 | M22 | `ReceiptSource` y `ReceiptSharer` | `lib/features/donations/domain/receipt.dart`, `presentation/receipt_view.dart` | Endpoint del comprobante (Manuel) e implementar `ReceiptSource`; para compartir, aprobar una dependencia (p. ej. `share_plus`) e implementar `ReceiptSharer`. |
 

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/errors/app_exceptions.dart';
 import '../core/offline/outbox_status.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/campaigns/domain/campaign_progress.dart';
+import '../features/campaigns/domain/campaign_search.dart';
+import '../features/campaigns/presentation/campaign_search_view.dart';
 import '../features/donations/data/account_donations_api.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
 import '../shared/widgets/pax_ui.dart';
@@ -107,6 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 20),
+                const _CampaignsSection(),
               ],
             ),
           );
@@ -154,6 +159,117 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Convocatorias abiertas (decisión 5: catálogo en el inicio del donante). Las primeras que terminan antes; "Ver
+/// todas" abre la búsqueda (M-10). Tocar una abre la convocatoria, desde donde se dona.
+class _CampaignsSection extends StatefulWidget {
+  const _CampaignsSection();
+
+  @override
+  State<_CampaignsSection> createState() => _CampaignsSectionState();
+}
+
+class _CampaignsSectionState extends State<_CampaignsSection> {
+  late final AppServices _services = AppScope.of(context);
+  late Future<List<CampaignSummary>> _future = _fetch();
+
+  Future<List<CampaignSummary>> _fetch() => _services.campaignSearch.search(const CampaignQuery());
+
+  void _openAll() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (page) => Scaffold(
+        appBar: AppBar(title: const Text('Convocatorias')),
+        body: CampaignSearchView(
+          search: _services.campaignSearch,
+          onOpen: (code) {
+            Navigator.of(page).pop();
+            _services.router.push(AppRoutes.campaignPath(code));
+          },
+        ),
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      key: const Key('home.campaigns'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('Convocatorias', style: text.titleMedium)),
+            TextButton(key: const Key('home.campaigns.all'), onPressed: _openAll, child: const Text('Ver todas')),
+          ],
+        ),
+        FutureBuilder<List<CampaignSummary>>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) return const LinearProgressIndicator();
+            if (snap.hasError) {
+              return Row(
+                children: [
+                  const Expanded(child: Text('No pudimos cargar las convocatorias.')),
+                  TextButton(onPressed: () => setState(() => _future = _fetch()), child: const Text('Reintentar')),
+                ],
+              );
+            }
+            final items = snap.data ?? const [];
+            if (items.isEmpty) return const Text('No hay convocatorias abiertas en este momento.');
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final c in items.take(3))
+                  Card(
+                    key: Key('home.campaign.${c.publicCode}'),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => _services.router.push(AppRoutes.campaignPath(c.publicCode)),
+                      child: Padding(padding: const EdgeInsets.all(14), child: _CampaignCardBody(c)),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _CampaignCardBody extends StatelessWidget {
+  const _CampaignCardBody(this.c);
+  final CampaignSummary c;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final p = CampaignProgress.of(
+      target: int.tryParse(c.targetAmount ?? ''),
+      cleared: int.tryParse(c.clearedAmount ?? ''),
+      endDate: c.endDate,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (c.organizationName.isNotEmpty)
+          Text(
+            c.organizationName,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        Text(c.title, style: theme.textTheme.titleSmall),
+        if (p.fraction != null) ...[
+          const SizedBox(height: 8),
+          SlimProgress(p.fraction!, semanticsLabel: p.percentText),
+          const SizedBox(height: 4),
+          Text(p.percentText!, style: theme.textTheme.labelSmall),
+        ],
+        if (p.daysText != null) ...[const SizedBox(height: 2), Text(p.daysText!, style: theme.textTheme.labelSmall)],
+      ],
     );
   }
 }

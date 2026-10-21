@@ -1,5 +1,10 @@
-/// M-10: búsqueda, filtro y orden de convocatorias. El listado público existe, pero la búsqueda y los filtros cambian
-/// el contrato HTTP (enmienda de ADR-041, pendiente); la pantalla solo conoce esta interfaz.
+import '../data/campaign_api.dart';
+
+export '../data/campaign_api.dart' show CampaignSummary;
+
+/// M-10: búsqueda, filtro y orden de convocatorias. La pantalla solo conoce esta interfaz. Hoy se resuelve en el
+/// teléfono sobre el listado público que ya existe; cuando la enmienda de ADR-041 traiga búsqueda en el backend, basta
+/// con otra implementación.
 enum CampaignSort {
   endingSoon('Terminan pronto'),
   newest('Más recientes'),
@@ -17,21 +22,6 @@ class CampaignQuery {
 
   CampaignQuery copyWith({String? text, bool? openOnly, CampaignSort? sort}) =>
       CampaignQuery(text: text ?? this.text, openOnly: openOnly ?? this.openOnly, sort: sort ?? this.sort);
-}
-
-class CampaignSummary {
-  const CampaignSummary({
-    required this.publicCode,
-    required this.title,
-    required this.organizationName,
-    required this.status,
-    required this.endDate,
-  });
-  final String publicCode;
-  final String title;
-  final String organizationName;
-  final String status;
-  final String endDate;
 }
 
 /// No hay búsqueda en el backend todavía.

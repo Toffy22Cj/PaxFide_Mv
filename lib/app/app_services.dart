@@ -9,6 +9,9 @@ import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/campaigns/data/campaign_api.dart';
+import '../features/campaigns/domain/campaign_search.dart';
+import '../features/campaigns/domain/public_campaign_search.dart';
 import '../features/campaigns/domain/organization_verification.dart';
 import '../features/donations/domain/impact.dart';
 import '../features/donations/domain/receipt.dart';
@@ -32,6 +35,7 @@ class AppServices {
     required this.syncEngine,
     this.qrScannerBuilder = defaultQrScanner,
     this.organizationVerification = const PublicFieldVerification(),
+    CampaignSearch? campaignSearch,
     this.impactSource = const UnavailableImpactSource(),
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
@@ -42,6 +46,7 @@ class AppServices {
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController(),
+       campaignSearch = campaignSearch ?? PublicCampaignSearch(CampaignApi(apiClient)),
        textSize = textSize ?? TextSizeController(),
        biometricLogin = BiometricLogin(
          api: authApi,
@@ -61,6 +66,9 @@ class AppServices {
 
   /// Insignia de organización verificada (M-07).
   final OrganizationVerification organizationVerification;
+
+  /// Catálogo de convocatorias con búsqueda (M-10, decisión 5).
+  final CampaignSearch campaignSearch;
 
   /// Panel "Mi impacto" (M-21).
   final ImpactSource impactSource;

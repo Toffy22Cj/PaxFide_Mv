@@ -246,4 +246,33 @@ void main() {
     expect(find.textContaining('No pudimos abrir el navegador'), findsOneWidget);
     expect(find.byKey(const Key('donate.checkout')), findsOneWidget);
   });
+
+  testWidgets('decisión 5: Inicio muestra las convocatorias abiertas y desde una se puede donar', (tester) async {
+    final h = AppHarness();
+    h.api.routes['GET /public/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {
+            'publicCode': 'PUB1',
+            'title': 'Abrigo',
+            'organizationName': 'Fundación Demo',
+            'status': 'OPEN',
+            'startDate': '2026-10-01',
+            'endDate': '2026-12-01',
+          },
+        ],
+      },
+    );
+    h.api.routes['GET /public/campaigns/PUB1'] = (_) => campaign();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200);
+    await tester.drag(find.byKey(const Key('home.campaigns')), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home.campaign.PUB1')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/c/PUB1');
+    expect(find.byKey(const Key('donate.open')), findsOneWidget);
+  });
 }
