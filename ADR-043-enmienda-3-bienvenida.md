@@ -1,6 +1,6 @@
 # Enmienda 3 de ADR-043 — Bienvenida sin sesión (`/welcome`)
 
-**Status:** Propuesto · **Fecha:** 2026-10-22 · **Autor:** Adonis · **Revisa:** Carlos
+**Status:** Aprobado (Adonis, 2026-10-22, en el chat: «solo hazlo») · **Fecha:** 2026-10-22 · **Autor:** Adonis · **Revisa:** Carlos
 **Origen:** M-01/M-02 (Enmienda 2 §1, «Bienvenida sin sesión») y decisión 5 de la reunión del 16 de octubre (catálogo de convocatorias en el inicio). Pantalla ya hecha y probada sin ruta (fase A, rama `chore/landing-bienvenida-movil`).
 
 ## Context
@@ -49,8 +49,12 @@ Sin sesión, la app abre directamente `/login` (D8, fila `LOGGED_OUT` de la tabl
 - `test/support/app_harness.dart`: `login()` abre `/login` antes de escribir.
 - `test/integration/backend_real_test.dart`: revisar (necesita el backend real).
 
-## Pendiente de confirmar por el equipo (no lo decide esta enmienda)
+## Decidido al aprobar
 
-- Textos de los pasos 04 y 05 del recorrido (afirmaciones sobre la cadena).
-- Que el catálogo se muestre sin sesión.
-- Tarjeta «¿Eres una organización?» (hoy el móvil solo registra donantes, decisión 4).
+- El catálogo se muestra sin sesión.
+- Va la tarjeta «¿Eres una organización?»: lleva a crear la cuenta en el móvil; la organización se registra y se
+  verifica desde la web (decisión 4: en el móvil solo se registran donantes).
+
+## Pendiente de confirmar por el equipo
+
+- Textos de los pasos 04 y 05 del recorrido (afirmaciones sobre la cadena), redactados con ADR-039.
