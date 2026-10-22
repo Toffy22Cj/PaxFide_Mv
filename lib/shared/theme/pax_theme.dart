@@ -92,6 +92,46 @@ abstract final class PaxTheme {
       ? PaxDarkTokens.background
       : Color.alphaBlend(PaxTokens.brandNeutral700.withValues(alpha: 0.04), PaxTokens.white);
 
+  /// Estilo propio de la bienvenida (landing adaptado, M-01): tarjetas con radio 18, botones en píldora de 44 y, en
+  /// claro, el primario en verde-900. En oscuro el primario sigue siendo el inverso de la paleta. Sin sombras.
+  static ThemeData welcome(ThemeData base) {
+    final s = base.brightness == Brightness.dark
+        ? base.colorScheme
+        : base.colorScheme.copyWith(primary: PaxTokens.brandGreen900, surfaceTint: PaxTokens.brandGreen900);
+    const pill = StadiumBorder();
+    return base.copyWith(
+      colorScheme: s,
+      cardTheme: base.cardTheme.copyWith(
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: s.outlineVariant),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: s.primary,
+          foregroundColor: s.onPrimary,
+          minimumSize: const Size(0, 44),
+          shape: pill,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: s.primary,
+          minimumSize: const Size(0, 44),
+          side: BorderSide(color: s.primary),
+          shape: pill,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: s.primary, minimumSize: const Size(0, 44)),
+      ),
+      progressIndicatorTheme: base.progressIndicatorTheme.copyWith(color: s.primary),
+    );
+  }
+
   static ThemeData _build(ColorScheme s) {
     final page = pageBackground(s);
     final card = BorderRadius.circular(12);
