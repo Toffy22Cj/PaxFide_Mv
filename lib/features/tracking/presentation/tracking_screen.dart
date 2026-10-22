@@ -14,6 +14,7 @@ import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../physical_assets/domain/lifecycle_status.dart';
 import '../data/tracking_api.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 String custodianLabel(String c) => switch (c) {
   'LOGISTICS_PARTNER' => 'Operador logístico',
@@ -135,7 +136,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Widget build(BuildContext context) {
     final s = _summary;
     return Scaffold(
-      appBar: AppBar(
+      appBar: PaxAppBar(
         title: Text(s == null ? 'Seguir una donación' : 'Seguimiento de una donación'),
         actions: const [TextSizeButton(), ThemeModeButton()],
       ),
@@ -423,7 +424,7 @@ class _AssetRouteScreenState extends State<AssetRouteScreen> {
     final l = widget.item;
     final e = _entries;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recorrido del bien')),
+      appBar: PaxAppBar(title: const Text('Recorrido del bien')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -463,7 +464,7 @@ class VerificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
+    appBar: PaxAppBar(
       automaticallyImplyLeading: false,
       leading: IconButton(
         tooltip: 'Cerrar',

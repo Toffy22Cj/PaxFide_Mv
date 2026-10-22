@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'pax_ui.dart';
+import 'pax_app_bar.dart';
 
 /// Estados de pantalla (no son rutas, §12 regla 1).
 class LoadingView extends StatelessWidget {
@@ -71,7 +72,7 @@ class WaitingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('PaxFide')),
+    appBar: PaxAppBar(title: const Text('PaxFide')),
     body: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

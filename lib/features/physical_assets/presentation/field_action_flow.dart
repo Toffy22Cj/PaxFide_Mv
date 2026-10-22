@@ -13,6 +13,7 @@ import '../domain/asset_command.dart';
 import '../domain/asset_operations.dart';
 import 'command_form_sheet.dart';
 import 'outbox_entry_card.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 /// Etiquetas de los campos de referencia. Nunca piden nombres ni documentos.
 const fieldLabels = {
@@ -188,7 +189,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         if (!didPop) _close();
       },
       child: Scaffold(
-        appBar: AppBar(
+        appBar: PaxAppBar(
           automaticallyImplyLeading: false,
           leading: IconButton(
             key: const Key('form.close'),

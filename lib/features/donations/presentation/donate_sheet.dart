@@ -15,6 +15,7 @@ import '../../campaigns/data/campaign_api.dart';
 import '../data/donation_intent_api.dart';
 import '../domain/donation_flow.dart';
 import 'my_donations_screen.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 /// "Donar" solo si la convocatoria está abierta, acepta dinero, tiene moneda y admite la pasarela.
 bool canDonate(PublicCampaign c) =>
@@ -194,7 +195,7 @@ class _DonateSheetState extends State<DonateSheet> {
         if (!didPop && !_busy) _confirmLeave();
       },
       child: Scaffold(
-        appBar: AppBar(
+        appBar: PaxAppBar(
           automaticallyImplyLeading: false,
           leading: IconButton(
             key: const Key('donate.close'),

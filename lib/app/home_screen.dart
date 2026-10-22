@@ -13,6 +13,7 @@ import 'app_routes.dart';
 import 'app_services.dart';
 import 'app_shell.dart';
 import 'qr_scanner_sheet.dart';
+import '../shared/widgets/pax_app_bar.dart';
 
 /// `/home` (Figma 01 · Inicio): saludo, resumen de "Tus donaciones" (de `GET /account/donations`), atajos a escanear y
 /// seguir una donación y, según `/me`, las tarjetas de Operaciones y Predicción.
@@ -181,7 +182,7 @@ class _CampaignsSectionState extends State<_CampaignsSection> {
   void _openAll() => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (page) => Scaffold(
-        appBar: AppBar(title: const Text('Convocatorias')),
+        appBar: PaxAppBar(title: const Text('Convocatorias')),
         body: CampaignSearchView(
           search: _services.campaignSearch,
           onOpen: (code) {

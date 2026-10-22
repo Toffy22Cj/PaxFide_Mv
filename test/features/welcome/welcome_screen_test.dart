@@ -170,4 +170,24 @@ void main() {
       expect(tester.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(40), reason: k);
     }
   });
+
+  testWidgets('el menú de la barra se despliega y lleva a cada sección', (tester) async {
+    final h = await openWelcome(tester, campaigns: () => list([campaign('PUB1')]));
+    final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(find.byKey(const Key('welcome.menu.campaigns')), findsNothing);
+    await tester.tap(find.byKey(const Key('welcome.menu')));
+    await tester.pumpAndSettle();
+    for (final k in ['how', 'verify', 'campaigns', 'tracking', 'login', 'follow', 'donate', 'scan']) {
+      expect(find.byKey(Key('welcome.menu.$k')), findsOneWidget, reason: k);
+    }
+    await tester.tap(find.byKey(const Key('welcome.menu.campaigns')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('welcome.menu.campaigns')), findsNothing, reason: 'el menú se cierra');
+    expect(tester.getTopLeft(find.byKey(const Key('welcome.campaigns.all'))).dy, lessThan(screen));
+    await tester.tap(find.byKey(const Key('welcome.menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('welcome.menu.login')));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.login);
+  });
 }

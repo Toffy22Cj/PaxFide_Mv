@@ -146,6 +146,8 @@ void main() {
     h.api.routes[createPath] = (_) => n++ == 0 ? const ApiResponse(statusCode: 409) : created;
     await donate(tester, '1000');
     expect(find.byKey(const Key('donate.rejected')), findsOneWidget);
+    await tester.drag(find.byKey(const Key('donate.amount')), const Offset(0, -300));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('donate.submit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donate.submit')));
@@ -300,6 +302,8 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
     await tester.scrollUntilVisible(find.text('No pudimos cargar las convocatorias.'), 200);
     fail = false;
+    await tester.ensureVisible(find.widgetWithText(TextButton, 'Reintentar'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, 'Reintentar'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200);

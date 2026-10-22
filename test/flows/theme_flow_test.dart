@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/shared/theme/pax_tokens.dart';
 import 'package:paxfide_mobile/shared/theme/theme_controller.dart';
+import 'package:paxfide_mobile/shared/widgets/pax_app_bar.dart';
 
 import '../support/app_harness.dart';
 
@@ -59,6 +60,6 @@ void main() {
     expect(find.byKey(const Key('theme.menu')), findsOneWidget);
 
     await choose(tester, ThemeMode.dark);
-    expect(brightnessAt(tester, find.byType(AppBar).first), Brightness.dark);
+    expect(brightnessAt(tester, find.byType(PaxAppBar).first), Brightness.dark);
   });
 }

@@ -20,6 +20,7 @@ import 'app_shell.dart';
 import 'home_screen.dart';
 import 'text_size_button.dart';
 import 'theme_mode_button.dart';
+import '../shared/widgets/pax_app_bar.dart';
 
 /// Ruta del árbol → pantalla. Las rutas que aún no tienen pantalla muestran un aviso neutro, sin datos.
 Widget buildPage(BuildContext context, String location) {
@@ -67,7 +68,7 @@ Widget buildPage(BuildContext context, String location) {
     return AppShell(location: location, title: 'PaxFide', body: notYet);
   }
   return Scaffold(
-    appBar: AppBar(title: const Text('PaxFide'), actions: const [TextSizeButton(), ThemeModeButton()]),
+    appBar: PaxAppBar(title: const Text('PaxFide'), actions: const [TextSizeButton(), ThemeModeButton()]),
     body: notYet,
   );
 }

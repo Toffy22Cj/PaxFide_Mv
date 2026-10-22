@@ -7,6 +7,7 @@ import 'core/storage/secure_key_value_store.dart';
 import 'shared/theme/pax_theme.dart';
 import 'shared/widgets/pax_ui.dart';
 import 'shared/widgets/state_views.dart';
+import 'shared/widgets/pax_app_bar.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,7 @@ void main() {
         darkTheme: PaxTheme.dark,
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          appBar: AppBar(title: const Text('Configuración interna')),
+          appBar: PaxAppBar(title: const Text('Configuración interna')),
           body: const MessageView(
             icon: Icons.inbox_outlined,
             title: 'Falta configurar la API',

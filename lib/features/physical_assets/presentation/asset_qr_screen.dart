@@ -5,6 +5,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import '../../../app/app_services.dart';
 import '../../../app/public_links.dart';
 import '../../../shared/theme/pax_tokens.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 /// `/assets/:assetRef/qr` (E-11): el QR del activo a pantalla completa, con el brillo al máximo mientras se muestra y
 /// la referencia en texto. El QR lleva la misma URL que la web (origen + `/assets/{assetRef}`); sin origen
@@ -44,7 +45,7 @@ class _AssetQrScreenState extends State<AssetQrScreen> {
     final services = AppScope.of(context);
     final data = PublicLinks(services.config.publicOrigin).asset(widget.assetRef)?.toString() ?? widget.assetRef;
     return Scaffold(
-      appBar: AppBar(
+      appBar: PaxAppBar(
         title: const Text('QR del activo'),
         leading: IconButton(
           key: const Key('assetqr.close'),

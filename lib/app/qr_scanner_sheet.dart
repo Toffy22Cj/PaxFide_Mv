@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../shared/widgets/pax_ui.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
+import '../shared/widgets/pax_app_bar.dart';
 
 /// Vista de cámara que entrega el texto del primer código leído.
 typedef QrScannerBuilder = Widget Function(BuildContext context, ValueChanged<String> onCode);
@@ -140,7 +141,7 @@ class _ScannerSheetState extends State<_ScannerSheet> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     return Scaffold(
-      appBar: AppBar(
+      appBar: PaxAppBar(
         automaticallyImplyLeading: false,
         leading: IconButton(
           tooltip: 'Cerrar',

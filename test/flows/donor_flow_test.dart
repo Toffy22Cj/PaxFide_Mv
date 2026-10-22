@@ -184,6 +184,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('tracking.code')), 'C');
     await tester.tap(find.byKey(const Key('tracking.submit')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('BLANKET · 6 UNITS'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('BLANKET · 6 UNITS'));
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path.endsWith('/history'));

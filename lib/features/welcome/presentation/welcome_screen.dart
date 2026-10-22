@@ -1,6 +1,9 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
@@ -11,13 +14,14 @@ import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
 import '../../../shared/theme/pax_theme.dart';
 import '../../../shared/theme/pax_tokens.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/widgets/pax_logo.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../../campaigns/domain/campaign_progress.dart';
 import '../../campaigns/domain/campaign_search.dart';
 import '../../campaigns/presentation/campaign_search_view.dart';
 import '../../campaigns/presentation/campaign_summary_card.dart';
-import 'welcome_scene.dart';
+import 'welcome_world.dart';
 
 /// Colores de texto de la bienvenida, como en el landing: titular en dos tonos de verde, etiquetas en mono ámbar.
 /// Todo de la paleta (en oscuro, sus inversos).
@@ -29,15 +33,12 @@ class _Ink {
   Color get body => dark ? PaxDarkTokens.neutral : PaxTokens.brandNeutral700;
   Color get step => dark ? PaxDarkTokens.yellow : PaxTokens.brandYellow900;
   Color get tagBg => dark ? PaxTokens.brandGreen900 : PaxTokens.brandGreen50;
-  Color get tagFg => dark ? PaxTokens.brandGreen50 : PaxTokens.brandGreen900;
-  Color get glass => dark ? PaxDarkTokens.surface.withValues(alpha: 0.84) : PaxTokens.white.withValues(alpha: 0.84);
-  Color get glassEdge => dark ? PaxDarkTokens.neutral.withValues(alpha: 0.18) : PaxTokens.white.withValues(alpha: 0.7);
+  Color get tagFg => dark ? PaxTokens.brandGreen50 : PaxTokens.brandGreen800;
 }
 
-/// Una parada del recorrido (landing, "Desliza y acompaña su recorrido").
+/// Una parada del recorrido.
 class _Stop {
   const _Stop({
-    required this.scene,
     required this.label,
     required this.tag,
     required this.title,
@@ -45,7 +46,6 @@ class _Stop {
     required this.text,
     this.facts = const [],
   });
-  final WelcomeScene scene;
   final String label;
   final String tag;
   final String title;
@@ -54,11 +54,10 @@ class _Stop {
   final List<(String, String)> facts;
 }
 
-/// Pasos 04 y 05: redactados con lo que dice la documentación (ADR-039: huellas encadenadas, agrupadas y ancladas en
-/// una red pública; los campos de referencia nunca piden nombres). PENDIENTES DE CONFIRMAR por el equipo.
+/// Textos del landing. Los datos de ejemplo (120 kits, Lorica, SHA-256…) se cambian por hechos del sistema; los pasos
+/// 04 y 05 siguen lo que dice la documentación (ADR-039) y están PENDIENTES DE CONFIRMAR por el equipo.
 const _stops = [
   _Stop(
-    scene: WelcomeScene.donate,
     label: '01 / 05 · Donas',
     tag: 'Pago confirmado',
     title: 'Tu donación, ',
@@ -68,7 +67,6 @@ const _stops = [
         'para seguirla paso a paso.',
   ),
   _Stop(
-    scene: WelcomeScene.warehouse,
     label: '02 / 05 · Se convierte en ayuda',
     tag: 'Fondos asignados → lote registrado',
     title: 'De saldo a ',
@@ -76,10 +74,9 @@ const _stops = [
     text:
         'La organización compra los insumos y registra cada lote en la bodega. El dinero asignado y el lote quedan '
         'conectados, y cada lote recibe su propio QR.',
-    facts: [('1 QR', 'por lote, no por cada unidad'), ('Fondos → lote', 'quedan conectados')],
+    facts: [('1 lote', 'registrado y trazable'), ('1 QR', 'por lote, no por cada unidad')],
   ),
   _Stop(
-    scene: WelcomeScene.route,
     label: '03 / 05 · Viaja y se reparte',
     tag: 'Lote despachado · lote dividido',
     title: 'Sigue la caja, ',
@@ -87,10 +84,9 @@ const _stops = [
     text:
         'Cada despacho y cada recepción se registran al escanear el QR. Si el lote se reparte entre dos destinos, '
         'cada parte conserva el vínculo con su origen.',
-    facts: [('Lote dividido', 'cada parte conserva su origen'), ('Puntos de control', 'solo paradas oficiales')],
+    facts: [('Lote dividido', 'el lote original sigue existiendo'), ('Puntos de control', 'solo paradas oficiales')],
   ),
   _Stop(
-    scene: WelcomeScene.seal,
     label: '04 / 05 · Queda sellado',
     tag: 'Lote sellado · registro público',
     title: 'Una huella que ',
@@ -98,32 +94,30 @@ const _stops = [
     text:
         'Cada registro lleva una huella digital encadenada a la anterior. Por lotes, esas huellas se resumen en una '
         'sola y se anclan en una red blockchain pública para poder verificarlas.',
-    facts: [('Huella digital', 'en cada registro'), ('Red pública', 'donde se ancla la raíz')],
+    facts: [('Huella digital', 'en cada registro'), ('Sin datos personales', 'en la red pública')],
   ),
   _Stop(
-    scene: WelcomeScene.delivery,
     label: '05 / 05 · Llega',
     tag: 'Entrega confirmada',
     title: 'Entregado, ',
     accent: 'y lo puedes comprobar.',
     text:
-        'La entrega se registra con referencias, sin el nombre de quien recibe. Con tu código ves el recorrido '
-        'completo, desde el pago hasta la comunidad.',
-    facts: [('Sin nombres', 'de quien recibe'), ('5 de 5', 'pasos registrados')],
+        'La entrega se registra sin exponer la identidad de quien recibe. Con tu código ves el recorrido completo, '
+        'desde el pago hasta la comunidad.',
+    facts: [('Centro comunitario', 'el destino de la entrega'), ('5 de 5 pasos', 'registrados y verificables')],
   ),
 ];
 
-/// Momento del día de cada parada, como el landing: de día, atardecer, noche y vuelve a amanecer. En modo oscuro,
-/// todo de noche.
-DayTime _timeOf(int i, bool dark) =>
-    dark ? DayTime.night : const [DayTime.day, DayTime.day, DayTime.dusk, DayTime.night, DayTime.day][i];
+const _manifesto = 'Cada paso queda registrado. Y tú lo puedes comprobar cuando quieras.';
+const _manifestoHighlight = {'registrado.', 'comprobar'};
 
 /// `/welcome`: bienvenida sin sesión (M-01/M-02), la adaptación del landing web (Enmienda 3 de ADR-043). Primera
 /// pantalla sin sesión y base de la pila con LOGGED_OUT.
 ///
-/// Fiel al landing: barra flotante en píldora, el recorrido en cinco paradas ilustradas con su tarjeta translúcida,
-/// "Todo el recorrido", seguimiento, organizaciones y catálogo. Sin datos de ejemplo presentados como reales y sin
-/// campo de código: el código de seguimiento solo se escribe en `/tracking`.
+/// Como el landing: el mundo ilustrado queda fijo detrás y, al deslizar, la cámara recorre la carretera parada por
+/// parada mientras el día se vuelve noche y amanece otra vez; cada tarjeta aparece al llegar a su parada y se desvanece
+/// al irse; en "Todo el recorrido" las palabras se encienden al avanzar; al llegar al catálogo el mundo se desenfoca.
+/// Sin datos de ejemplo presentados como reales y sin campo de código: el código solo se escribe en `/tracking`.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -131,33 +125,138 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   late final AppServices _services = AppScope.of(context);
-  final _howKey = GlobalKey();
-  final _verifyKey = GlobalKey();
+  final _scroll = ScrollController();
+  final _clock = WorldClock();
+  final _sections = List.generate(6, (_) => GlobalKey());
+  final _maniKey = GlobalKey();
   final _trackingKey = GlobalKey();
   final _catalogKey = GlobalKey();
+
+  /// Posición en el recorrido según el scroll (0…5, sin suavizar). Mueve las tarjetas y el día/noche.
+  final _sRaw = ValueNotifier<double>(0);
+
+  /// Cuánto se ha encendido la frase de "Todo el recorrido" (0…1).
+  final _mani = ValueNotifier<double>(0);
+
+  /// El mundo se desenfoca al llegar al catálogo.
+  final _blur = ValueNotifier<bool>(false);
+
+  bool _menuOpen = false;
+  late final Ticker _ticker = createTicker(_tick);
+  Duration _last = Duration.zero;
+  double _target = 0, _camS = 0, _t = 0, _night = 0;
+  bool _reduced = false, _dark = false;
   late Future<List<CampaignSummary>> _campaigns = _fetch();
 
   Future<List<CampaignSummary>> _fetch() => _services.campaignSearch.search(const CampaignQuery());
 
+  bool get _ambient => WelcomeWorld.ambientMotion && !_reduced;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_readScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduced = MediaQuery.disableAnimationsOf(context);
+    _dark = Theme.of(context).brightness == Brightness.dark;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _readScroll());
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _scroll.dispose();
+    _clock.dispose();
+    _sRaw.dispose();
+    _mani.dispose();
+    _blur.dispose();
+    super.dispose();
+  }
+
+  RenderBox? _box(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject();
+    return box is RenderBox && box.attached && box.hasSize ? box : null;
+  }
+
+  /// Landing: `readScroll`. Lee dónde está cada parada en la pantalla y fija hacia dónde va la cámara.
+  void _readScroll() {
+    if (!mounted) return;
+    final h = MediaQuery.sizeOf(context).height;
+    final centers = <double>[];
+    for (final k in _sections) {
+      final box = _box(k);
+      if (box == null) return;
+      centers.add(box.localToGlobal(Offset.zero).dy + box.size.height / 2);
+    }
+    // Centro de la pantalla frente al centro de cada parada.
+    final y = h / 2;
+    var s = 0.0;
+    if (y >= centers.last) {
+      s = centers.length - 1.0;
+    } else if (y > centers.first) {
+      for (var i = 0; i < centers.length - 1; i++) {
+        if (y < centers[i + 1]) {
+          s = i + (y - centers[i]) / (centers[i + 1] - centers[i]);
+          break;
+        }
+      }
+    }
+    _sRaw.value = s;
+    final i = s.floor();
+    _target = math.min(5, i + WelcomeWorld.smooth(0.28, 0.72, s - i));
+    _night = _dark ? 1 : WelcomeWorld.autoNight(s);
+    final mani = _box(_maniKey);
+    if (mani != null) _mani.value = ((h * 0.78 - mani.localToGlobal(Offset.zero).dy) / (h * 0.45)).clamp(0.0, 1.0);
+    final catalog = _box(_catalogKey);
+    _blur.value = catalog != null && catalog.localToGlobal(Offset.zero).dy <= h * 0.82;
+    if (_reduced) {
+      _camS = _target;
+      _clock.set(camS: _camS, t: _t, night: _night);
+    } else if (!_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    }
+  }
+
+  /// Landing: `frame`. La cámara alcanza su destino con suavidad y el mundo sigue en movimiento.
+  void _tick(Duration elapsed) {
+    final dt = math.min(0.05, (elapsed - _last).inMicroseconds / 1e6);
+    _last = elapsed;
+    if (_ambient) _t += dt;
+    _camS += (_target - _camS) * math.min(1, dt * 5.5);
+    if ((_target - _camS).abs() < 1e-4) _camS = _target;
+    _clock.set(camS: _camS, t: _t, night: _night);
+    if (!_ambient && _camS == _target) _ticker.stop();
+  }
+
   void _scrollTo(GlobalKey key) {
+    setState(() => _menuOpen = false);
     final ctx = key.currentContext;
     if (ctx == null) return;
-    final animate = !MediaQuery.disableAnimationsOf(context);
     Scrollable.ensureVisible(
       ctx,
-      duration: animate ? const Duration(milliseconds: 450) : Duration.zero,
-      curve: Curves.easeOutCubic,
+      duration: _reduced ? Duration.zero : const Duration(milliseconds: 650),
+      curve: Curves.easeInOutCubic,
       alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
-      alignment: 0.08,
+      alignment: 0.12,
     );
+  }
+
+  void _go(VoidCallback action) {
+    setState(() => _menuOpen = false);
+    action();
   }
 
   void _openAll() => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (page) => Scaffold(
-        appBar: AppBar(title: const Text('Convocatorias')),
+        appBar: const PaxAppBar(title: Text('Convocatorias')),
         body: CampaignSearchView(
           search: _services.campaignSearch,
           onOpen: (code) {
@@ -171,125 +270,159 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _openCampaign(String code) => _services.router.push(AppRoutes.campaignPath(code));
 
-  Future<void> _menu() async {
-    final ink = _Ink(Theme.of(context).brightness == Brightness.dark);
-    final go = await showModalBottomSheet<VoidCallback>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (sheet) {
-        Widget item(String key, IconData icon, String label, VoidCallback action) => ListTile(
-          key: Key('welcome.menu.$key'),
-          leading: Icon(icon),
-          title: Text(label),
-          onTap: () => Navigator.of(sheet).pop(action),
-        );
-        return ListView(
-          shrinkWrap: true,
-          children: [
-            item('how', Icons.route_outlined, 'Cómo funciona', () => _scrollTo(_howKey)),
-            item('verify', Icons.verified_user_outlined, 'Verificación', () => _scrollTo(_verifyKey)),
-            item('campaigns', Icons.campaign_outlined, 'Convocatorias', () => _scrollTo(_catalogKey)),
-            item('tracking', Icons.pin_outlined, 'Seguimiento', () => _scrollTo(_trackingKey)),
-            const Divider(),
-            item('scan', Icons.qr_code_scanner, 'Escanear un código QR', () => scanQr(context)),
-            item('follow', Icons.search, 'Seguir donación', () => _services.router.push(AppRoutes.tracking)),
-            item('login', Icons.login, 'Ingresar', () => _services.router.push(AppRoutes.login)),
-            ListTile(
-              leading: const Icon(Icons.format_size),
-              title: const Text('Tamaño del texto'),
-              trailing: const TextSizeButton(),
-              textColor: ink.strong,
-            ),
-          ],
-        );
-      },
-    );
-    go?.call();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = PaxTheme.welcome(Theme.of(context));
     final dark = theme.brightness == Brightness.dark;
     final ink = _Ink(dark);
-    final top = MediaQuery.paddingOf(context).top;
+    final mq = MediaQuery.of(context);
+    final h = mq.size.height;
     return Theme(
       data: theme,
-      child: Scaffold(
-        backgroundColor: ScenePalette.of(dark ? DayTime.night : DayTime.day).terrain,
-        extendBody: true,
-        body: Stack(
-          children: [
-            SingleChildScrollView(
-              key: const Key('welcome.list'),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, stop) in _stops.indexed)
-                    KeyedSubtree(
-                      key: i == 0 ? _howKey : (i == 3 ? _verifyKey : null),
-                      child: _StopView(
-                        key: Key('welcome.step.${i + 1}'),
-                        stop: stop,
-                        time: _timeOf(i, dark),
-                        from: i == 0 ? null : _timeOf(i - 1, dark),
-                        sceneHeight: i == 0 ? 250 + top : 280,
-                        ink: ink,
-                        extra: i == 0 ? _heroActions(ink) : null,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          extendBody: true,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _blur,
+                  builder: (context, blur, world) => TweenAnimationBuilder<double>(
+                    tween: Tween(end: blur ? 5 : 0),
+                    duration: _reduced ? Duration.zero : const Duration(milliseconds: 500),
+                    builder: (context, sigma, world) => sigma < 0.05
+                        ? world!
+                        : ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                            child: world,
+                          ),
+                    child: world,
+                  ),
+                  child: WelcomeWorldView(clock: _clock),
+                ),
+              ),
+              NotificationListener<ScrollMetricsNotification>(
+                onNotification: (_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _readScroll());
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  key: const Key('welcome.list'),
+                  controller: _scroll,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final (i, stop) in _stops.indexed)
+                        ConstrainedBox(
+                          key: _sections[i],
+                          constraints: BoxConstraints(minHeight: i == 0 ? h : h * 1.5),
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              i == 0 ? mq.padding.top + 96 : h * 0.12,
+                              16,
+                              i == 0 ? 24 : h * 0.12,
+                            ),
+                            child: Center(
+                              child: _Fade(
+                                index: i,
+                                position: _sRaw,
+                                child: _StopCard(
+                                  key: Key('welcome.step.${i + 1}'),
+                                  stop: stop,
+                                  ink: ink,
+                                  extra: i == 0 ? _heroActions(ink) : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ConstrainedBox(
+                        key: _sections[5],
+                        constraints: BoxConstraints(minHeight: h * 1.7),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: h * 0.1),
+                          child: Center(
+                            child: KeyedSubtree(
+                              key: _maniKey,
+                              child: _Manifesto(ink: ink, progress: _mani),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  _OverviewView(ink: ink, from: _timeOf(4, dark), time: dark ? DayTime.night : DayTime.day),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        KeyedSubtree(
-                          key: _trackingKey,
-                          child: _TrackingCard(ink: ink, onOpen: () => _services.router.push(AppRoutes.tracking)),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            KeyedSubtree(
+                              key: _trackingKey,
+                              child: _Island(
+                                ink: ink,
+                                onTrack: () => _services.router.push(AppRoutes.tracking),
+                                onRegister: () => _services.router.push(AppRoutes.register),
+                              ),
+                            ),
+                            const SizedBox(height: 64),
+                            KeyedSubtree(key: _catalogKey, child: _catalogHeader(ink)),
+                            const SizedBox(height: 22),
+                            _catalog(ink),
+                            const SizedBox(height: 28),
+                            PaxGlass(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              child: Text(
+                                'PaxFide · plataforma de trazabilidad de donaciones',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: ink.body),
+                              ),
+                            ),
+                            SizedBox(height: 110 + mq.padding.bottom),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        _OrganizationCard(ink: ink, onOpen: () => _services.router.push(AppRoutes.register)),
-                        const SizedBox(height: 36),
-                        KeyedSubtree(key: _catalogKey, child: _catalogHeader(theme, ink)),
-                        const SizedBox(height: 12),
-                        _catalog(ink),
-                        const SizedBox(height: 28),
-                        Text(
-                          'PaxFide · plataforma de trazabilidad de donaciones',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: ink.strong.withValues(alpha: 0.75)),
-                        ),
-                        const SizedBox(height: 120),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                    child: _Nav(
+                      ink: ink,
+                      open: _menuOpen,
+                      onToggle: () => setState(() => _menuOpen = !_menuOpen),
+                      onTop: () => _scrollTo(_sections[0]),
+                      links: [
+                        ('how', 'Cómo funciona', () => _scrollTo(_sections[0])),
+                        ('verify', 'Verificación', () => _scrollTo(_sections[3])),
+                        ('campaigns', 'Convocatorias', () => _scrollTo(_catalogKey)),
+                        ('tracking', 'Seguimiento', () => _scrollTo(_trackingKey)),
                       ],
+                      onLogin: () => _go(() => _services.router.push(AppRoutes.login)),
+                      onFollow: () => _go(() => _services.router.push(AppRoutes.tracking)),
+                      onDonate: () => _scrollTo(_catalogKey),
+                      onScan: () => _go(() => scanQr(context)),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Positioned(
-              left: 12,
-              right: 12,
-              top: top + 8,
-              child: _NavPill(ink: ink, onMenu: _menu),
-            ),
-          ],
-        ),
-        // M-02: "Ingresar" fijo, al alcance del pulgar, sobre una píldora translúcida.
-        bottomNavigationBar: SafeArea(
-          minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: _Glass(
-            ink: ink,
-            radius: 99,
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Semantics(
-                    button: true,
-                    label: 'Seguir donación',
-                    excludeSemantics: true,
+            ],
+          ),
+          // M-02: "Ingresar" fijo, al alcance del pulgar, sobre una píldora de vidrio como la barra de arriba.
+          bottomNavigationBar: SafeArea(
+            minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: PaxGlass(
+              radius: 999,
+              padding: const EdgeInsets.all(6),
+              child: Row(
+                children: [
+                  Expanded(
                     child: OutlinedButton(
                       key: const Key('welcome.bar.tracking'),
                       style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)),
@@ -297,13 +430,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: const Text('Seguir donación', overflow: TextOverflow.ellipsis),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Semantics(
-                    button: true,
-                    label: 'Ingresar',
-                    excludeSemantics: true,
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: FilledButton(
                       key: const Key('welcome.login'),
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
@@ -311,8 +439,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: const Text('Ingresar'),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -320,85 +448,63 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  /// Botones de la primera parada, como en el landing, más Escanear (M-01).
+  /// Botones de la primera parada, como en el landing, más Escanear (M-01) y la pista de deslizar.
   Widget _heroActions(_Ink ink) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const SizedBox(height: 18),
-      Semantics(
-        button: true,
-        label: 'Donar a una convocatoria',
-        excludeSemantics: true,
-        child: FilledButton(
-          key: const Key('welcome.donate'),
-          onPressed: () => _scrollTo(_catalogKey),
-          child: const Text('Donar a una convocatoria'),
-        ),
-      ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 20),
       Wrap(
         spacing: 10,
         runSpacing: 10,
         children: [
-          Semantics(
-            button: true,
-            label: 'Seguir mi donación',
-            excludeSemantics: true,
-            child: OutlinedButton(
-              key: const Key('welcome.tracking'),
-              onPressed: () => _services.router.push(AppRoutes.tracking),
-              child: const Text('Seguir mi donación'),
-            ),
+          FilledButton(
+            key: const Key('welcome.donate'),
+            onPressed: () => _scrollTo(_catalogKey),
+            child: const Text('Donar a una convocatoria'),
           ),
-          Semantics(
-            button: true,
-            label: 'Escanear un código QR',
-            excludeSemantics: true,
-            child: OutlinedButton.icon(
-              key: const Key('welcome.scan'),
-              onPressed: () => scanQr(context),
-              icon: const Icon(Icons.qr_code_scanner, size: 18),
-              label: const Text('Escanear QR'),
-            ),
+          OutlinedButton(
+            key: const Key('welcome.tracking'),
+            onPressed: () => _services.router.push(AppRoutes.tracking),
+            child: const Text('Seguir mi donación'),
+          ),
+          OutlinedButton.icon(
+            key: const Key('welcome.scan'),
+            onPressed: () => scanQr(context),
+            icon: const Icon(Icons.qr_code_scanner, size: 18),
+            label: const Text('Escanear un código QR'),
           ),
         ],
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 18),
       Row(
         children: [
-          Container(
-            width: 18,
-            height: 28,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ink.body.withValues(alpha: 0.6), width: 2),
-            ),
-            alignment: const Alignment(0, -0.5),
-            child: Container(width: 3, height: 6, color: ink.body.withValues(alpha: 0.6)),
-          ),
-          const SizedBox(width: 10),
+          _Wheel(clock: _clock, color: ink.body),
+          const SizedBox(width: 8),
           Flexible(
-            child: Text('Desliza y acompaña su recorrido', style: TextStyle(color: ink.body)),
+            child: Text(
+              'Desliza y acompaña su recorrido',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ink.body),
+            ),
           ),
         ],
       ),
     ],
   );
 
-  Widget _catalogHeader(ThemeData theme, _Ink ink) => _Glass(
-    ink: ink,
+  Widget _catalogHeader(_Ink ink) => PaxGlass(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
     child: Column(
       children: [
         _Tag('Catálogo oficial de convocatorias', ink: ink),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _TwoTone('Causas abiertas con ', 'trazabilidad garantizada', ink: ink, center: true, size: 30),
         const SizedBox(height: 10),
         Text(
           'Explora las convocatorias abiertas. Cada donación queda registrada y puedes seguirla hasta su entrega.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: ink.body, height: 1.4),
+          style: TextStyle(color: ink.body, height: 1.5),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextButton(key: const Key('welcome.campaigns.all'), onPressed: _openAll, child: const Text('Ver todas')),
       ],
     ),
@@ -414,9 +520,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         );
       }
       if (snap.hasError) {
-        return _Glass(
+        return PaxGlass(
           key: const Key('welcome.campaigns.error'),
-          ink: ink,
+          padding: const EdgeInsets.fromLTRB(20, 12, 8, 12),
           child: Row(
             children: [
               Expanded(
@@ -435,9 +541,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       }
       final items = snap.data ?? const <CampaignSummary>[];
       if (items.isEmpty) {
-        return _Glass(
+        return PaxGlass(
           key: const Key('welcome.campaigns.empty'),
-          ink: ink,
+          padding: const EdgeInsets.all(20),
           child: Text('No hay convocatorias abiertas en este momento.', style: TextStyle(color: ink.strong)),
         );
       }
@@ -446,7 +552,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         children: [
           for (final c in items.take(3))
             Padding(
-              padding: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.only(bottom: 16),
               child: _CampaignCard(
                 c,
                 key: Key('welcome.campaign.${c.publicCode}'),
@@ -463,33 +569,63 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
 // --- piezas de diseño del landing ---------------------------------------------------------------------------------
 
-/// Tarjeta translúcida (vidrio esmerilado) sobre la escena.
-class _Glass extends StatelessWidget {
-  const _Glass({super.key, required this.ink, required this.child, this.radius = 26, this.padding});
-  final _Ink ink;
+/// La tarjeta de una parada aparece al llegar y se desvanece al irse (landing: opacidad según la distancia al centro).
+class _Fade extends StatelessWidget {
+  const _Fade({required this.index, required this.position, required this.child});
+  final int index;
+  final ValueNotifier<double> position;
   final Widget child;
-  final double radius;
-  final EdgeInsetsGeometry? padding;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(radius),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-      child: Container(
-        padding: padding ?? const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: ink.glass,
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: ink.glassEdge),
-        ),
-        child: child,
+  Widget build(BuildContext context) => ValueListenableBuilder<double>(
+    valueListenable: position,
+    builder: (context, s, child) =>
+        Opacity(opacity: 1 - WelcomeWorld.smooth(0.22, 0.44, (s - index).abs()), child: child),
+    child: child,
+  );
+}
+
+/// Ruedita del ratón que baja una y otra vez ("Desliza y acompaña su recorrido").
+class _Wheel extends StatelessWidget {
+  const _Wheel({required this.clock, required this.color});
+  final WorldClock clock;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Container(
+      width: 18,
+      height: 28,
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: AnimatedBuilder(
+        animation: clock,
+        builder: (context, _) {
+          final p = (clock.t % 1.6) / 1.6;
+          final opacity = p < 0.3 ? p / 0.3 : 1 - (p - 0.3) / 0.7;
+          return Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.only(top: 3 + 8 * p),
+              child: Opacity(
+                opacity: clock.t == 0 ? 1 : opacity.clamp(0.0, 1.0),
+                child: Container(
+                  width: 3,
+                  height: 6,
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     ),
   );
 }
 
-/// Etiqueta en mono y mayúsculas dentro de una píldora ("PAGO CONFIRMADO").
+/// Etiqueta en mono dentro de una píldora ("PAGO CONFIRMADO").
 class _Tag extends StatelessWidget {
   const _Tag(this.text, {required this.ink});
   final String text;
@@ -497,18 +633,18 @@ class _Tag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(color: ink.tagBg, borderRadius: BorderRadius.circular(8)),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(color: ink.tagBg, borderRadius: BorderRadius.circular(7)),
     child: Text(
       text.toUpperCase(),
-      style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.8, color: ink.tagFg),
+      style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 0.3, color: ink.tagFg),
     ),
   );
 }
 
 /// Titular en dos tonos, grueso y apretado, como los títulos del landing.
 class _TwoTone extends StatelessWidget {
-  const _TwoTone(this.first, this.second, {required this.ink, this.size = 32, this.center = false});
+  const _TwoTone(this.first, this.second, {required this.ink, this.size = 34, this.center = false});
   final String first;
   final String second;
   final _Ink ink;
@@ -518,7 +654,7 @@ class _TwoTone extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text.rich(
     TextSpan(
-      style: TextStyle(fontSize: size, fontWeight: FontWeight.w800, letterSpacing: -0.9, height: 1.08),
+      style: TextStyle(fontSize: size, fontWeight: FontWeight.w800, letterSpacing: -0.025 * size, height: 1.04),
       children: [
         TextSpan(
           text: first,
@@ -534,315 +670,402 @@ class _TwoTone extends StatelessWidget {
   );
 }
 
-/// Barra flotante en píldora: logo, "PaxFide." en tres colores, tema y menú.
-class _NavPill extends StatelessWidget {
-  const _NavPill({required this.ink, required this.onMenu});
-  final _Ink ink;
-  final VoidCallback onMenu;
-
-  @override
-  Widget build(BuildContext context) => _Glass(
-    ink: ink,
-    radius: 99,
-    padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-    child: Row(
-      children: [
-        const PaxLogo(size: 34),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.6),
-              children: [
-                TextSpan(
-                  text: 'Pax',
-                  style: TextStyle(color: ink.strong),
-                ),
-                TextSpan(
-                  text: 'Fide',
-                  style: TextStyle(color: ink.dark ? PaxDarkTokens.blue : PaxTokens.brandBlue700),
-                ),
-                const TextSpan(
-                  text: '.',
-                  style: TextStyle(color: PaxTokens.brandYellow400),
-                ),
-              ],
-            ),
-            semanticsLabel: 'PaxFide',
-          ),
-        ),
-        const ThemeModeButton(),
-        IconButton(key: const Key('welcome.menu'), tooltip: 'Menú', icon: const Icon(Icons.menu), onPressed: onMenu),
-      ],
-    ),
-  );
-}
-
-/// Una parada: la escena arriba y la tarjeta translúcida montada sobre su parte baja.
-class _StopView extends StatelessWidget {
-  const _StopView({
-    super.key,
-    required this.stop,
-    required this.time,
-    required this.from,
-    required this.sceneHeight,
+/// Barra flotante del landing: logo y "PaxFide." en la píldora; la hamburguesa la abre hacia abajo con los enlaces y
+/// las acciones (tema, tamaño del texto, Ingresar, Seguir donación, Donar y Escanear).
+class _Nav extends StatelessWidget {
+  const _Nav({
     required this.ink,
-    this.extra,
+    required this.open,
+    required this.onToggle,
+    required this.onTop,
+    required this.links,
+    required this.onLogin,
+    required this.onFollow,
+    required this.onDonate,
+    required this.onScan,
   });
-  final _Stop stop;
-  final DayTime time;
-  final DayTime? from;
-  final double sceneHeight;
   final _Ink ink;
-  final Widget? extra;
+  final bool open;
+  final VoidCallback onToggle;
+  final VoidCallback onTop;
+  final List<(String, String, VoidCallback)> links;
+  final VoidCallback onLogin;
+  final VoidCallback onFollow;
+  final VoidCallback onDonate;
+  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context) {
-    // La tinta de la tarjeta sigue al modo de la app; la escena, al momento del día.
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: WelcomeSceneView(scene: stop.scene, time: time, from: from),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, sceneHeight, 16, 28),
-          child: _Glass(
-            ink: ink,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stop.label.toUpperCase(),
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.8, color: ink.step),
-                ),
-                const SizedBox(height: 10),
-                _Tag(stop.tag, ink: ink),
-                const SizedBox(height: 14),
-                _TwoTone(stop.title, stop.accent, ink: ink),
-                const SizedBox(height: 12),
-                Text(stop.text, style: TextStyle(fontSize: 16, height: 1.5, color: ink.body)),
-                if (stop.facts.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Divider(color: ink.body.withValues(alpha: 0.2)),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final (head, caption) in stop.facts)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  head,
-                                  style: TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: ink.strong,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(caption, style: TextStyle(fontSize: 13, color: ink.body)),
-                              ],
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    return PaxGlass(
+      radius: open ? 24 : 999,
+      padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
+      child: AnimatedSize(
+        duration: reduced ? Duration.zero : const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 52,
+              child: Row(
+                children: [
+                  Semantics(
+                    button: true,
+                    label: 'PaxFide, inicio',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      key: const Key('welcome.brand'),
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: onTop,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [PaxLogo(size: 34), SizedBox(width: 10), PaxWordmark()],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    key: const Key('welcome.menu'),
+                    tooltip: open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación',
+                    color: ink.strong,
+                    onPressed: onToggle,
+                    icon: AnimatedSwitcher(
+                      duration: reduced ? Duration.zero : const Duration(milliseconds: 200),
+                      transitionBuilder: (child, a) => RotationTransition(turns: a, child: child),
+                      child: Icon(open ? Icons.close : Icons.menu, key: ValueKey(open)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (open)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (key, label, action) in links)
+                      InkWell(
+                        key: Key('welcome.menu.$key'),
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: action,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                              child: Text(
+                                label,
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ink.body),
+                              ),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                ],
-                ?extra,
-              ],
-            ),
-          ),
+                      ),
+                    const SizedBox(height: 6),
+                    Divider(height: 1, color: ink.strong.withValues(alpha: 0.12)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('Tema y tamaño del texto', style: TextStyle(color: ink.body, fontSize: 13)),
+                        ),
+                        const ThemeModeButton(),
+                        const TextSizeButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          key: const Key('welcome.menu.login'),
+                          onPressed: onLogin,
+                          icon: const Icon(Icons.login, size: 18),
+                          label: const Text('Ingresar'),
+                        ),
+                        OutlinedButton(
+                          key: const Key('welcome.menu.follow'),
+                          onPressed: onFollow,
+                          child: const Text('Seguir donación'),
+                        ),
+                        FilledButton(
+                          key: const Key('welcome.menu.donate'),
+                          onPressed: onDonate,
+                          child: const Text('Donar'),
+                        ),
+                        OutlinedButton.icon(
+                          key: const Key('welcome.menu.scan'),
+                          onPressed: onScan,
+                          icon: const Icon(Icons.qr_code_scanner, size: 18),
+                          label: const Text('Escanear QR'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-/// "Todo el recorrido": el mapa completo con la frase central.
-class _OverviewView extends StatelessWidget {
-  const _OverviewView({required this.ink, required this.from, required this.time});
+/// La tarjeta de vidrio de una parada (landing: `.stop .card`).
+class _StopCard extends StatelessWidget {
+  const _StopCard({super.key, required this.stop, required this.ink, this.extra});
+  final _Stop stop;
   final _Ink ink;
-  final DayTime from;
-  final DayTime time;
+  final Widget? extra;
 
   @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      Positioned.fill(
-        child: WelcomeSceneView(scene: WelcomeScene.overview, time: time, from: from),
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 230, 16, 28),
-        child: _Glass(
-          key: const Key('welcome.overview'),
-          ink: ink,
-          padding: const EdgeInsets.fromLTRB(22, 26, 22, 30),
-          child: Column(
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 470),
+    child: PaxGlass(
+      radius: 24,
+      opacity: 0.86,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                'TODO EL RECORRIDO',
-                style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 1, color: ink.body),
+                stop.label.toUpperCase(),
+                style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.5, color: ink.step),
               ),
-              const SizedBox(height: 14),
-              Text.rich(
-                TextSpan(
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.8, height: 1.12),
-                  children: [
-                    TextSpan(
-                      text: 'Cada paso queda ',
-                      style: TextStyle(color: ink.strong),
-                    ),
-                    TextSpan(
-                      text: 'registrado',
-                      style: TextStyle(color: ink.accent),
-                    ),
-                    TextSpan(
-                      text: '. Y tú lo puedes ',
-                      style: TextStyle(color: ink.strong),
-                    ),
-                    TextSpan(
-                      text: 'comprobar',
-                      style: TextStyle(color: ink.accent),
-                    ),
-                    TextSpan(
-                      text: ' cuando quieras.',
-                      style: TextStyle(color: ink.strong.withValues(alpha: 0.45)),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
+              _Tag(stop.tag, ink: ink),
             ],
           ),
-        ),
-      ),
-    ],
-  );
-}
-
-/// "¿Ya donaste? Sigue tu donación." Lleva a la pantalla real de seguimiento: sin campo ni códigos de ejemplo.
-class _TrackingCard extends StatelessWidget {
-  const _TrackingCard({required this.ink, required this.onOpen});
-  final _Ink ink;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) => _Glass(
-    key: const Key('welcome.trackingCard'),
-    ink: ink,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: ink.accent, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'SEGUIMIENTO DE DONACIÓN',
-              style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.8, color: ink.strong),
+          const SizedBox(height: 14),
+          _TwoTone(stop.title, stop.accent, ink: ink, size: extra != null ? 40 : 32),
+          const SizedBox(height: 14),
+          Text(stop.text, style: TextStyle(fontSize: 16.5, height: 1.6, color: ink.body)),
+          if (stop.facts.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Divider(height: 1, color: ink.body.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final (i, (head, caption)) in stop.facts.indexed) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          head,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: ink.strong,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(caption, style: TextStyle(fontSize: 13, height: 1.4, color: ink.body)),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        _TwoTone('¿Ya donaste?\n', 'Sigue tu donación.', ink: ink, size: 30),
-        const SizedBox(height: 10),
-        Text(
-          'Escribe o pega el código que recibiste al donar. Verás en qué punto va y cuándo quedó sellada.',
-          style: TextStyle(fontSize: 16, height: 1.5, color: ink.body),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: Semantics(
-            button: true,
-            label: 'Ver recorrido',
-            excludeSemantics: true,
-            child: FilledButton(
-              key: const Key('welcome.tracking.card'),
-              style: FilledButton.styleFrom(
-                backgroundColor: PaxTokens.brandYellow400,
-                foregroundColor: PaxTokens.brandGreen900,
-                minimumSize: const Size(0, 52),
-              ),
-              onPressed: onOpen,
-              child: const Text('Ver recorrido →'),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text('Tu código es privado: no lo compartas ni lo publiques.', style: TextStyle(fontSize: 13, color: ink.body)),
-      ],
+          ?extra,
+        ],
+      ),
     ),
   );
 }
 
-/// "¿Eres una organización?" En el móvil se crea la cuenta; la organización se registra y se verifica desde la web
-/// (decisión 4: en el móvil solo se registran donantes).
-class _OrganizationCard extends StatelessWidget {
-  const _OrganizationCard({required this.ink, required this.onOpen});
+/// "Todo el recorrido": la frase se enciende palabra por palabra al deslizar (landing: `#mani`).
+class _Manifesto extends StatelessWidget {
+  const _Manifesto({required this.ink, required this.progress});
   final _Ink ink;
-  final VoidCallback onOpen;
+  final ValueNotifier<double> progress;
 
   @override
   Widget build(BuildContext context) {
-    Widget point(String text) => Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final words = _manifesto.split(' ');
+    return PaxGlass(
+      key: const Key('welcome.overview'),
+      radius: 28,
+      opacity: 0.82,
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+      child: Column(
         children: [
-          Icon(Icons.check, size: 18, color: ink.accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: TextStyle(color: ink.body)),
+          _Tag('Todo el recorrido', ink: ink),
+          const SizedBox(height: 18),
+          ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (context, p, _) {
+              final lit = (p * words.length).round();
+              return Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.75, height: 1.12),
+                  children: [
+                    for (final (i, w) in words.indexed)
+                      TextSpan(
+                        text: i == words.length - 1 ? w : '$w ',
+                        style: TextStyle(
+                          color: i >= lit
+                              ? ink.strong.withValues(alpha: 0.2)
+                              : (_manifestoHighlight.contains(w) ? ink.accent : ink.strong),
+                        ),
+                      ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+                semanticsLabel: _manifesto,
+              );
+            },
           ),
         ],
       ),
     );
-    return _Glass(
-      key: const Key('welcome.organizationCard'),
-      ink: ink,
-      child: Column(
+  }
+}
+
+/// La isla de seguimiento del landing: "¿Ya donaste? Sigue tu donación." y, debajo en el móvil,
+/// "¿Eres una organización?". Sin campo ni códigos de ejemplo: el botón lleva a la pantalla real de seguimiento.
+class _Island extends StatelessWidget {
+  const _Island({required this.ink, required this.onTrack, required this.onRegister});
+  final _Ink ink;
+  final VoidCallback onTrack;
+  final VoidCallback onRegister;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget point(String text) => Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: PaxTokens.brandGreen900, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.account_balance_outlined, color: PaxTokens.white),
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: ink.tagBg, shape: BoxShape.circle),
+            child: Icon(Icons.check, size: 13, color: ink.tagFg),
           ),
-          const SizedBox(height: 14),
-          Text(
-            '¿Eres una organización?',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: ink.strong),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: ink.body, height: 1.4)),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Crea tu cuenta y registra la organización desde la web de PaxFide. Un administrador la verifica antes de '
-            'que publique convocatorias.',
-            style: TextStyle(height: 1.45, color: ink.body),
+        ],
+      ),
+    );
+    return PaxGlass(
+      radius: 28,
+      opacity: 0.88,
+      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            key: const Key('welcome.trackingCard'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(color: ink.tagBg, borderRadius: BorderRadius.circular(7)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: PaxTokens.brandGreen500,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: PaxTokens.brandGreen500.withValues(alpha: 0.22), spreadRadius: 3)],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'SEGUIMIENTO DE DONACIÓN',
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 0.3, color: ink.tagFg),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _TwoTone('¿Ya donaste? ', 'Sigue tu donación.', ink: ink, size: 32),
+              const SizedBox(height: 12),
+              Text(
+                'Escribe o pega el código que recibiste al donar. Verás en qué punto va y cuándo quedó sellada.',
+                style: TextStyle(fontSize: 16, height: 1.55, color: ink.body),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const Key('welcome.tracking.card'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: PaxTokens.brandYellow400,
+                    foregroundColor: PaxTokens.brandGreen900,
+                    minimumSize: const Size(0, 52),
+                  ),
+                  onPressed: onTrack,
+                  child: const Text('Ver recorrido →'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Tu código es privado: no lo compartas ni lo publiques.',
+                style: TextStyle(fontSize: 13, color: ink.body),
+              ),
+            ],
           ),
-          point('Convocatorias con meta y fechas'),
-          point('Lotes con QR y recorrido visible'),
-          point('Historial que se puede verificar'),
-          const SizedBox(height: 16),
-          Semantics(
-            button: true,
-            label: 'Crear mi cuenta',
-            excludeSemantics: true,
-            child: OutlinedButton(
-              key: const Key('welcome.organization'),
-              onPressed: onOpen,
-              child: const Text('Crear mi cuenta →'),
-            ),
+          const SizedBox(height: 22),
+          Divider(height: 1, color: ink.strong.withValues(alpha: 0.12)),
+          const SizedBox(height: 22),
+          Column(
+            key: const Key('welcome.organizationCard'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(color: PaxTokens.brandGreen900, borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.home_work_outlined, color: PaxTokens.white),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '¿Eres una organización?',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: ink.strong),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Crea tu cuenta y registra la organización desde la web de PaxFide. Un administrador la verifica antes de '
+                'que publique convocatorias.',
+                style: TextStyle(height: 1.5, color: ink.body),
+              ),
+              point('Convocatorias con meta y fechas'),
+              point('Lotes con QR y recorrido visible'),
+              point('Historial que se puede verificar'),
+              const SizedBox(height: 18),
+              OutlinedButton(
+                key: const Key('welcome.organization'),
+                onPressed: onRegister,
+                child: const Text('Crear mi cuenta →'),
+              ),
+            ],
           ),
         ],
       ),
@@ -862,13 +1085,9 @@ class _CampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = CampaignProgress.of(
-      target: int.tryParse(c.targetAmount ?? ''),
-      cleared: int.tryParse(c.clearedAmount ?? ''),
-      endDate: c.endDate,
-    );
     final target = int.tryParse(c.targetAmount ?? '');
     final cleared = int.tryParse(c.clearedAmount ?? '');
+    final p = CampaignProgress.of(target: target, cleared: cleared, endDate: c.endDate);
     final closed = c.status.isNotEmpty && c.status != 'OPEN';
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
@@ -880,22 +1099,34 @@ class _CampaignCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: 120,
+                height: 132,
                 child: Stack(
                   children: [
-                    const Positioned.fill(child: _CampaignCover()),
+                    const Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [PaxTokens.brandGreen800, PaxTokens.brandGreen900],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Positioned(right: 16, top: 10, bottom: 6, width: 150, child: CrateArt()),
                     Positioned(
                       left: 12,
                       top: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: PaxTokens.brandGreen900.withValues(alpha: 0.85),
+                          color: PaxTokens.white.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: PaxTokens.white.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           closed ? 'Cerrada' : (p.reached ? 'Meta alcanzada' : 'Convocatoria abierta'),
-                          style: const TextStyle(color: PaxTokens.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: PaxTokens.white, fontSize: 12, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -903,7 +1134,7 @@ class _CampaignCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -919,7 +1150,7 @@ class _CampaignCard extends StatelessWidget {
                     Text(
                       c.title,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 19,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.3,
                         color: ink.strong,
@@ -961,7 +1192,7 @@ class _CampaignCard extends StatelessWidget {
                           child: FilledButton(onPressed: closed ? null : onOpen, child: const Text('Donar')),
                         ),
                         const SizedBox(width: 8),
-                        TextButton(key: detailsKey, onPressed: onOpen, child: const Text('Ver detalles')),
+                        OutlinedButton(key: detailsKey, onPressed: onOpen, child: const Text('Ver detalles')),
                       ],
                     ),
                   ],
@@ -973,30 +1204,4 @@ class _CampaignCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Portada ilustrada de una convocatoria sin foto: cajas isométricas sobre fondo verde (paleta).
-class _CampaignCover extends StatelessWidget {
-  const _CampaignCover();
-
-  @override
-  Widget build(BuildContext context) => const ExcludeSemantics(
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [PaxTokens.brandGreen800, PaxTokens.brandGreen900],
-        ),
-      ),
-      child: Align(
-        alignment: Alignment(0.75, 0.3),
-        child: SizedBox(
-          width: 140,
-          height: 110,
-          child: WelcomeSceneView(scene: WelcomeScene.overview, time: DayTime.night),
-        ),
-      ),
-    ),
-  );
 }

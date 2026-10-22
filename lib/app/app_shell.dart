@@ -8,6 +8,7 @@ import 'app_services.dart';
 import 'qr_scanner_sheet.dart';
 import 'text_size_button.dart';
 import 'theme_mode_button.dart';
+import '../shared/widgets/pax_app_bar.dart';
 
 class _Destination {
   const _Destination(this.route, this.label, this.icon);
@@ -68,7 +69,7 @@ class AppShell extends StatelessWidget {
             destinations[i].route == _scan ? scanQr(context) : services.router.go(destinations[i].route);
         Widget icon(_Destination d) =>
             d.route == AppRoutes.operatorPending ? _PendingBadge(icon: d.icon) : Icon(d.icon);
-        final appBar = AppBar(
+        final appBar = PaxAppBar(
           title: Text(title),
           actions: [...?actions, const TextSizeButton(), const ThemeModeButton()],
         );

@@ -58,3 +58,12 @@ Sin sesión, la app abre directamente `/login` (D8, fila `LOGGED_OUT` de la tabl
 ## Pendiente de confirmar por el equipo
 
 - Textos de los pasos 04 y 05 del recorrido (afirmaciones sobre la cadena), redactados con ADR-039.
+
+## Actualización (2026-10-22): fidelidad al landing y barra en píldora en toda la app
+
+- La bienvenida usa **un solo mundo isométrico fijo** (`welcome_world.dart`, port del `<canvas id="world">` del landing) detrás del contenido. Al deslizar, la cámara recorre la carretera parada por parada y al final se aleja a la vista completa. El día pasa a atardecer, noche y vuelve a amanecer. Cada escena se anima al llegar y el mundo sigue vivo: nubes, pasto, monedas, luciérnagas y el camión patrullando.
+- Las tarjetas aparecen y se desvanecen según la parada, las palabras de «Todo el recorrido» se encienden al avanzar y el mundo se desenfoca al llegar al catálogo. La barra superior se despliega con el menú del landing.
+- Colores: solo de la paleta (tokens con mezcla o transparencia). Etiquetas del mapa sin datos de ejemplo (sin Lorica, Montería, Cereté, «120 kits» ni «Lote 142»).
+- Con `MediaQuery.disableAnimations` no hay movimiento continuo y la cámara salta a cada parada. En las pruebas, `WelcomeWorld.ambientMotion = false`.
+- `PaxAppBar` (`lib/shared/widgets/pax_app_bar.dart`) sustituye a `AppBar` en todas las pantallas: es una píldora flotante de vidrio con el logo (o volver/cerrar), el título y las acciones.
+- Pendiente de confirmar por el equipo: la frase original «Nadie lo puede cambiar sin que se note» y «no se puede maquillar» se suavizaron hasta que se confirme la afirmación sobre blockchain.

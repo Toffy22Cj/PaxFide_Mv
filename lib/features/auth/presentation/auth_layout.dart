@@ -4,6 +4,7 @@ import '../../../app/app_services.dart';
 import '../../../app/text_size_button.dart';
 import '../../../app/theme_mode_button.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 /// Pantallas de acceso (Figma 01): barra con el título, el tamaño del texto y el tema; una columna centrada de 420 de
 /// ancho como máximo. [brand] pone el logo, "PaxFide" y el lema arriba (Entrar); [subtitle] es el texto de entrada
@@ -28,7 +29,7 @@ class AuthLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: PaxAppBar(
         automaticallyImplyLeading: false,
         leading: back
             ? IconButton(tooltip: 'Volver', icon: const Icon(Icons.arrow_back), onPressed: services.router.back)

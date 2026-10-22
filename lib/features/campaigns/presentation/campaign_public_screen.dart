@@ -12,6 +12,7 @@ import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/campaign_api.dart';
 import '../domain/campaign_progress.dart';
+import '../../../shared/widgets/pax_app_bar.dart';
 
 String campaignStatusLabel(String s) => switch (s) {
   'OPEN' => 'Abierta',
@@ -84,7 +85,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
     final c = _campaign;
     final action = c == null || widget.actionsBuilder == null ? null : widget.actionsBuilder!(context, c);
     return Scaffold(
-      appBar: AppBar(
+      appBar: PaxAppBar(
         title: const Text('Convocatoria'),
         actions: [
           if (qr != null)
