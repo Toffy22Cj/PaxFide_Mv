@@ -54,9 +54,11 @@ class SessionGuard {
           case RouteCategory.authTransitory:
             return const GuardDecision.allow();
           case RouteCategory.authenticated:
-          case RouteCategory.notApproved:
             // Decisión B: descarta destino y manda a login
             return const GuardDecision.redirect(AppRoutes.login);
+          case RouteCategory.notApproved:
+            // Enmienda 3: una ruta fuera del árbol lleva a la bienvenida.
+            return const GuardDecision.redirect(AppRoutes.welcome);
         }
     }
   }

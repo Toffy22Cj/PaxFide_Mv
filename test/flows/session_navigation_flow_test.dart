@@ -9,11 +9,21 @@ import '../support/app_harness.dart';
 
 /// Flujos completos de front-fase1.md §14 (nivel 3) con backend falso.
 void main() {
-  testWidgets('arranque sin sesión → /login (sin ruta guardada)', (tester) async {
+  testWidgets('arranque sin sesión → /welcome (Enmienda 3); «Iniciar sesión» abre Entrar y «volver» regresa', (
+    tester,
+  ) async {
     final h = AppHarness();
-    await h.start(tester);
-    expect(h.location, AppRoutes.login);
+    await h.start(tester, stayOnWelcome: true);
+    expect(h.location, AppRoutes.welcome);
+    expect(h.services.router.stack, [AppRoutes.welcome]);
+    expect(find.byKey(const Key('welcome.login')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcome.login')));
+    await tester.pumpAndSettle();
+    expect(h.services.router.stack, [AppRoutes.welcome, AppRoutes.login]);
     expect(find.byKey(const Key('login.submit')), findsOneWidget);
+    await tester.tap(find.byTooltip('Volver'));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.welcome);
   });
 
   testWidgets('G-1: arranque en frío con ruta pública guardada → se muestra sin UI de espera', (tester) async {
@@ -29,11 +39,11 @@ void main() {
       },
     );
     expect(h.location, '/c/PUB1');
-    // Con la sesión resuelta, debajo queda el login: hay a dónde volver.
-    expect(h.services.router.stack, [AppRoutes.login, '/c/PUB1']);
+    // Con la sesión resuelta, debajo queda la bienvenida: hay a dónde volver.
+    expect(h.services.router.stack, [AppRoutes.welcome, '/c/PUB1']);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.login);
+    expect(h.location, AppRoutes.welcome);
   });
 
   testWidgets('ruta pública restaurada con sesión → debajo queda Inicio', (tester) async {
@@ -136,7 +146,11 @@ void main() {
     await tester.pumpAndSettle();
     await h.services.session.logout();
     await tester.pumpAndSettle();
-    expect(h.services.router.stack, [AppRoutes.login]);
+    // Enmienda 3: queda Entrar, con la bienvenida debajo.
+    expect(h.services.router.stack, [AppRoutes.welcome, AppRoutes.login]);
+    h.services.router.back();
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.welcome);
     h.services.router.back();
     await tester.pumpAndSettle();
     expect(h.location, isNot('/assets/A-1'));
@@ -177,9 +191,9 @@ void main() {
   testWidgets('estado de navegación corrupto → se descarta → fallback', (tester) async {
     final h = AppHarness();
     h.secure.values['paxfide.navigation.restore'] = '{corrupto';
-    await h.start(tester);
-    expect(h.location, AppRoutes.login);
-    expect(h.secure.values.containsKey('paxfide.navigation.restore'), isFalse);
+    await h.start(tester, stayOnWelcome: true);
+    expect(h.location, AppRoutes.welcome);
+    expect(h.secure.values['paxfide.navigation.restore'], isNot('{corrupto'));
   });
 
   testWidgets('deep link no aprobado → no navega', (tester) async {

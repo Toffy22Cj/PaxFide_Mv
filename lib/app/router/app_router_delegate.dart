@@ -87,6 +87,9 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     if (now == SessionStatus.loggedOut && before == SessionStatus.authenticated) {
       // Invariante 4: logout limpia la pila autenticada. Sin decidir nada sobre el Outbox.
       _stack.removeWhere((l) => AppRoutes.categorize(l) == RouteCategory.authenticated);
+      // Enmienda 3: sin nada público encima, queda Entrar (con la bienvenida debajo, la pone _normalizeAndNotify),
+      // para volver a entrar en el acto, también con biometría.
+      if (_stack.isEmpty) _stack.add(AppRoutes.login);
     }
 
     if (now == SessionStatus.authenticated && before == SessionStatus.loggedOut) {
@@ -128,7 +131,7 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     if (_isResolved(status)) {
       final top = currentLocation;
       final decision = top == null
-          ? GuardDecision.redirect(status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.login)
+          ? GuardDecision.redirect(status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.welcome)
           : guard.evaluate(session: session.state, category: AppRoutes.categorize(top));
       if (decision.type == GuardDecisionType.redirect) {
         if (status == SessionStatus.loggedOut) {
@@ -146,9 +149,15 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
         if (AppRoutes.categorize(_stack.first) == RouteCategory.authenticated) _stack.insert(0, AppRoutes.home);
       }
       // Una pública sola (restaurada al reabrir o abierta por enlace en frío) no tiene barra ni a dónde volver:
-      // debajo va /home con sesión o /login sin ella, para que "volver" siempre lleve a algún sitio.
-      if (_stack.length == 1 && AppRoutes.categorize(_stack.first) == RouteCategory.public) {
-        _stack.insert(0, status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.login);
+      // debajo va /home con sesión, para que "volver" siempre lleve a algún sitio.
+      if (status == SessionStatus.authenticated &&
+          _stack.length == 1 &&
+          AppRoutes.categorize(_stack.first) == RouteCategory.public) {
+        _stack.insert(0, AppRoutes.home);
+      }
+      // Enmienda 3: sin sesión, la base de la pila es siempre la bienvenida.
+      if (status == SessionStatus.loggedOut && _stack.first != AppRoutes.welcome) {
+        _stack.insert(0, AppRoutes.welcome);
       }
       _persist();
     }

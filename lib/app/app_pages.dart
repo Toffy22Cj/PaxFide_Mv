@@ -8,6 +8,7 @@ import '../features/donations/presentation/donate_sheet.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
 import '../features/prediction/presentation/prediction_screen.dart';
 import '../features/tracking/presentation/tracking_screen.dart';
+import '../features/welcome/presentation/welcome_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/physical_assets/presentation/asset_qr_screen.dart';
 import '../features/physical_assets/presentation/asset_screen.dart';
@@ -23,6 +24,8 @@ import 'theme_mode_button.dart';
 /// Ruta del árbol → pantalla. Las rutas que aún no tienen pantalla muestran un aviso neutro, sin datos.
 Widget buildPage(BuildContext context, String location) {
   switch (location) {
+    case AppRoutes.welcome:
+      return const WelcomeScreen();
     case AppRoutes.login:
       return const LoginScreen();
     case AppRoutes.register:

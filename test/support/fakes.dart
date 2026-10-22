@@ -71,7 +71,7 @@ class FakeApiClient implements ApiClient {
   Future<ApiResponse> _next(RecordedCall call) async {
     calls.add(call);
     if (call.beforeSend != null) await call.beforeSend!();
-    final Object r;
+    Object r;
     final key = '${call.method} ${call.path}';
     if (routeFirst.contains(key) && routes.containsKey(key)) {
       r = routes[key]!(call);
@@ -84,6 +84,8 @@ class FakeApiClient implements ApiClient {
     } else {
       throw StateError('FakeApiClient: sin respuesta programada para ${call.method} ${call.path}');
     }
+    // Una ruta puede devolver un Future para simular una respuesta que tarda (estados de carga).
+    if (r is Future<Object>) r = await r;
     if (r is ApiResponse) {
       await authHandler?.handleResponse(statusCode: r.statusCode, credentialMode: call.credentialMode);
       return r;

@@ -189,6 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return AuthLayout(
       title: 'Entrar',
       brand: true,
+      // Enmienda 3: con la bienvenida (u otra pantalla) debajo, flecha para volver.
+      back: services.router.stack.length > 1,
       child: AutofillGroup(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

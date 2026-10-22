@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_config.dart';
+import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/app/app_services.dart';
 import 'package:paxfide_mobile/app/bootstrap.dart';
 import 'package:paxfide_mobile/app/navigation_restore_state.dart';
@@ -97,7 +98,9 @@ class AppHarness {
       ).toJson();
 
   /// Monta la app y arranca (restauración + sesión). [beforeSession] corre con la sesión aún sin resolver.
-  Future<void> start(WidgetTester tester, {Future<void> Function()? beforeSession}) async {
+  /// Sin sesión la app abre la bienvenida (Enmienda 3). Por defecto, [start] toca después «Iniciar sesión», como
+  /// haría el usuario, para los flujos que empiezan en Entrar; con [stayOnWelcome] se queda en la bienvenida.
+  Future<void> start(WidgetTester tester, {Future<void> Function()? beforeSession, bool stayOnWelcome = false}) async {
     await services.theme.load();
     await services.textSize.load();
     await tester.pumpWidget(PaxFideApp(services: services));
@@ -108,6 +111,10 @@ class AppHarness {
     if (beforeSession != null) await beforeSession();
     await services.session.restore();
     await tester.pumpAndSettle();
+    if (!stayOnWelcome && location == AppRoutes.welcome) {
+      services.router.push(AppRoutes.login);
+      await tester.pumpAndSettle();
+    }
   }
 
   String? get location => services.router.currentLocation;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
@@ -23,17 +25,12 @@ Map<String, Object> campaign(String code, {String status = 'OPEN'}) => {
 
 ApiResponse list(List<Map<String, Object>> items) => ApiResponse(statusCode: 200, data: {'items': items});
 
-/// FASE A: la bienvenida todavía no tiene ruta; se abre encima de la app sin sesión (que hoy arranca en /login).
-Future<AppHarness> openWelcome(WidgetTester tester, {Object Function()? campaigns, bool settle = true}) async {
+/// `/welcome`: la primera pantalla sin sesión (Enmienda 3).
+Future<AppHarness> openWelcome(WidgetTester tester, {Object Function()? campaigns}) async {
   final h = AppHarness();
   h.api.routes['GET /public/campaigns'] = (_) => campaigns?.call() ?? list([]);
-  await h.start(tester);
-  h.services.router.navigatorKey.currentState!.push(MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()));
-  if (settle) {
-    await tester.pumpAndSettle();
-  } else {
-    await tester.pump();
-  }
+  await h.start(tester, stayOnWelcome: true);
+  expect(h.location, AppRoutes.welcome);
   return h;
 }
 
@@ -88,6 +85,15 @@ void main() {
     expect(h.location, AppRoutes.tracking);
   });
 
+  testWidgets('¿Eres una organización? lleva a crear la cuenta', (tester) async {
+    final h = await openWelcome(tester);
+    await scrollTo(tester, find.byKey(const Key('welcome.organization')));
+    expect(find.text('¿Eres una organización?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcome.organization')));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.register);
+  });
+
   testWidgets('Donar baja hasta las convocatorias', (tester) async {
     await openWelcome(tester, campaigns: () => list([campaign('PUB1')]));
     final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
@@ -120,8 +126,11 @@ void main() {
   });
 
   testWidgets('catálogo: cargando (esqueleto) y vacío', (tester) async {
-    await openWelcome(tester, settle: false);
-    expect(find.byKey(const Key('welcome.campaigns.loading'), skipOffstage: false), findsOneWidget);
+    final pending = Completer<Object>();
+    await openWelcome(tester, campaigns: () => pending.future);
+    await scrollTo(tester, find.byKey(const Key('welcome.campaigns.loading')));
+    expect(find.byKey(const Key('welcome.campaigns.loading')), findsOneWidget);
+    pending.complete(list([]));
     await tester.pumpAndSettle();
     await scrollTo(tester, find.byKey(const Key('welcome.campaigns.empty')));
     expect(find.text('No hay convocatorias abiertas en este momento.'), findsOneWidget);
@@ -143,9 +152,7 @@ void main() {
     h.secure.values[ThemeController.storageKey] = 'dark';
     h.secure.values[TextSizeController.storageKey] = TextSize.extraLarge.name;
     h.api.routes['GET /public/campaigns'] = (_) => list([campaign('PUB1'), campaign('PUB2')]);
-    await h.start(tester);
-    h.services.router.navigatorKey.currentState!.push(MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()));
-    await tester.pumpAndSettle();
+    await h.start(tester, stayOnWelcome: true);
     for (final k in ['welcome.step.3', 'welcome.step.5', 'welcome.tracking.card', 'welcome.campaign.PUB2']) {
       await scrollTo(tester, find.byKey(Key(k)));
       expect(tester.takeException(), isNull, reason: k);

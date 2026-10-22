@@ -17,6 +17,9 @@ class AppRoutes {
   static const String campaignPublic = '/c/:publicCode';
   static const String tracking = '/tracking';
 
+  /// Bienvenida sin sesión (M-01/M-02, Enmienda 3 de ADR-043): pública y destino por defecto de LOGGED_OUT.
+  static const String welcome = '/welcome';
+
   // Transitorias de autenticación (nunca restaurables)
   static const String login = '/login';
   static const String register = '/register';
@@ -60,7 +63,11 @@ class AppRoutes {
 
   /// Parámetros que una ruta concreta admite (y solo esos). `null` si la ruta no es del árbol.
   static Map<String, String>? paramsOf(String path) {
-    if (path == tracking || path == login || path == register || _fixedAuthenticated.contains(path)) {
+    if (path == tracking ||
+        path == welcome ||
+        path == login ||
+        path == register ||
+        _fixedAuthenticated.contains(path)) {
       return const {};
     }
     final segments = path.split('/');
@@ -84,7 +91,7 @@ class AppRoutes {
   static RouteCategory categorize(String path) {
     final params = _safeParams(path);
     if (params == null) return RouteCategory.notApproved;
-    if (path == tracking || path.startsWith('/c/')) return RouteCategory.public;
+    if (path == tracking || path == welcome || path.startsWith('/c/')) return RouteCategory.public;
     if (path == login || path == register) return RouteCategory.authTransitory;
     return RouteCategory.authenticated;
   }

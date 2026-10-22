@@ -58,8 +58,8 @@ const _steps = [
   ),
 ];
 
-/// Bienvenida sin sesión (M-01/M-02, adaptación del landing web). FASE A: pantalla aislada, todavía sin ruta; la
-/// ruta `/welcome` y el cambio de destino de LOGGED_OUT esperan la Enmienda 3 de ADR-043.
+/// `/welcome`: bienvenida sin sesión (M-01/M-02, adaptación del landing web; Enmienda 3 de ADR-043). Es la primera
+/// pantalla sin sesión y la base de la pila con LOGGED_OUT.
 ///
 /// Qué es PaxFide, escanear un QR, "tengo un código", el recorrido en cinco pasos, el catálogo con convocatorias
 /// reales (`GET /public/campaigns`, sin sesión) y el botón fijo "Iniciar sesión". Sin datos de ejemplo presentados
@@ -157,6 +157,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               const SizedBox(height: 24),
               _TrackingCard(onOpen: () => _services.router.push(AppRoutes.tracking)),
+              const SizedBox(height: 16),
+              _OrganizationCard(onOpen: () => _services.router.push(AppRoutes.register)),
               const SizedBox(height: 28),
               KeyedSubtree(key: _catalogKey, child: _catalogHeader(theme)),
               const SizedBox(height: 8),
@@ -360,4 +362,55 @@ class _TrackingCard extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// "¿Eres una organización?" (landing). En el móvil se crea la cuenta; la organización se registra y se verifica
+/// desde la web (decisión 4: en el móvil solo se registran donantes).
+class _OrganizationCard extends StatelessWidget {
+  const _OrganizationCard({required this.onOpen});
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    Widget point(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text)),
+        ],
+      ),
+    );
+    return SectionCard(
+      key: const Key('welcome.organizationCard'),
+      title: '¿Eres una organización?',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Crea tu cuenta y registra la organización desde la web de PaxFide. Un administrador la verifica antes de '
+            'que publique convocatorias.',
+            style: TextStyle(color: muted),
+          ),
+          point(Icons.event_note_outlined, 'Convocatorias con meta y fechas'),
+          point(Icons.qr_code_2, 'Lotes con QR y recorrido visible'),
+          point(Icons.fact_check_outlined, 'Historial que se puede verificar'),
+          const SizedBox(height: 14),
+          Semantics(
+            button: true,
+            label: 'Crear mi cuenta',
+            excludeSemantics: true,
+            child: OutlinedButton(
+              key: const Key('welcome.organization'),
+              onPressed: onOpen,
+              child: const Text('Crear mi cuenta'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

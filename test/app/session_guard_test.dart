@@ -48,13 +48,14 @@ void main() {
       expect(eval(s, RouteCategory.authTransitory).type, GuardDecisionType.allow);
     });
 
-    test('LOGGED_OUT: autenticada y no aprobada → /login', () {
+    test('LOGGED_OUT: autenticada → /login (R2, Decisión B); no aprobada → /welcome (Enmienda 3)', () {
       const s = SessionState.loggedOut();
-      for (final c in [RouteCategory.authenticated, RouteCategory.notApproved]) {
-        final d = eval(s, c);
-        expect(d.type, GuardDecisionType.redirect);
-        expect(d.redirectRoute, AppRoutes.login);
-      }
+      final auth = eval(s, RouteCategory.authenticated);
+      expect(auth.type, GuardDecisionType.redirect);
+      expect(auth.redirectRoute, AppRoutes.login);
+      final notApproved = eval(s, RouteCategory.notApproved);
+      expect(notApproved.type, GuardDecisionType.redirect);
+      expect(notApproved.redirectRoute, AppRoutes.welcome);
     });
   });
 
