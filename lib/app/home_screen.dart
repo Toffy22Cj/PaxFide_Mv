@@ -214,7 +214,12 @@ class _CampaignsSectionState extends State<_CampaignsSection> {
               return Row(
                 children: [
                   const Expanded(child: Text('No pudimos cargar las convocatorias.')),
-                  TextButton(onPressed: () => setState(() => _future = _fetch()), child: const Text('Reintentar')),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _future = _fetch();
+                    }),
+                    child: const Text('Reintentar'),
+                  ),
                 ],
               );
             }

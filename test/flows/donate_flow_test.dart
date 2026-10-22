@@ -275,4 +275,34 @@ void main() {
     expect(h.location, '/c/PUB1');
     expect(find.byKey(const Key('donate.open')), findsOneWidget);
   });
+
+  testWidgets('Inicio: si falla el catálogo, «Reintentar» lo vuelve a pedir y se muestra', (tester) async {
+    final h = AppHarness();
+    var fail = true;
+    h.api.routes['GET /public/campaigns'] = (_) => fail
+        ? const NetworkTimeoutException()
+        : const ApiResponse(
+            statusCode: 200,
+            data: {
+              'items': [
+                {
+                  'publicCode': 'PUB1',
+                  'title': 'Abrigo',
+                  'organizationName': 'Fundación Demo',
+                  'status': 'OPEN',
+                  'startDate': '2026-10-01',
+                  'endDate': '2099-12-01',
+                },
+              ],
+            },
+          );
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    await tester.scrollUntilVisible(find.text('No pudimos cargar las convocatorias.'), 200);
+    fail = false;
+    await tester.tap(find.widgetWithText(TextButton, 'Reintentar'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200);
+    expect(find.byKey(const Key('home.campaign.PUB1')), findsOneWidget);
+  });
 }
