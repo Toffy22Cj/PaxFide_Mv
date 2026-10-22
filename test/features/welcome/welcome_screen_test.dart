@@ -41,12 +41,15 @@ Future<void> scrollTo(WidgetTester tester, Finder f) async {
     scrollable: find.descendant(of: find.byKey(const Key('welcome.list')), matching: find.byType(Scrollable)),
   );
   await tester.pumpAndSettle();
+  // Centrado, para que no quede bajo la barra flotante de arriba ni bajo «Ingresar».
+  await Scrollable.ensureVisible(tester.element(f), alignment: 0.5);
+  await tester.pumpAndSettle();
 }
 
 void main() {
   testWidgets('qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código', (tester) async {
     await openWelcome(tester);
-    expect(find.text('Tu donación, de principio a fin'), findsWidgets);
+    expect(find.textContaining('Tu donación, de principio a fin', findRichText: true), findsWidgets);
     for (var i = 1; i <= 5; i++) {
       await scrollTo(tester, find.byKey(Key('welcome.step.$i')));
       expect(find.textContaining('0$i / 05'), findsOneWidget);
@@ -74,6 +77,7 @@ void main() {
     expect(h.location, AppRoutes.login);
 
     h = await openWelcome(tester);
+    await scrollTo(tester, find.byKey(const Key('welcome.tracking')));
     await tester.tap(find.byKey(const Key('welcome.tracking')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.tracking);
@@ -97,8 +101,9 @@ void main() {
   testWidgets('Donar baja hasta las convocatorias', (tester) async {
     await openWelcome(tester, campaigns: () => list([campaign('PUB1')]));
     final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
-    double top() => tester.getTopLeft(find.byKey(const Key('welcome.campaigns.all'))).dy;
+    double top() => tester.getTopLeft(find.byKey(const Key('welcome.campaigns.all'), skipOffstage: false)).dy;
     expect(top(), greaterThan(screen), reason: 'al abrir, el catálogo está más abajo');
+    await scrollTo(tester, find.byKey(const Key('welcome.donate')));
     await tester.tap(find.byKey(const Key('welcome.donate')));
     await tester.pumpAndSettle();
     expect(top(), lessThan(screen));
