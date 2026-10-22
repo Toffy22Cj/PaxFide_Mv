@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/errors/app_exceptions.dart';
 import '../core/offline/outbox_status.dart';
 import '../features/auth/domain/session_controller.dart';
-import '../features/campaigns/domain/campaign_progress.dart';
 import '../features/campaigns/domain/campaign_search.dart';
 import '../features/campaigns/presentation/campaign_search_view.dart';
+import '../features/campaigns/presentation/campaign_summary_card.dart';
 import '../features/donations/data/account_donations_api.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
 import '../shared/widgets/pax_ui.dart';
@@ -224,51 +224,15 @@ class _CampaignsSectionState extends State<_CampaignsSection> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final c in items.take(3))
-                  Card(
+                  CampaignSummaryCard(
+                    c,
                     key: Key('home.campaign.${c.publicCode}'),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => _services.router.push(AppRoutes.campaignPath(c.publicCode)),
-                      child: Padding(padding: const EdgeInsets.all(14), child: _CampaignCardBody(c)),
-                    ),
+                    onTap: () => _services.router.push(AppRoutes.campaignPath(c.publicCode)),
                   ),
               ],
             );
           },
         ),
-      ],
-    );
-  }
-}
-
-class _CampaignCardBody extends StatelessWidget {
-  const _CampaignCardBody(this.c);
-  final CampaignSummary c;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final p = CampaignProgress.of(
-      target: int.tryParse(c.targetAmount ?? ''),
-      cleared: int.tryParse(c.clearedAmount ?? ''),
-      endDate: c.endDate,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (c.organizationName.isNotEmpty)
-          Text(
-            c.organizationName,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-        Text(c.title, style: theme.textTheme.titleSmall),
-        if (p.fraction != null) ...[
-          const SizedBox(height: 8),
-          SlimProgress(p.fraction!, semanticsLabel: p.percentText),
-          const SizedBox(height: 4),
-          Text(p.percentText!, style: theme.textTheme.labelSmall),
-        ],
-        if (p.daysText != null) ...[const SizedBox(height: 2), Text(p.daysText!, style: theme.textTheme.labelSmall)],
       ],
     );
   }
