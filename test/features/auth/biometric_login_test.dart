@@ -124,6 +124,8 @@ void main() {
       final h = await openLogin(tester, FakeBiometricAuthenticator(pending: true));
       await tester.tap(find.byKey(const Key('biometric-login-close')));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('login-biometric-forget')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('login-biometric-forget')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('biometric-forget-confirm')));
@@ -143,6 +145,8 @@ void main() {
       await h.start(tester);
       await tester.enterText(find.byKey(const Key('login.email')), 'ana@correo.co');
       await tester.enterText(find.byKey(const Key('login.password')), 'secreta');
+      await tester.ensureVisible(find.byKey(const Key('login.submit')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('login.submit')));
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 100));

@@ -59,8 +59,8 @@ class SessionController extends ChangeNotifier {
   }
 
   /// Entrar con un JWT ya obtenido (biometría, M-28). Mismas reglas que [login].
-  Future<void> loginWithToken(String token) async {
-    await tokenStore.writeToken(token);
+  Future<void> loginWithToken(String token, {bool remember = true}) async {
+    await tokenStore.writeToken(token, remember: remember);
     await _loadProfileAfterToken();
     if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();
   }

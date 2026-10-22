@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/widgets/error_message.dart';
-import '../../../shared/widgets/pax_ui.dart';
+import '../../../shared/theme/pax_tokens.dart';
 import 'auth_layout.dart';
 
 /// `/register`: `POST /auth/register` (`{email, password}` → 201). No inicia sesión: el backend no devuelve token.
@@ -38,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Escribe un email y una contraseña.');
+      setState(() => _error = 'Escribe un correo electrónico y una contraseña.');
       return;
     }
     if (password.length < minPasswordLength) {
@@ -61,8 +61,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _sending = false;
         _error = switch (e) {
-          ConflictException() => 'Ya existe una cuenta con ese email.',
-          BadRequestException() => 'Revisa el email y que la contraseña tenga al menos $minPasswordLength caracteres.',
+          ConflictException() => 'Ya existe una cuenta con ese correo electrónico.',
+          BadRequestException() =>
+            'Revisa el correo electrónico y que la contraseña tenga al menos $minPasswordLength caracteres.',
           _ => describeError(e),
         };
       });
@@ -72,59 +73,103 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
+    final ink = AuthInk(Theme.of(context).brightness == Brightness.dark);
+    void toLogin() {
+      final stack = services.router.stack;
+      if (stack.length > 1 && stack[stack.length - 2] == AppRoutes.login) {
+        services.router.back();
+      } else {
+        services.router.push(AppRoutes.login);
+      }
+    }
+
     if (_done) {
       return AuthLayout(
-        title: 'Crear una cuenta',
+        title: 'Cuenta creada',
+        subtitle: 'Ya puedes entrar con tu correo electrónico y tu contraseña.',
         back: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const IconCircle(Icons.check),
+            AuthNotice('Tu cuenta de donante está lista.', ink: ink, kind: AuthNoticeKind.success),
             const SizedBox(height: 16),
-            Text('Cuenta creada', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            const Text('Ya puedes entrar con tu email y tu contraseña.', textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: services.router.back, child: const Text('Ir a entrar')),
+            AuthSubmitButton(ink: ink, label: 'Ir a entrar', icon: Icons.arrow_forward, onPressed: toLogin),
           ],
         ),
       );
     }
+    final length = _password.text.length;
     return AuthLayout(
-      title: 'Crear una cuenta',
+      title: 'Crear Cuenta',
+      subtitle: 'Crea tu cuenta para donar y seguir cada paso de tus donaciones.',
+      tab: AuthTab.register,
       back: true,
-      subtitle: 'Consulta tus donaciones desde una misma cuenta.',
+      footer: AuthSwitch(
+        ink: ink,
+        text: '¿Ya tienes una cuenta?',
+        action: 'Inicia sesión aquí',
+        actionKey: const Key('register.login'),
+        onTap: _sending ? null : toLogin,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          LabeledField(
-            label: 'Email',
+          AuthField(
+            ink: ink,
+            label: 'Correo electrónico',
             child: TextField(
               key: const Key('register.email'),
               controller: _email,
               enabled: !_sending,
               keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              style: TextStyle(color: ink.title, fontWeight: FontWeight.w500),
+              decoration: authInput(ink, icon: Icons.mail_outline, hint: 'tu@correo.com'),
             ),
           ),
           const SizedBox(height: 14),
-          LabeledField(
-            label: 'Contraseña',
+          AuthField(
+            ink: ink,
+            label: 'Contraseña segura',
             child: PasswordField(
               key: const Key('register.password'),
+              ink: ink,
               controller: _password,
               enabled: !_sending,
-              helperText: 'Al menos $minPasswordLength caracteres',
+              hint: 'Mínimo $minPasswordLength caracteres',
+              autofillHints: const [AutofillHints.newPassword],
+              onChanged: (_) => setState(() {}),
             ),
           ),
-          if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],
-          const SizedBox(height: 18),
-          FilledButton(
-            key: const Key('register.submit'),
-            onPressed: _sending ? null : _submit,
-            child: Text(_sending ? 'Crear cuenta…' : 'Crear cuenta'),
+          // Barra del landing (`.pass-strength-bar`) con la única regla real: el largo mínimo del backend.
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (length / minPasswordLength).clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: ink.line,
+              color: length >= minPasswordLength ? PaxTokens.brandGreen500 : PaxTokens.brandYellow400,
+              semanticsLabel: 'Largo de la contraseña',
+            ),
           ),
-          const SizedBox(height: 8),
-          TextButton(onPressed: _sending ? null : services.router.back, child: const Text('Ya tengo cuenta')),
+          const SizedBox(height: 4),
+          Text(
+            length >= minPasswordLength
+                ? 'Largo suficiente'
+                : 'Al menos $minPasswordLength caracteres (llevas $length)',
+            style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: ink.muted),
+          ),
+          if (_error != null) ...[const SizedBox(height: 14), AuthNotice(_error!, ink: ink)],
+          const SizedBox(height: 18),
+          AuthSubmitButton(
+            key: const Key('register.submit'),
+            ink: ink,
+            label: _sending ? 'Crear cuenta…' : 'Crear cuenta',
+            icon: Icons.check,
+            busy: _sending,
+            onPressed: _sending ? null : _submit,
+          ),
         ],
       ),
     );

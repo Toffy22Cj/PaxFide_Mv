@@ -135,6 +135,8 @@ void main() {
     h.api.enqueue(meResponse(account: 'acc-1'));
     await tester.enterText(find.byKey(const Key('login.email')), 'a@demo');
     await tester.enterText(find.byKey(const Key('login.password')), 'pw');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     h.services.router.go(AppRoutes.operator);

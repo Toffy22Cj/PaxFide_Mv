@@ -104,6 +104,13 @@ class AppHarness {
   /// Sin sesión la app abre la bienvenida (Enmienda 3). Por defecto, [start] toca después «Iniciar sesión», como
   /// haría el usuario, para los flujos que empiezan en Entrar; con [stayOnWelcome] se queda en la bienvenida.
   Future<void> start(WidgetTester tester, {Future<void> Function()? beforeSession, bool stayOnWelcome = false}) async {
+    // Pantalla de teléfono (411 × 891, como un Android común), no la de 800 × 600 por defecto de las pruebas. Una
+    // prueba puede cambiarla antes de llamar a start.
+    if (tester.view.physicalSize == const Size(2400, 1800)) {
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 2.625;
+      addTearDown(tester.view.reset);
+    }
     await services.theme.load();
     await services.textSize.load();
     await tester.pumpWidget(PaxFideApp(services: services));
@@ -127,6 +134,8 @@ class AppHarness {
     api.enqueue(meResponse(roles: roles));
     await tester.enterText(find.byKey(const Key('login.email')), 'empleado@demo');
     await tester.enterText(find.byKey(const Key('login.password')), 'pw');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
   }

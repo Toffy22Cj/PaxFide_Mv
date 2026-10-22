@@ -712,24 +712,34 @@ class _Nav extends StatelessWidget {
               height: 52,
               child: Row(
                 children: [
-                  Semantics(
-                    button: true,
-                    label: 'PaxFide, inicio',
-                    excludeSemantics: true,
-                    child: InkWell(
-                      key: const Key('welcome.brand'),
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: onTop,
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [PaxLogo(size: 34), SizedBox(width: 10), PaxWordmark()],
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Semantics(
+                        button: true,
+                        label: 'PaxFide, inicio',
+                        excludeSemantics: true,
+                        child: InkWell(
+                          key: const Key('welcome.brand'),
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: onTop,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PaxLogo(size: 34),
+                                SizedBox(width: 10),
+                                Flexible(
+                                  child: FittedBox(fit: BoxFit.scaleDown, child: PaxWordmark()),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
                     key: const Key('welcome.menu'),
                     tooltip: open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación',

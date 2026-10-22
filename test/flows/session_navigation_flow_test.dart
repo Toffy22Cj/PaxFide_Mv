@@ -113,6 +113,8 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 401));
     await tester.enterText(find.byKey(const Key('login.email')), 'x@y');
     await tester.enterText(find.byKey(const Key('login.password')), 'mal');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Email o contraseña incorrectos.'), findsOneWidget);
@@ -219,12 +221,16 @@ void main() {
   testWidgets('/register: crear cuenta no inicia sesión', (tester) async {
     final h = AppHarness();
     await h.start(tester);
-    await tester.tap(find.text('Crear una cuenta'));
+    await tester.ensureVisible(find.byKey(const Key('login.register')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('login.register')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.register);
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-9', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Cuenta creada'), findsOneWidget);
@@ -241,9 +247,11 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 409));
     await tester.enterText(find.byKey(const Key('register.email')), 'ya@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Ya existe una cuenta con ese email.'), findsOneWidget);
+    expect(find.text('Ya existe una cuenta con ese correo electrónico.'), findsOneWidget);
   });
 
   testWidgets('inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE', (
@@ -274,6 +282,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'onceeeeeeee');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('La contraseña debe tener al menos 12 caracteres.'), findsOneWidget);
@@ -290,9 +300,11 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 400));
     await tester.enterText(find.byKey(const Key('register.email')), 'raro');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Revisa el email y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
+    expect(find.text('Revisa el correo electrónico y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
   });
 
   testWidgets('login: el email se envía sin espacios en los extremos (el backend lo pasa a minúsculas, DD-74)', (
@@ -304,6 +316,8 @@ void main() {
     h.api.enqueue(meResponse());
     await tester.enterText(find.byKey(const Key('login.email')), '  Empleado@Demo.PaxFide.local \t');
     await tester.enterText(find.byKey(const Key('login.password')), ' contraseña con espacios ');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path == '/auth/login');
@@ -323,6 +337,8 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'a', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), ' nuevo@demo ');
     await tester.enterText(find.byKey(const Key('register.password')), ' doce-o-mas-chars ');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path == '/auth/register');

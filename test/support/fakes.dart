@@ -18,7 +18,7 @@ class InMemoryTokenStore implements TokenStore {
   Future<String?> readToken() async => _token;
 
   @override
-  Future<void> writeToken(String token) async => _token = token;
+  Future<void> writeToken(String token, {bool remember = true}) async => _token = token;
 
   @override
   Future<void> clearToken() async => _token = null;

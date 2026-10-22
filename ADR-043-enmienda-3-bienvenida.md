@@ -67,3 +67,13 @@ Sin sesión, la app abre directamente `/login` (D8, fila `LOGGED_OUT` de la tabl
 - Con `MediaQuery.disableAnimations` no hay movimiento continuo y la cámara salta a cada parada. En las pruebas, `WelcomeWorld.ambientMotion = false`.
 - `PaxAppBar` (`lib/shared/widgets/pax_app_bar.dart`) sustituye a `AppBar` en todas las pantallas: es una píldora flotante de vidrio con el logo (o volver/cerrar), el título y las acciones.
 - Pendiente de confirmar por el equipo: la frase original «Nadie lo puede cambiar sin que se note» y «no se puede maquillar» se suavizaron hasta que se confirme la afirmación sobre blockchain.
+
+## Actualización (2026-10-22): login y registro como el landing; logo en vector
+
+- **Login** (`/login`): la caja de acceso del landing adaptada al móvil. Lleva el mundo de fondo, la píldora «Volver al recorrido», la insignia «TU CUENTA PAXFIDE», las pestañas Iniciar sesión / Crear cuenta, Google, Billetera Web3, «o continúa con correo electrónico», los campos con ícono, «¿Olvidaste tu contraseña?», «Recordarme en este teléfono» y «Regístrate gratis».
+  - Google, Billetera Web3 y la recuperación de contraseña **no existen en el backend**: muestran un aviso de que aún no están disponibles y no llaman a nada (en el landing también eran demostración).
+  - «Recordarme en este teléfono» es real: desmarcado, el JWT solo vive en memoria (`SecureTokenStore`) y al cerrar la app hay que volver a entrar.
+- **Registro** (`/register`): solo cambia el diseño. Sigue siendo solo para donantes, con correo y contraseña de al menos 12 caracteres. Sin Google, Web3, rol, nombre ni casilla de términos. La barra de seguridad muestra la única regla real: el largo mínimo.
+- **Logo**: `PaxLogo` es ahora el logo del landing dibujado en vector (sol, hoja, corazón, caja y mano), sin la imagen con fondo blanco. Usa colores de la paleta.
+- **Pruebas**: se ejecutan con pantalla de teléfono (411 × 891). Así aparecieron y se corrigieron desbordes reales con el texto grande.
+- **Pendiente de confirmar**: el subtítulo del landing «verifica lotes en blockchain» se dejó tal cual, pero la verificación aún no está disponible en la app.
