@@ -153,6 +153,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   Future<List<CampaignSummary>> _fetch() => _services.campaignSearch.search(const CampaignQuery());
 
   bool get _ambient => WelcomeWorld.ambientMotion && !_reduced;
+  bool get _animateWorld => _ambient && !_blur.value;
 
   @override
   void initState() {
@@ -228,11 +229,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   void _tick(Duration elapsed) {
     final dt = math.min(0.05, (elapsed - _last).inMicroseconds / 1e6);
     _last = elapsed;
-    if (_ambient) _t += dt;
+    if (_animateWorld) _t += dt;
     _camS += (_target - _camS) * math.min(1, dt * 5.5);
     if ((_target - _camS).abs() < 1e-4) _camS = _target;
     _clock.set(camS: _camS, t: _t, night: _night);
-    if (!_ambient && _camS == _target) _ticker.stop();
+    if (!_animateWorld && _camS == _target) _ticker.stop();
   }
 
   void _scrollTo(GlobalKey key) {
@@ -385,6 +386,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   ),
                 ),
               ),
+              if (_menuOpen)
+                Positioned.fill(
+                  child: Semantics(
+                    button: true,
+                    label: 'Cerrar menú de navegación',
+                    child: GestureDetector(
+                      key: const Key('welcome.menu.backdrop'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() => _menuOpen = false),
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: ColoredBox(
+                            color: Theme.of(context).colorScheme.scrim.withValues(alpha: dark ? 0.3 : 0.18),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -698,7 +719,9 @@ class _Nav extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduced = MediaQuery.disableAnimationsOf(context);
     return PaxGlass(
+      key: const Key('welcome.navigation.surface'),
       radius: open ? 24 : 999,
+      opacity: open ? 1 : 0.84,
       padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
       child: AnimatedSize(
         duration: reduced ? Duration.zero : const Duration(milliseconds: 250),

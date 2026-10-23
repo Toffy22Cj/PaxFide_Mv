@@ -363,6 +363,8 @@ class WorldPainter extends CustomPainter {
       Offset(_ox + (x - _camX - (y - _camY)) * _tw * _k, _oy + (x - _camX + (y - _camY)) * _th * _k - z * _hz * _k);
 
   bool get _mobile => _size.width <= 900;
+  int get _foliageStep => _mobile ? 2 : 1;
+  int get _grassStep => _mobile ? 3 : 1;
 
   void _overview() {
     if (_ovFor == _size) return;
@@ -1231,7 +1233,8 @@ class WorldPainter extends CustomPainter {
     _strip(_data.sidePts, 0.48, _col.roadSurface);
 
     // Pasto y flores
-    for (final g in _data.grass) {
+    for (var i = 0; i < _data.grass.length; i += _grassStep) {
+      final g = _data.grass[i];
       final p = _pt(g.x, g.y);
       if (p.dx < -40 || p.dx > w + 40 || p.dy < -40 || p.dy > h + 40) continue;
       if (g.type == 2) {
@@ -1259,11 +1262,13 @@ class WorldPainter extends CustomPainter {
     // Follaje, fincas y paradas ordenados por profundidad
     final d = <(double, VoidCallback)>[];
     const m = 140.0;
-    for (final b in _data.bushes) {
+    for (var i = 0; i < _data.bushes.length; i += _foliageStep) {
+      final b = _data.bushes[i];
       if (!_visible(_pt(b.$1, b.$2), m)) continue;
       d.add((b.$1 + b.$2, () => _bush(b.$1, b.$2, b.$3, b.$4)));
     }
-    for (final t in _data.trees) {
+    for (var i = 0; i < _data.trees.length; i += _foliageStep) {
+      final t = _data.trees[i];
       if (!_visible(_pt(t.$1, t.$2), m)) continue;
       d.add((
         t.$1 + t.$2,
@@ -1304,7 +1309,9 @@ class WorldPainter extends CustomPainter {
     final beam = _pt(_stops[3].$1 - 0.2, _stops[3].$2 - 2.4, 3.95);
     final beamW = 26 * _k;
     final pos = <(_Cloud, double, double, double)>[];
-    for (final c in _data.clouds) {
+    final cloudStep = _mobile ? 2 : 1;
+    for (var i = 0; i < _data.clouds.length; i += cloudStep) {
+      final c = _data.clouds[i];
       final raw = c.bx + _t * c.spd;
       final cx = ((raw % 125) + 125) % 125 - 45;
       final cy = c.by + math.sin(_t * 0.12 + c.phase) * 0.5;

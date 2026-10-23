@@ -30,9 +30,9 @@ class _LogoPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // El dibujo ocupa y = 2.5…35.5 del viewBox de 48: se centra en vertical.
+    // El dibujo ocupa y = 2.5…35.5, así que su centro (19) queda alineado con el centro del viewBox (24).
     final s = size.shortestSide / 40;
-    canvas.translate((size.width - 48 * s) / 2, (size.height - 48 * s) / 2 - 4.5 * s);
+    canvas.translate((size.width - 48 * s) / 2, (size.height - 48 * s) / 2 + 5 * s);
     canvas.scale(s);
     final p = Paint()..isAntiAlias = true;
 

@@ -6,6 +6,7 @@ import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/features/welcome/presentation/welcome_screen.dart';
+import 'package:paxfide_mobile/shared/widgets/pax_app_bar.dart';
 import 'package:paxfide_mobile/shared/theme/text_size_controller.dart';
 import 'package:paxfide_mobile/shared/theme/theme_controller.dart';
 
@@ -175,8 +176,11 @@ void main() {
     final h = await openWelcome(tester, campaigns: () => list([campaign('PUB1')]));
     final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(find.byKey(const Key('welcome.menu.campaigns')), findsNothing);
+    expect(tester.widget<PaxGlass>(find.byKey(const Key('welcome.navigation.surface'))).opacity, 0.84);
     await tester.tap(find.byKey(const Key('welcome.menu')));
     await tester.pumpAndSettle();
+    expect(tester.widget<PaxGlass>(find.byKey(const Key('welcome.navigation.surface'))).opacity, 1);
+    expect(find.byKey(const Key('welcome.menu.backdrop')), findsOneWidget);
     for (final k in ['how', 'verify', 'campaigns', 'tracking', 'login', 'follow', 'donate', 'scan']) {
       expect(find.byKey(Key('welcome.menu.$k')), findsOneWidget, reason: k);
     }
@@ -189,5 +193,19 @@ void main() {
     await tester.tap(find.byKey(const Key('welcome.menu.login')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.login);
+  });
+
+  testWidgets('el fondo modal desenfoca el landing y cierra el menú al tocar fuera', (tester) async {
+    await openWelcome(tester);
+    await tester.tap(find.byKey(const Key('welcome.menu')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('welcome.menu.backdrop')), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsWidgets);
+    await tester.tapAt(const Offset(4, 200));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('welcome.menu.backdrop')), findsNothing);
+    expect(find.byKey(const Key('welcome.menu.campaigns')), findsNothing);
   });
 }
