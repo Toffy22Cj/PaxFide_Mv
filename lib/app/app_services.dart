@@ -13,6 +13,7 @@ import '../features/campaigns/data/campaign_api.dart';
 import '../features/campaigns/domain/campaign_search.dart';
 import '../features/campaigns/domain/public_campaign_search.dart';
 import '../features/campaigns/domain/organization_verification.dart';
+import '../features/donations/data/account_impact_api.dart';
 import '../features/donations/domain/impact.dart';
 import '../features/donations/domain/receipt.dart';
 import '../shared/theme/text_size_controller.dart';
@@ -36,7 +37,7 @@ class AppServices {
     this.qrScannerBuilder = defaultQrScanner,
     this.organizationVerification = const PublicFieldVerification(),
     CampaignSearch? campaignSearch,
-    this.impactSource = const UnavailableImpactSource(),
+    ImpactSource? impactSource,
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
     this.linkOpener = const UrlLauncherLinkOpener(),
@@ -47,6 +48,7 @@ class AppServices {
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController(),
        campaignSearch = campaignSearch ?? PublicCampaignSearch(CampaignApi(apiClient)),
+       impactSource = impactSource ?? ApiImpactSource(AccountImpactApi(apiClient)),
        textSize = textSize ?? TextSizeController(),
        biometricLogin = BiometricLogin(
          api: authApi,

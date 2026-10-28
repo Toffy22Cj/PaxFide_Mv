@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/money.dart';
+import '../../../shared/quantity.dart';
 import '../../../shared/widgets/amount_bars.dart';
 import '../domain/impact.dart';
 
-/// M-21: panel "Mi impacto" con barras por convocatoria. Sin datos (o con error), no ocupa espacio.
+/// M-21: panel "Mi impacto" (`GET /account/impact`): donaciones confirmadas, convocatorias apoyadas, total donado
+/// por moneda y barras con las unidades entregadas en esas convocatorias. Sin datos (o con error), no ocupa espacio.
 class ImpactCard extends StatefulWidget {
   const ImpactCard({super.key, required this.source});
   final ImpactSource source;
@@ -23,6 +26,7 @@ class _ImpactCardState extends State<ImpactCard> {
         final i = snap.data;
         if (i == null) return const SizedBox.shrink();
         final text = Theme.of(context).textTheme;
+        final muted = Theme.of(context).colorScheme.onSurfaceVariant;
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Card(
@@ -35,16 +39,36 @@ class _ImpactCardState extends State<ImpactCard> {
                   Text('Mi impacto', style: text.titleMedium),
                   const SizedBox(height: 4),
                   Text(
-                    '${i.unitsDelivered} ${i.unitsDelivered == 1 ? 'bien entregado' : 'bienes entregados'} · '
-                    '${i.distinctRecipients} ${i.distinctRecipients == 1 ? 'persona ayudada' : 'personas ayudadas'}',
+                    '${i.donationsCount} ${i.donationsCount == 1 ? 'donación confirmada' : 'donaciones confirmadas'} · '
+                    '${i.campaignsSupported} '
+                    '${i.campaignsSupported == 1 ? 'convocatoria apoyada' : 'convocatorias apoyadas'}',
+                    key: const Key('impact.summary'),
                   ),
-                  const SizedBox(height: 8),
-                  AmountBars(
-                    bars: [
-                      for (final c in i.byCampaign)
-                        AmountBar(c.campaignTitle, c.unitsDelivered, '${c.unitsDelivered} entregados'),
-                    ],
-                  ),
+                  for (final t in i.totals)
+                    Text('Donado: ${formatMinorUnits(t.amount, t.currency)}', style: text.titleSmall),
+                  if (i.deliveredUnits.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text('Entregado en las convocatorias que apoyaste', style: text.labelLarge),
+                    const SizedBox(height: 4),
+                    AmountBars(
+                      bars: [
+                        for (final u in i.deliveredUnits)
+                          AmountBar(
+                            u.unitOfMeasure,
+                            num.tryParse(u.quantity) ?? 0,
+                            formatQuantity(u.quantity),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (i.truncated) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Se cuentan tus 100 donaciones más recientes.',
+                      key: const Key('impact.truncated'),
+                      style: text.bodySmall?.copyWith(color: muted),
+                    ),
+                  ],
                 ],
               ),
             ),
