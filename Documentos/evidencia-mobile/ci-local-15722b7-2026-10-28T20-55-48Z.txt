@@ -1,0 +1,391 @@
+# CI local — scripts/ci-local.sh (paxfide-mobile)
+commit:   15722b77fbe6466658d3def24e3edc784453e348
+rama:     chore/landing-bienvenida-movil
+inicio:   2026-10-28T20:55:48Z
+fin:      2026-10-28T20:57:08Z
+comandos: flutter analyze ; flutter test --reporter expanded
+salida:   analyze=0 test=0
+
+## Versiones
+Flutter 3.47.7 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision abaf9c5237 (hace 3 semanas) • 2026-10-08 09:51:21 -0700
+Engine • hash d8a2d6c768c334d53e16277f837970ffa1e2de81 (revision deb287481e) (21 days ago) • 2026-10-07 17:09:12.000Z
+Tools • Dart 3.13.5 • DevTools 2.60.0
+
+## flutter analyze (literal)
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  qr 3.0.2 (4.0.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+13 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing PaxFide_Mv-github...                                  
+No issues found! (ran in 3.5s)
+
+## flutter test (literal)
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  qr 3.0.2 (4.0.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+13 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart
+00:00 +0: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: el origen se reduce a esquema + host
+00:00 +1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) activo → /assets/:assetRef, autenticada
+00:00 +2: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) activo → /assets/:assetRef, autenticada
+00:00 +3: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +4: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +5: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +6: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:00 +7: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento → /tracking SIN el código (nunca va en una URL)
+00:00 +8: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: parámetro inválido → sin QR
+00:00 +9: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) seguimiento: el código nunca forma parte de una ruta aprobada
+00:00 +10: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) seguimiento: el código nunca forma parte de una ruta aprobada
+00:00 +11: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:00 +12: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:00 +13: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:00 +14: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:00 +15: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:00 +16: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: R5: no aprobadas sin origen canónico configurado, nada se aprueba
+00:00 +17: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) parámetros estructuralmente inválidos → no aprobada
+00:00 +18: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: R5: no aprobadas ruta desconocida o fija que no es payload de QR
+00:00 +19: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) desconocidas y diferidas → no aprobada
+00:00 +20: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: R5: no aprobadas parámetro inválido
+00:00 +21: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/deep_link_parser_test.dart: R5: no aprobadas texto que no es URL
+00:00 +22: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: ruta aprobada con la versión actual es válida
+00:00 +23: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: schemaVersion desconocida → inválido
+00:00 +24: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: ruta no aprobada (incluida /campaigns) → inválido
+00:00 +25: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: transitorias nunca se restauran
+00:00 +26: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: parámetros que no corresponden a la ruta → inválido
+00:00 +27: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/navigation_restore_state_test.dart: ida y vuelta por JSON; JSON corrupto → null
+00:00 +28: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: pública → permitir (no espera sesión)
+00:00 +29: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: /login → esperar
+00:00 +30: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: autenticada → esperar
+00:00 +31: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: no aprobada → esperar (fallback al resolver)
+00:00 +32: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: pública → permitir (no espera sesión)
+00:00 +33: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: /login → esperar
+00:00 +34: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: autenticada → esperar
+00:00 +35: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: no aprobada → esperar (fallback al resolver)
+00:00 +36: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: pública y autenticada → permitir
+00:00 +37: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: /login y no aprobada → /home
+00:00 +38: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: pública y /login → permitir
+00:00 +39: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: autenticada → /login (R2, Decisión B); no aprobada → /welcome (Enmienda 3)
+00:00 +40: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: invariantes idempotencia: el destino de un redirect siempre se permite (sin bucles)
+00:00 +41: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: invariantes negativa: una ruta pública nunca espera ni se redirige
+00:00 +42: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: invariantes negativa: /campaigns nunca se permite en ningún estado de sesión
+00:00 +43: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/app/session_guard_test.dart: invariantes /register se comporta como /login (transitoria de auth)
+00:01 +44: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/integration/backend_real_test.dart: backend real
+  Skip: Sin PAXFIDE_REAL_API: recorrido contra el backend real no ejecutado
+00:01 +44 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: PENDING → IN_FLIGHT (persistido antes de la respuesta) → ACKNOWLEDGED y se retira
+00:01 +45 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: 4xx → FAILED con el código; negativa: FAILED nunca se reintenta con el mismo commandId
+00:01 +46 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: timeout → AMBIGUOUS; negativa: AMBIGUOUS nunca se reintenta automáticamente
+00:02 +47 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: 5xx → AMBIGUOUS (nunca FAILED)
+00:02 +48 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: reintento manual de AMBIGUOUS → mismo Command-Id
+00:02 +49 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: sin conexión: no sale, sigue PENDING y nunca pasó por IN_FLIGHT
+00:02 +50 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: negativa: IN_FLIGHT nunca vuelve a PENDING (fallo ambiguo tras salir)
+00:02 +51 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: H2: frontera por accountId otra cuenta no ve las entradas
+00:02 +52 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: H2: frontera por accountId negativa: una cuenta nunca envía entradas de otra
+00:02 +53 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: H2: frontera por accountId otra cuenta tampoco verifica ni descarta
+00:02 +54 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: verificar: coincide → ACKNOWLEDGED (retirada); no coincide → sigue AMBIGUOUS; nunca envía
+00:02 +55 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: verificar solo AMBIGUOUS
+00:02 +56 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: descartar solo FAILED; no envía nada
+00:02 +57 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: enqueue: solo PENDING y sin commandId repetido
+00:02 +58 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: dos envíos simultáneos de la misma entrada: el segundo se rechaza
+00:02 +59 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: persistencia: otro SyncEngine sobre el mismo almacén ve las entradas (reinicio)
+00:02 +60 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/sync_engine_test.dart: almacén ilegible: no se envía nada
+00:02 +61 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/auth_response_handler_test.dart: T-1: 401 con JWT limpia el TokenStore y cierra la sesión
+00:02 +62 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/auth_response_handler_test.dart: negativa: el 401 de seguimiento nunca modifica la sesión
+00:02 +63 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/auth_response_handler_test.dart: negativa: 401 sin credencial, 403 y 404 no tocan la sesión
+00:02 +64 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:02 +65 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/outbox_recovery_test.dart: negativa: IN_FLIGHT nunca vuelve a PENDING al arrancar
+00:02 +66 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/outbox_recovery_test.dart: T-2 no toca otros estados
+00:02 +67 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/outbox_recovery_test.dart: T-2 aplica a las entradas de todas las cuentas (sin enviarlas)
+00:03 +68 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/outbox_recovery_test.dart: OutboxItem guarda el accountId que lo creó (H2)
+00:03 +69 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: jwt: pone el JWT del TokenStore y une la base con la ruta
+00:03 +70 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: none: nunca envía Authorization aunque haya JWT
+00:03 +71 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: tracking: usa la cabecera de la feature y nunca el JWT
+00:03 +72 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: credenciales no intercambiables: Authorization manual con jwt/none, o tracking sin ella → error
+00:03 +73 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: T-1: 401 con JWT limpia el token y cierra la sesión
+00:03 +74 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: negativa: 401 de seguimiento no toca la sesión
+00:03 +75 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: sin JWT guardado: la petición no sale y equivale a 401 (T-1)
+00:03 +76 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: no se pudo conectar → determinista, y beforeSend NO se invoca
+00:03 +77 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:03 +78 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:03 +79 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:03 +80 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:03 +81 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:03 +82 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:04 +83 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:04 +84 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:04 +85 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/design_tokens_test.dart: ningún color escrito a mano fuera de pax_tokens.dart
+00:04 +86 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/design_tokens_test.dart: ningún color escrito a mano fuera de pax_tokens.dart
+00:04 +87 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/design_tokens_test.dart: ningún color escrito a mano fuera de pax_tokens.dart
+00:04 +88 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/design_tokens_test.dart: ningún color escrito a mano fuera de pax_tokens.dart
+00:04 +89 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +90 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +91 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +92 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +93 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +94 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +95 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +96 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:04 +97 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:05 +98 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/security_test.dart: lib/ no usa print, debugPrint, log ni stdout
+00:05 +99 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/architecture/security_test.dart: ninguna ruta del árbol lleva el código de seguimiento
+00:05 +100 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/theme_controller_test.dart: empieza como el teléfono y recuerda la elección
+00:05 +101 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/theme_controller_test.dart: un valor desconocido guardado vuelve a "como el teléfono"
+00:05 +102 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: mostrar unidades mínimas el ejemplo literal del contrato
+00:05 +103 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: mostrar unidades mínimas valores reales del ensayo (meta de la convocatoria y donación)
+00:05 +104 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: mostrar unidades mínimas moneda sin exponente conocido: nunca se inventa la escala
+00:05 +105 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: mostrar unidades mínimas valor que no es un entero → se muestra tal cual
+00:05 +106 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: importe escrito por el donante → unidades mínimas pesos enteros o con hasta dos decimales
+00:05 +107 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: importe escrito por el donante → unidades mínimas inválidos → null
+00:05 +108 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/money_test.dart: importe escrito por el donante → unidades mínimas sin exponente conocido no se convierte
+00:06 +109 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/quantity_test.dart: quita solo los ceros sobrantes
+00:06 +110 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/quantity_test.dart: nunca redondea
+00:06 +111 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/quantity_test.dart: lo que no es un decimal se muestra tal cual
+00:06 +112 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/shared/quantity_test.dart: con unidad
+00:06 +113 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl devuelve la URL esperada con ruta válida y base con puerto y ruta previa
+00:06 +114 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl maneja apiBaseUrl con o sin barra final
+00:06 +115 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl elimina parámetros de consulta y fragmentos (sin códigos de rastreo)
+00:06 +116 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl rechaza rutas que no empiezan por /api/v1/public/
+00:06 +117 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl rechaza rutas externas o con autoridad
+00:06 +118 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: resolveApiMediaUrl devuelve null con null o vacío
+00:06 +119 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: CampaignApi parseo de cover, logo y verificación discover() lee organizationVerified, organizationLogoUrl y coverImageUrl
+00:06 +120 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: CampaignApi parseo de cover, logo y verificación get() lee organizationVerified, organizationLogoUrl y coverImageUrl
+00:06 +121 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_media_url_test.dart: CampaignApi parseo de cover, logo y verificación get() con organizationVerified ausente o no booleano queda false
+00:07 +122 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:07 +123 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:07 +124 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:07 +125 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:08 +126 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:08 +127 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:09 +128 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: variante 15: con meta, el porcentaje es la cifra y se ven recaudado y meta
+00:09 +129 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: variante 15: con meta, el porcentaje es la cifra y se ven recaudado y meta
+00:09 +130 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: variante 15: con meta, el porcentaje es la cifra y se ven recaudado y meta
+00:09 +131 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: variante 15: con meta, el porcentaje es la cifra y se ven recaudado y meta
+00:09 +132 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: variante 15: con meta, el porcentaje es la cifra y se ven recaudado y meta
+00:09 +133 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/impact_card_test.dart: M-21: con datos muestra totales y barras por convocatoria
+00:10 +134 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/impact_card_test.dart: M-21: con datos muestra totales y barras por convocatoria
+00:10 +135 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/impact_card_test.dart: M-21: con datos muestra totales y barras por convocatoria
+00:10 +136 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: CampaignSummaryCard portada, logo y verificación muestra insignia solo con organizationVerified == true
+00:10 +137 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/impact_card_test.dart: M-21: sin datos o con error no se muestra nada
+00:10 +138 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/campaigns/campaign_summary_card_test.dart: CampaignSummaryCard portada, logo y verificación sin portada no se pide imagen por red
+00:10 +139 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/receipt_view_test.dart: M-22: comprobante (no certificado) con importe, convocatoria y número
+00:10 +140 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/receipt_view_test.dart: M-22: comprobante (no certificado) con importe, convocatoria y número
+00:10 +141 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/receipt_view_test.dart: M-22: comprobante (no certificado) con importe, convocatoria y número
+00:10 +142 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/receipt_view_test.dart: M-22: comprobante (no certificado) con importe, convocatoria y número
+00:11 +143 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/donations/receipt_view_test.dart: M-22: sin backend ni dependencia para compartir, no se ofrece
+00:11 +144 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +145 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +146 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +147 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +148 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +149 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +150 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +151 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +152 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +153 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:11 +154 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +155 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +156 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +157 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +158 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +159 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +160 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +161 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +162 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +163 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +164 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +165 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +166 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +167 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +168 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +169 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:12 +170 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +171 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +172 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +173 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +174 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +175 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +176 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +177 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +178 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +179 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +180 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +181 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +182 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +183 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +184 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:13 +185 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:14 +186 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/biometric_login_test.dart: login: recuadro "Entrar por biometría" aparece solo, con el logo, y con huella o rostro correctos entra sin escribir nada
+00:15 +187 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/biometric_login_test.dart: login: recuadro "Entrar por biometría" aparece solo, con el logo, y con huella o rostro correctos entra sin escribir nada
+00:15 +188 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:16 +189 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:16 +190 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:17 +191 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:17 +192 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:18 +193 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:18 +194 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:18 +195 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: pendientes: AMBIGUOUS → Verificar estado (GET) → confirmada y retirada
+00:18 +196 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:19 +197 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/biometric_login_test.dart: login: recuadro "Entrar por biometría" dejar de usarla desde el login
+00:19 +198 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:19 +199 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:20 +200 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:20 +201 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:20 +202 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:21 +203 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:22 +204 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:22 +205 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:22 +206 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:23 +207 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:23 +208 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:23 +209 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:23 +210 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/auth/biometric_login_test.dart: activarla tras entrar con contraseña cerrar sesión no la desactiva: al volver al login aparece el recuadro
+00:24 +211 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:24 +212 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:24 +213 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: sin conexión al enviar: queda PENDING en el dispositivo y "Enviar" lo manda después
+00:25 +214 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/outbox_flow_test.dart: sin conexión al enviar: queda PENDING en el dispositivo y "Enviar" lo manda después
+00:25 +215 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:26 +216 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:26 +217 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:27 +218 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:27 +219 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:28 +220 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:28 +221 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/accessibility_test.dart: texto al 200 %: login, Mi día y su barra sin desbordes
+00:28 +222 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/accessibility_test.dart: texto al 200 %: login, Mi día y su barra sin desbordes
+00:29 +223 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/accessibility_test.dart: texto al 200 %: login, Mi día y su barra sin desbordes
+00:29 +224 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:29 +225 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:30 +226 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:30 +227 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:30 +228 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:30 +229 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:30 +230 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:31 +231 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:31 +232 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:32 +233 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:32 +234 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:32 +235 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:33 +236 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:33 +237 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:33 +238 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:34 +239 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:35 +240 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: con sesión: la donación va con el JWT (queda ligada a la cuenta)
+00:35 +241 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:36 +242 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:36 +243 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:37 +244 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:37 +245 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:38 +246 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:38 +247 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /welcome (Enmienda 3); «Iniciar sesión» abre Entrar y «volver» regresa
+00:38 +248 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: importe inválido (más de 2 decimales) → no se envía nada
+00:38 +249 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR de activo sin sesión → login y PendingIntent (R2)
+00:39 +250 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: M-19: "Pegar" trae el código del portapapeles al campo
+00:39 +251 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: G-1: arranque en frío con ruta pública guardada → se muestra sin UI de espera
+00:39 +252 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: pesos con decimales → unidades mínimas, con vista previa antes de enviar
+00:39 +253 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: QR ajeno → aviso y no navega
+00:40 +254 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: código inválido (404) → un único mensaje y la sesión no cambia
+00:40 +255 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: código inválido (404) → un único mensaje y la sesión no cambia
+00:40 +256 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: moneda sin exponente conocido → no se ofrece donar
+00:40 +257 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: Operaciones sin EMPLOYEE → estado "sin acceso operativo" (no redirect)
+00:40 +258 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: ruta autenticada durante RESTORING → UI de espera (no es una ruta)
+00:40 +259 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: negativa: el 401 de seguimiento nunca modifica la sesión
+00:40 +260 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: CV-11 sin statusToken ni paymentRedirectUrl (campos opcionales) → aviso, sin consultar ni fallar
+00:41 +261 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: escribir la referencia a mano → /assets/:assetRef
+00:41 +262 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:41 +263 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:41 +264 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: R2: deep link a /assets sin sesión → login → llega al activo (consumo único)
+00:41 +265 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: sin cámara: pegar el enlace pasa por el mismo DeepLinkParser (aprobado y no aprobado)
+00:42 +266 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: sin cámara: pegar el enlace pasa por el mismo DeepLinkParser (aprobado y no aprobado)
+00:42 +267 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: M-11: sin cuenta se puede donar o iniciar sesión antes de pagar y volver a la convocatoria
+00:42 +268 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:43 +269 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: mis donaciones: lista real, sin intentId ni código de seguimiento
+00:43 +270 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: mis donaciones: lista real, sin intentId ni código de seguimiento
+00:43 +271 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/qr_scan_flow_test.dart: M-31/M-19: marco de encuadre y "Pegar" desde el portapapeles; una referencia escrita abre la ficha
+00:43 +272 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: R2: login fallido → la intención desaparece
+00:43 +273 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donate_flow_test.dart: M-12: «Abrir el pago» abre el checkout en el navegador; si falla, avisa y queda el enlace
+00:44 +274 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo
+00:44 +275 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo
+00:44 +276 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo
+00:44 +277 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/donor_flow_test.dart: M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo
+00:45 +278 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: logout → atrás nunca vuelve a /assets (invariante 4)
+00:45 +279 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: logout → atrás nunca vuelve a /assets (invariante 4)
+00:45 +280 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:46 +281 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:46 +282 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:46 +283 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:46 +284 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:47 +285 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:47 +286 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:47 +287 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:47 +288 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver
+00:48 +289 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:48 +290 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:48 +291 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:48 +292 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:49 +293 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:49 +294 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:49 +295 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:49 +296 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: /register: email repetido → 409 con mensaje propio
+00:49 +297 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: despachar: POST con Command-Id, cuerpo exacto y JWT; 200 → confirmada
+00:51 +298 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/account_flow_test.dart: cerrar sesión pide confirmación y avisa de las operaciones guardadas, sin borrarlas
+00:51 +299 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE
+00:51 +300 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:52 +301 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:52 +302 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:52 +303 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:53 +304 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:53 +305 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: verificar con estado distinto → sigue AMBIGUOUS
+00:53 +306 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/session_navigation_flow_test.dart: login: el email se envía sin espacios en los extremos (el backend lo pasa a minúsculas, DD-74)
+00:53 +307 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/employee_flow_test.dart: sin conexión: aviso y los atajos siguen disponibles
+00:54 +308 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: AMBIGUOUS: solo "Verificar estado", nunca "Reintentar"
+00:54 +309 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: AMBIGUOUS: solo "Verificar estado", nunca "Reintentar"
+00:54 +310 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:55 +311 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:55 +312 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:55 +313 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:55 +314 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:56 +315 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:56 +316 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:56 +317 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:56 +318 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:57 +319 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:57 +320 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:57 +321 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:57 +322 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: E-11: QR del activo a pantalla completa, con la misma URL que la web y la referencia
+00:58 +323 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: el modo guardado se aplica al abrir la app
+00:58 +324 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: sin acceso al activo (403) no se ofrece su QR
+00:58 +325 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: registro también tiene el selector
+00:58 +326 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/asset_flow_test.dart: DISPATCHED sin currentLocation (forma real del backend) → se muestra y ofrece Recibir
+00:58 +327 ~1: /home/adonisperez/Documentos/PAXFIDE/PaxFide_Mv-github/test/flows/theme_flow_test.dart: con la sesión iniciada el selector está en la barra y cambia toda la app
+00:59 +328 ~1: All tests passed!
+
+## sha256 de las dos salidas
+analyze: 22cadf6a0d75a72040cbc6a1d21401423461ffb19e254b92fdb21afa68ac0afb
+test:    77da56f3b6aa653b40870129e386579ce5e305d1acad60e73b5bfb23e74294cd
