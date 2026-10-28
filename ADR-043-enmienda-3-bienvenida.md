@@ -96,3 +96,21 @@ Sin sesión, la app abre directamente `/login` (D8, fila `LOGGED_OUT` de la tabl
     - Portada arriba en formato 16:9 (`Image.network` con fondo de reserva del tema, `excludeFromSemantics: true`).
     - Logo circular de la organización con iniciales de reserva sobre fondo de tokens.
     - Sello «✓ Organización verificada» visible únicamente cuando `organizationVerified == true`.
+
+## Nota (2026-10-28): qué queda superado de las actualizaciones del 2026-10-22
+
+Las secciones anteriores no se reescriben. Con las dos actualizaciones del 2026-10-28, estas afirmaciones ya no son ciertas:
+
+- «Google, Billetera Web3 y la recuperación de contraseña no existen en el backend»: Google y Web3 se **retiraron** del login; la recuperación **sí existe** (`POST /auth/password-reset`) y está conectada.
+- «Registro … sin casilla de términos»: el registro **lleva** las dos casillas obligatorias.
+- «Pendiente de confirmar: el subtítulo del landing "verifica lotes en blockchain"»: **resuelto**. El subtítulo pasó a «Gestiona tus donaciones, sigue su recorrido y apoya convocatorias».
+- Sigue pendiente: los textos de las paradas 04 y 05 del recorrido.
+
+Detalles de diseño que no estaban escritos:
+
+- **403 `AcceptanceRequired` y T-1 (D3):** el login va con `CredentialMode.none`, así que este 403 no pasa por `AuthResponseHandler` ni cambia la sesión. Se traduce en `AuthApi` a `AcceptanceRequiredException`, una excepción con nombre de la capa 2 de D4 que hereda de `ApiHttpException` y **no** de `ForbiddenException`. `ApiResponse` sigue siendo transporte puro.
+- **Versiones legales:** fijas en `lib/features/auth/domain/legal_versions.dart` (`v1-2026-10`), porque la API no las expone. Solo se usan en el registro; en el login se envían siempre las pendientes que trae el 403, y solo tras aceptarlas.
+- **Textos legales:** las casillas no enlazan a ningún texto todavía. Pendiente de que se publiquen.
+- **Imágenes del catálogo:** las tarjetas toman la base de la API de `AppConfig` (con `AppScope.maybeOf`, que admite que no haya `AppScope`, como en las pruebas) y `resolveApiMediaUrl` construye las URL de portada y logo. Solo se cargan rutas bajo `/api/v1/public/`, sin credenciales.
+- **Recuperación de contraseña:** la app solo pide el enlace. La contraseña nueva se pone en la web (`/recuperar`, rama `feat/web-account-security` de `Toffy22Cj/PaxFide`, aún sin fusionar en `develop`). Probado de punta a punta contra el backend local el 2026-10-28, confirmando el token con `POST /auth/password-reset/confirm` (204).
+- **Verificación:** `scripts/ci-local.sh` en verde sobre `15722b7` (`flutter analyze` sin avisos, 328 pruebas); evidencia en `Documentos/evidencia-mobile/ci-local-15722b7-2026-10-28T20-55-48Z.txt`.

@@ -10,6 +10,10 @@
 
 **Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-046 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
 
+**Enmiendas aprobadas** (prevalecen sobre este texto en lo que cambian):
+- `ADR-043-enmienda-2-empleado-y-navegacion.md`: navegación del empleado, Cuenta, dependencias nuevas y, en su §6, el estado de las funciones del donante.
+- `ADR-043-enmienda-3-bienvenida.md`: bienvenida sin sesión (`/welcome`), login y registro, términos y condiciones, recuperación de contraseña y catálogo con portada, logo y sello.
+
 **Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
 
 **Origen de la obligación:** ADR-046 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
@@ -170,6 +174,8 @@ Reglas:
 ### D10 — Alcance funcional v1
 
 > **Actualizada (2026-10-07, §0 A4):** donar, consulta de la intención, registro de cuenta, `/me` y los comandos `dispatch`/`receive`/`deliver` ya existen en el backend y dejan de estar fuera de v1 o bloqueados.
+>
+> **Actualizada (2026-10-28):** el alcance real implementado, función por función, está en la §6 de la Enmienda 2. Los puntos de abajo sobre botón "Donar", registro y `/donations` vacía quedan superados: la app dona (M-11, M-12, M-14), registra cuentas con aceptación de términos (Enmienda 3) y lista las donaciones de la cuenta (M-15, M-16).
 
 (§12, §13)
 

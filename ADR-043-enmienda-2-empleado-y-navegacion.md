@@ -47,3 +47,44 @@ Las pantallas siguen el diseño de Figma (01 Acceso e inicio, 02 Convocatoria y 
 
 - **Colores:** el modo claro usa solo la paleta oficial. El modo oscuro es la misma paleta en contraste oscuro: cada color se invierte en luminosidad (HSL, `L → 1 − L`), de modo que los verdes oscuros de los botones pasan a verdes claros y los fondos claros pasan a casi negros; las tarjetas destacadas y los chips usan los tonos oscuros de la paleta tal cual. Lo comprueba `test/architecture/design_tokens_test.dart`.
 - **Diferencias con el Figma:** el donante no ve la referencia del bien («Lote …») en el seguimiento (regla de privacidad existente); la tarjeta de predicción usa el azul de la paleta en lugar del morado, que no está en la paleta; el aviso de la revisión dice «Esto queda registrado para siempre» (texto pedido en la reunión).
+
+## 6. Estado de las funciones (2026-10-28, rama `chore/landing-bienvenida-movil`)
+
+Registro de lo que ya está en el código y no estaba documentado en ningún ADR. Se comprobó contra el backend `develop` de `Toffy22Cj/Donaciones` (`993c3e8`). Las secciones anteriores no se reescriben.
+
+### 6.1 Funciones del donante implementadas
+
+| Función | Qué hace | Dónde |
+|---|---|---|
+| M-07 | Sello «✓ Organización verificada», solo si `organizationVerified` es `true` (Enmienda 3) | `campaigns/domain/organization_verification.dart`, `campaign_summary_card.dart` |
+| M-09 | Progreso de la convocatoria: porcentaje de la meta, días que quedan y meta alcanzada | `campaigns/domain/campaign_progress.dart` |
+| M-10 | Buscar, filtrar y ordenar convocatorias **en el teléfono** sobre `GET /public/campaigns` (hasta 5 páginas). «Ver todas» abre la búsqueda sin ruta propia: `/campaigns` sigue diferida | `public_campaign_search.dart`, `campaign_search_view.dart` |
+| M-11 | Donar sin cuenta, o iniciar sesión antes de pagar para verla luego en «Mis donaciones» | `donations/presentation/donate_sheet.dart` |
+| M-12 | «Abrir el pago» con `url_launcher` (§4) | `donate_sheet.dart` |
+| M-14 | Importes sugeridos: tocar uno escribe la cifra en el campo | `shared/money.dart`, `donate_sheet.dart` |
+| M-15 | Mis donaciones: filtros por estado del pago y total confirmado por moneda | `my_donations_screen.dart` |
+| M-16 | Detalle de una donación. «Ver el recorrido» usa el código de la cuenta en memoria, sin escribirlo ni guardarlo | `my_donations_screen.dart`, `account_donations_api.dart` |
+| M-17 | Línea de tiempo del recorrido de un bien, con el paso actual resaltado | `tracking/presentation/tracking_screen.dart` |
+| M-19 | Botón «Pegar» del código en el seguimiento y en el escáner | `tracking_screen.dart`, `app/qr_scanner_sheet.dart` |
+| M-21 | Panel «Mi impacto» en Mis donaciones, detrás de `ImpactSource`. Hoy usa `UnavailableImpactSource`: sin datos, el panel no se muestra | `donations/domain/impact.dart`, `impact_card.dart` |
+| M-22 | Comprobante dibujado como tarjeta y capturable como imagen, detrás de `ReceiptSource` y `ReceiptSharer`. Hoy los dos son `Unavailable…` | `donations/domain/receipt.dart`, `receipt_view.dart` |
+| M-23 | «Tus logros», solo visibles para el propio donante, sin compartir | `donations/domain/achievements.dart` |
+| M-35 | Logo de PaxFide en vector, el mismo del landing (Enmienda 3) | `shared/widgets/pax_logo.dart` |
+
+### 6.2 Lo que el backend ya tiene y la app aún no usa
+
+| Función | Contrato existente | Falta en la app |
+|---|---|---|
+| M-21 Mi impacto | `GET /account/impact` → `{donationsCount, totals, campaignsSupported, deliveredUnits, truncated}` | Implementar `ImpactSource`. La forma no coincide con `MyImpact` (`byCampaign`, `distinctRecipients`): hay que adaptar el modelo |
+| M-27 Cambiar contraseña | `POST /account/password` → `200 {token}`; la app sustituye el token y las demás sesiones quedan revocadas | La opción en Cuenta |
+| E-12 Correo y nombre en Cuenta | `GET /account` → `{email}`; `GET`/`PUT /account/profile` → `{email, givenName?, familyName?}` | Mostrarlos en `account_screen.dart`. Supera el límite de §4 («`GET /me` no trae el correo») |
+| Entregar con foto | `POST /organizations/{id}/delivery-evidence` → `201 {evidenceRef}` (ADR-051) | Sigue pendiente de aprobar `ADR-fotos-seccion-adonis-foto-de-entrega.md`; hoy `evidenceRef` se escribe a mano |
+| Seguimiento verificable | `eventHash` y `anchorProof` por paso; `GET /donations/tracking/integrity` | Mostrarlos en el seguimiento (la web ya lo hace) |
+| Desactivar la cuenta | `POST /account/deactivate` (ADR-050 D6) | Decidir si va en el móvil |
+
+### 6.3 Limitaciones conocidas
+
+- **M-28 (biometría):** `/auth/device-credentials` y `/auth/device-login` no están en `develop` del backend; solo en la rama `claude/focused-goodall-meb6sh`. Contra `develop`, activar la biometría falla.
+- **M-22 (comprobante):** no hay endpoint en el backend.
+- **M-25 (mapa del recorrido):** depende de `ADR-050-mapa-del-recorrido.md`, sin aprobar.
+- **M-10:** la búsqueda en el servidor no existe; la del teléfono cubre hasta 5 páginas (100 convocatorias).
