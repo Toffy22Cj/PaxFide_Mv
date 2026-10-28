@@ -16,6 +16,9 @@ const _deviceKey = 'paxfide.biometric.device';
 
 ApiResponse _ok(Map<String, dynamic> data, [int code = 200]) => ApiResponse(statusCode: code, data: data);
 
+/// La lista de Cuenta (para desplazarla hasta lo que queda debajo del pliegue).
+final _accountList = find.ancestor(of: find.byKey(const Key('account.identity')), matching: find.byType(Scrollable));
+
 void main() {
   group('BiometricLogin (M-28)', () {
     late FakeApiClient api;
@@ -188,6 +191,8 @@ void main() {
       h.saveDeviceCredential();
       await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
       h.services.router.go('/account');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.byKey(const Key('account.logout')), 200, scrollable: _accountList);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('account.logout')));
       await tester.pumpAndSettle();

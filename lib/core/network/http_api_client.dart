@@ -53,6 +53,47 @@ class HttpApiClient implements ApiClient {
     Future<void> Function()? beforeSend,
   }) => _send('POST', path, null, headers, body, credentialMode, beforeSend);
 
+  @override
+  Future<ApiResponse> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  }) => _send('PUT', path, null, headers, body, credentialMode, null);
+
+  @override
+  Future<ApiResponse> postFile(
+    String path, {
+    required String field,
+    required String filename,
+    required String contentType,
+    required List<int> bytes,
+    required CredentialMode credentialMode,
+  }) {
+    // Límite aleatorio que no puede aparecer en los bytes de una imagen por casualidad práctica.
+    final boundary = 'paxfide-${DateTime.now().microsecondsSinceEpoch}-${bytes.length}';
+    final safeName = filename.replaceAll(RegExp(r'["\r\n]'), '_');
+    final body = <int>[
+      ...utf8.encode(
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="$field"; filename="$safeName"\r\n'
+        'Content-Type: $contentType\r\n\r\n',
+      ),
+      ...bytes,
+      ...utf8.encode('\r\n--$boundary--\r\n'),
+    ];
+    return _send(
+      'POST',
+      path,
+      null,
+      null,
+      null,
+      credentialMode,
+      null,
+      raw: (bytes: body, type: ContentType('multipart', 'form-data', parameters: {'boundary': boundary})),
+    );
+  }
+
   Uri _resolve(String path, Map<String, String>? query) {
     final basePath = baseUrl.path.endsWith('/') ? baseUrl.path.substring(0, baseUrl.path.length - 1) : baseUrl.path;
     return baseUrl.replace(path: '$basePath$path', queryParameters: (query == null || query.isEmpty) ? null : query);
@@ -65,8 +106,9 @@ class HttpApiClient implements ApiClient {
     Map<String, String>? headers,
     Map<String, dynamic>? body,
     CredentialMode mode,
-    Future<void> Function()? beforeSend,
-  ) async {
+    Future<void> Function()? beforeSend, {
+    ({List<int> bytes, ContentType type})? raw,
+  }) async {
     final extra = Map<String, String>.from(headers ?? const {});
     final callerAuth = extra.keys.any((k) => k.toLowerCase() == 'authorization');
     switch (mode) {
@@ -101,9 +143,9 @@ class HttpApiClient implements ApiClient {
       request.followRedirects = false;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       extra.forEach(request.headers.set);
-      final bytes = body == null ? null : utf8.encode(jsonEncode(body));
+      final bytes = raw?.bytes ?? (body == null ? null : utf8.encode(jsonEncode(body)));
       if (bytes != null) {
-        request.headers.contentType = ContentType.json;
+        request.headers.contentType = raw?.type ?? ContentType.json;
         request.contentLength = bytes.length;
       }
 

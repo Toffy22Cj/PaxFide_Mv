@@ -26,4 +26,21 @@ abstract class ApiClient {
     required CredentialMode credentialMode,
     Future<void> Function()? beforeSend,
   });
+
+  Future<ApiResponse> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  });
+
+  /// `multipart/form-data` con un único archivo en el campo [field]. Sin reintentos ni Outbox: quien llama decide.
+  Future<ApiResponse> postFile(
+    String path, {
+    required String field,
+    required String filename,
+    required String contentType,
+    required List<int> bytes,
+    required CredentialMode credentialMode,
+  });
 }

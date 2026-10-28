@@ -109,10 +109,40 @@ class FakeApiClient implements ApiClient {
     required CredentialMode credentialMode,
     Future<void> Function()? beforeSend,
   }) => _next(RecordedCall('POST', path, headers ?? const {}, body, credentialMode, beforeSend));
+
+  @override
+  Future<ApiResponse> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  }) => _next(RecordedCall('PUT', path, headers ?? const {}, body, credentialMode, null));
+
+  /// El archivo se registra como `{field, filename, contentType, length}`; los bytes, en [RecordedCall.bytes].
+  @override
+  Future<ApiResponse> postFile(
+    String path, {
+    required String field,
+    required String filename,
+    required String contentType,
+    required List<int> bytes,
+    required CredentialMode credentialMode,
+  }) => _next(
+    RecordedCall(
+      'POST',
+      path,
+      const {},
+      {'field': field, 'filename': filename, 'contentType': contentType, 'length': bytes.length},
+      credentialMode,
+      null,
+      bytes: bytes,
+    ),
+  );
 }
 
 class RecordedCall {
-  RecordedCall(this.method, this.path, this.headers, this.body, this.credentialMode, this.beforeSend);
+  RecordedCall(this.method, this.path, this.headers, this.body, this.credentialMode, this.beforeSend, {this.bytes});
+  final List<int>? bytes;
   final String method;
   final String path;
   final Map<String, String> headers;

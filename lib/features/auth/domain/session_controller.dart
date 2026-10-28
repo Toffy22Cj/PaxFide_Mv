@@ -23,6 +23,10 @@ class SessionController extends ChangeNotifier {
   final AuthApi authApi;
 
   SessionState _state = const SessionState.unknown();
+
+  /// Si el token de esta sesión se guarda en el teléfono ("Recordarme en este teléfono"). Una sesión restaurada al
+  /// abrir la app estaba guardada.
+  bool _remember = true;
   Principal? _principal;
   ProfileStatus _profile = ProfileStatus.none;
 
@@ -64,6 +68,7 @@ class SessionController extends ChangeNotifier {
       acceptedTermsVersion: acceptedTermsVersion,
       acceptedDataPolicyVersion: acceptedDataPolicyVersion,
     );
+    _remember = true;
     await tokenStore.writeToken(token);
     await _loadProfileAfterToken();
     if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();
@@ -71,6 +76,7 @@ class SessionController extends ChangeNotifier {
 
   /// Entrar con un JWT ya obtenido (biometría, M-28). Mismas reglas que [login].
   Future<void> loginWithToken(String token, {bool remember = true}) async {
+    _remember = remember;
     await tokenStore.writeToken(token, remember: remember);
     await _loadProfileAfterToken();
     if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();
@@ -87,6 +93,10 @@ class SessionController extends ChangeNotifier {
       _set(const SessionState.authenticated(), profile: ProfileStatus.unavailable);
     }
   }
+
+  /// Sustituye el token de la sesión actual sin tocar el perfil, como lo pide `POST /account/password` (las demás
+  /// sesiones quedan revocadas). Se guarda igual que el anterior: en el teléfono o solo en memoria.
+  Future<void> replaceToken(String token) => tokenStore.writeToken(token, remember: _remember);
 
   /// Salida de `ProfileStatus.unavailable`.
   Future<void> reloadProfile() async {

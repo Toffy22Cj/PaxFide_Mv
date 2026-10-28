@@ -34,6 +34,21 @@ class AppHarness {
     // Inicio lee el resumen de donaciones en segundo plano: por defecto, ninguna (cada prueba puede cambiarla).
     api.routes['GET /account/donations'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
     api.routeFirst.add('GET /account/donations');
+    // Cuenta lee el correo y el nombre; Mis donaciones, el impacto.
+    api.routes['GET /account/profile'] = (_) =>
+        const ApiResponse(statusCode: 200, data: {'email': 'persona@demo.paxfide.local'});
+    api.routeFirst.add('GET /account/profile');
+    api.routes['GET /account/impact'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'donationsCount': 0,
+        'totals': <Object>[],
+        'campaignsSupported': 0,
+        'deliveredUnits': <Object>[],
+        'truncated': false,
+      },
+    );
+    api.routeFirst.add('GET /account/impact');
     // Inicio también lee el catálogo de convocatorias.
     api.routes['GET /public/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
     api.routeFirst.add('GET /public/campaigns');
