@@ -37,15 +37,37 @@ void main() {
       expect(c.body, {'facilityLocation': 'centro-1', 'receiverRef': 'r'});
     });
 
-    test('deliver: sin deliveredAt (lo pone el servidor)', () {
+    test('deliver: sin deliveredAt (lo pone el servidor) y con el evidenceRef de la foto subida', () {
+      final ref = 'sha256:${'a' * 64}';
       final c = AssetCommand.build(AssetAction.deliver, 'A-1', {
         'finalCustodianRef': 'f',
         'beneficiaryRef': 'b',
         'locationRef': 'l',
-        'evidenceRef': 'e',
-      })!;
+      }, evidenceRef: ref)!;
       expect(c.path, '/physical-assets/A-1/deliver');
       expect(c.body.keys, ['finalCustodianRef', 'beneficiaryRef', 'locationRef', 'evidenceRef']);
+      expect(c.body['evidenceRef'], ref);
+    });
+
+    test('deliver sin foto, con una referencia escrita o con un campo vacío → inválido', () {
+      const fields = {'finalCustodianRef': 'f', 'beneficiaryRef': 'b', 'locationRef': 'l'};
+      for (final ref in [null, 'acta-1', 'sha256:ABC']) {
+        final errors = <String>[];
+        expect(AssetCommand.build(AssetAction.deliver, 'A-1', fields, evidenceRef: ref, errors: errors), isNull);
+        expect(errors, ['evidenceRef']);
+      }
+      final errors = <String>[];
+      expect(
+        AssetCommand.build(
+          AssetAction.deliver,
+          'A-1',
+          {...fields, 'locationRef': ''},
+          evidenceRef: 'sha256:${'b' * 64}',
+          errors: errors,
+        ),
+        isNull,
+      );
+      expect(errors, ['locationRef']);
     });
 
     test('campos vacíos o de más de 256 → inválido, con su nombre', () {

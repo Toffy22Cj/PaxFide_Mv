@@ -232,16 +232,8 @@ class _AssetScreenState extends State<AssetScreen> {
             ),
             const SizedBox(height: 8),
           ],
-          // Entregar exige foto (ADR de fotos, pendiente de aprobar): hasta entonces no se ofrece.
-          if (canShowAction && !_busy && _entries.isEmpty && action == AssetAction.deliver) ...[
-            const SectionCard(
-              key: Key('asset.deliver.soon'),
-              title: 'Entregar',
-              child: Text('Para entregar hará falta una foto de la entrega. Estará disponible muy pronto.'),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (canShowAction && !_busy && _entries.isEmpty && action != AssetAction.deliver) ...[
+          // Entregar pide la foto de la entrega dentro del formulario (ADR-051).
+          if (canShowAction && !_busy && _entries.isEmpty) ...[
             FilledButton(
               key: const Key('asset.action'),
               onPressed: () => _startAction(action),

@@ -53,11 +53,7 @@ class _ImpactCardState extends State<ImpactCard> {
                     AmountBars(
                       bars: [
                         for (final u in i.deliveredUnits)
-                          AmountBar(
-                            u.unitOfMeasure,
-                            num.tryParse(u.quantity) ?? 0,
-                            formatQuantity(u.quantity),
-                          ),
+                          AmountBar(u.unitOfMeasure, num.tryParse(u.quantity) ?? 0, formatQuantity(u.quantity)),
                       ],
                     ),
                   ],

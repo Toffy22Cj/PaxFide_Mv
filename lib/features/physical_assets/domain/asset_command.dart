@@ -1,3 +1,4 @@
+import '../data/delivery_evidence_api.dart';
 import '../data/physical_asset_api.dart';
 import 'asset_action.dart';
 
@@ -10,6 +11,8 @@ class CommandField {
 
 /// Comando de PhysicalAsset (`dispatch`/`receive`/`deliver`) listo para el Outbox: ruta y cuerpo exactos del
 /// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor).
+///
+/// Entregar lleva además el `evidenceRef` que devolvió la subida de la foto (ADR-051 F3): no se escribe a mano.
 class AssetCommand {
   AssetCommand._(this.action, this.assetRef, this.values);
 
@@ -25,12 +28,18 @@ class AssetCommand {
       CommandField('finalCustodianRef', 'Custodio final'),
       CommandField('beneficiaryRef', 'Beneficiario (referencia)'),
       CommandField('locationRef', 'Lugar de entrega'),
-      CommandField('evidenceRef', 'Referencia de la evidencia'),
     ],
   };
 
-  /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido).
-  static AssetCommand? build(AssetAction action, String assetRef, Map<String, String> input, {List<String>? errors}) {
+  /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido). Para entregar
+  /// hace falta [evidenceRef] con la forma `sha256:<64 hex>`; si no, el error es `evidenceRef`.
+  static AssetCommand? build(
+    AssetAction action,
+    String assetRef,
+    Map<String, String> input, {
+    String? evidenceRef,
+    List<String>? errors,
+  }) {
     final spec = fields[action];
     if (spec == null) return null; // readOnly no tiene comando
     final values = <String, String>{};
@@ -42,7 +51,16 @@ class AssetCommand {
         values[f.key] = v;
       }
     }
-    if (values.length != spec.length) return null;
+    var valid = values.length == spec.length;
+    if (action == AssetAction.deliver) {
+      if (evidenceRef == null || !DeliveryEvidenceApi.evidenceRefPattern.hasMatch(evidenceRef)) {
+        errors?.add('evidenceRef');
+        valid = false;
+      } else {
+        values['evidenceRef'] = evidenceRef;
+      }
+    }
+    if (!valid) return null;
     return AssetCommand._(action, assetRef, values);
   }
 

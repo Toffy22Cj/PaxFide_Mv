@@ -35,6 +35,7 @@ import 'package:paxfide_mobile/features/campaigns/data/campaign_api.dart';
 import 'package:paxfide_mobile/features/donations/data/account_donations_api.dart';
 import 'package:paxfide_mobile/features/donations/data/donation_intent_api.dart';
 import 'package:paxfide_mobile/features/donations/domain/donation_flow.dart';
+import 'package:paxfide_mobile/features/physical_assets/data/delivery_evidence_api.dart';
 import 'package:paxfide_mobile/features/physical_assets/data/physical_asset_api.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_action.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_command.dart';
@@ -334,12 +335,18 @@ void main() {
     final account = employee.session.principal!.accountId;
     final engine = SyncEngine(store: SecureOutboxStore(InMemorySecureKeyValueStore()), apiClient: employee.api);
     final ops = AssetOperations(engine: engine, api: PhysicalAssetApi(employee.api));
+    // ADR-051: primero se sube la foto (con conexión) y la entrega lleva su evidenceRef.
+    final evidenceRef = await DeliveryEvidenceApi(employee.api).upload(
+      organizationId: employee.session.principal!.organizationId!,
+      bytes: base64Decode(_onePixelPng),
+      contentType: 'image/png',
+      filename: 'entrega.png',
+    );
     final deliver = AssetCommand.build(AssetAction.deliver, assetRef, {
       'finalCustodianRef': 'custodio-final',
       'beneficiaryRef': 'beneficiario-1',
       'locationRef': 'centro-1',
-      'evidenceRef': 'acta-1',
-    })!;
+    }, evidenceRef: evidenceRef)!;
     expect((await ops.submit(deliver, accountId: account)).$2, CommandOutcome.acknowledged);
     expect((await PhysicalAssetApi(employee.api).get(assetRef)).lifecycleStatus, 'DELIVERED');
     final again = AssetCommand.build(AssetAction.dispatch, assetRef, {'carrierRef': 'x'})!;
@@ -415,3 +422,6 @@ void main() {
     expect(formatMinorUnits(own.amount, own.currency), '40 000,00 COP');
   }, skip: goldenCode == null ? 'Sin PAXFIDE_ENSAYO_PUBLIC_CODE' : false);
 }
+
+/// PNG de 1 × 1 px, para la foto de entrega del recorrido real.
+const _onePixelPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';

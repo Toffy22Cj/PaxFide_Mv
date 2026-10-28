@@ -34,6 +34,11 @@ void main() {
   }
 
   Future<void> tap(WidgetTester tester, Finder f) async {
+    // Las listas largas (el formulario de Entregar) no construyen lo que queda debajo del pliegue.
+    if (f.evaluate().isEmpty) {
+      final list = find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first;
+      await tester.scrollUntilVisible(f, 200, scrollable: list);
+    }
     await tester.ensureVisible(f);
     await tester.pumpAndSettle();
     await tester.tap(f);
@@ -266,5 +271,108 @@ void main() {
     expect(find.text('Sin ubicación registrada'), findsOneWidget);
     expect(find.text('1 UNITS'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
     expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
+  });
+
+  group('Entregar con foto (ADR-051)', () {
+    final ref = 'sha256:${'c' * 64}';
+
+    Future<void> fillDeliver(WidgetTester tester, {bool photo = true}) async {
+      status = 'RECEIVED';
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(const Key('asset.action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('form.finalCustodianRef')), 'custodio-final');
+      await tester.enterText(find.byKey(const Key('form.beneficiaryRef')), 'beneficiario-1');
+      await tester.enterText(find.byKey(const Key('form.locationRef')), 'centro-1');
+      if (photo) {
+        await tap(tester, find.byKey(const Key('form.photo.take')));
+        await tester.pumpAndSettle();
+      }
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openReceived(WidgetTester tester) async {
+      await openAsset(tester);
+      status = 'RECEIVED';
+      h.services.router.go('/operator');
+      await tester.pumpAndSettle();
+      h.services.router.push('/assets/A-1');
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sin foto no pasa a la revisión ni sube nada', (tester) async {
+      await openReceived(tester);
+      expect(find.widgetWithText(FilledButton, 'Entregar'), findsOneWidget);
+      await fillDeliver(tester, photo: false);
+      expect(find.byKey(const Key('form.photo.error')), findsOneWidget);
+      expect(find.byKey(const Key('review.confirm')), findsNothing);
+      expect(posts(), isEmpty);
+    });
+
+    testWidgets('sube la foto primero y la entrega lleva su evidenceRef', (tester) async {
+      await openReceived(tester);
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) =>
+          ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) {
+        status = 'DELIVERED';
+        return const ApiResponse(statusCode: 200, data: {'assetRef': 'A-1', 'status': 'DELIVERED'});
+      };
+      await fillDeliver(tester);
+      expect(find.byKey(const Key('review.photo')), findsOneWidget);
+      expect(await confirmAndClose(tester), 'acknowledged');
+
+      final calls = posts().toList();
+      expect(calls.map((c) => c.path), ['/organizations/org-1/delivery-evidence', '/physical-assets/A-1/deliver']);
+      final upload = calls.first;
+      expect(upload.body, {'field': 'file', 'filename': 'entrega.jpg', 'contentType': 'image/jpeg', 'length': 4});
+      expect(upload.credentialMode, CredentialMode.jwt);
+      expect(upload.headers.containsKey('Command-Id'), isFalse, reason: 'la subida no lleva Command-Id');
+      final deliver = calls.last;
+      expect(deliver.body, {
+        'finalCustodianRef': 'custodio-final',
+        'beneficiaryRef': 'beneficiario-1',
+        'locationRef': 'centro-1',
+        'evidenceRef': ref,
+      });
+      expect(deliver.headers['Command-Id'], isNotNull);
+    });
+
+    testWidgets('sin conexión al subir la foto: no se registra nada ni se guarda en el teléfono', (tester) async {
+      await openReceived(tester);
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) => const ConnectionNotEstablishedException();
+      await fillDeliver(tester);
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Para entregar necesitas conexión'), findsOneWidget);
+      expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
+      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+    });
+
+    testWidgets('foto demasiado grande (413): pide otra', (tester) async {
+      await openReceived(tester);
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) =>
+          const ApiResponse(statusCode: 413, data: {'title': 'ImageTooLarge', 'status': 413});
+      await fillDeliver(tester);
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.text('La foto es demasiado grande. Toma otra.'), findsOneWidget);
+      expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
+    });
+
+    testWidgets('si la entrega falla tras subir la foto, al reintentar no se vuelve a subir', (tester) async {
+      await openReceived(tester);
+      var uploads = 0;
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) {
+        uploads++;
+        return ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      };
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) => const ConnectionNotEstablishedException();
+      await fillDeliver(tester);
+      expect(await confirmAndClose(tester), 'notSent');
+      expect(uploads, 1);
+      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
+      expect(saved.payload['evidenceRef'], ref, reason: 'en la cola va la huella, nunca la foto');
+    });
   });
 }

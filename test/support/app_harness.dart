@@ -30,6 +30,7 @@ class AppHarness {
       qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),
       biometricAuthenticator: this.biometric,
       linkOpener: links,
+      photoPicker: photos,
     );
     // Inicio lee el resumen de donaciones en segundo plano: por defecto, ninguna (cada prueba puede cambiarla).
     api.routes['GET /account/donations'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
@@ -96,6 +97,9 @@ class AppHarness {
 
   /// Navegador simulado (M-12).
   final links = FakeLinkOpener();
+
+  /// Cámara y galería simuladas (foto de entrega).
+  final photos = FakePhotoPicker();
 
   /// Biometría ya activada en este teléfono.
   void saveDeviceCredential() =>

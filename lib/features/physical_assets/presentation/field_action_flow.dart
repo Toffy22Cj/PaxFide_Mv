@@ -1,13 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
+import '../../../core/media/photo_picker.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../data/delivery_evidence_api.dart';
 import '../domain/asset_action.dart';
 import '../domain/asset_command.dart';
 import '../domain/asset_operations.dart';
@@ -20,6 +24,23 @@ const fieldLabels = {
   'carrierRef': 'Referencia del transportista',
   'facilityLocation': 'Referencia del lugar de recepción',
   'receiverRef': 'Referencia de quien recibe',
+  'finalCustodianRef': 'Referencia del custodio final',
+  'beneficiaryRef': 'Referencia del beneficiario',
+  'locationRef': 'Referencia del lugar de entrega',
+};
+
+/// Mensaje para un fallo al subir la foto de entrega. Nada queda guardado en el teléfono.
+String evidenceUploadError(AppException e) => switch (e) {
+  TransportException() =>
+    'Para entregar necesitas conexión: la foto se sube antes de registrar la entrega. No se guardó nada; '
+        'inténtalo cuando tengas señal.',
+  EvidenceUploadException(code: 'ImageTooLarge') => 'La foto es demasiado grande. Toma otra.',
+  EvidenceUploadException(code: 'UnsupportedImageFormat') => 'La foto tiene que ser JPEG o PNG. Toma otra.',
+  EvidenceUploadException(code: 'EvidenceRemoved') => 'Esa foto fue retirada por la plataforma. Toma otra.',
+  EvidenceUploadException(code: 'MediaStorageUnavailable') =>
+    'El almacenamiento de fotos no está disponible. Inténtalo en un momento.',
+  ForbiddenException() => 'Tu cuenta no puede subir fotos de entrega de esta organización.',
+  _ => describeError(e),
 };
 
 /// Aviso fijo bajo cada campo: lo escrito termina en un registro que no se puede borrar.
@@ -31,6 +52,10 @@ enum _Step { form, review, result }
 /// ("Esto queda registrado para siempre") y resultado (Confirmado / Guardado en el teléfono / No pudimos
 /// confirmarlo). Pantalla completa transitoria (Figma 04): no es una ruta (§12). Devuelve el resultado del envío, o
 /// null si se cerró antes.
+///
+/// Entregar exige una foto (decisión 6 del 16 de octubre; ADR de fotos y ADR-051). Al confirmar, primero se sube la
+/// foto, **con conexión** (F5), y luego la entrega va al Outbox con el `evidenceRef` devuelto. La foto nunca se
+/// guarda en el teléfono: si no se puede subir, no se registra nada.
 Future<CommandOutcome?> runFieldAction(
   BuildContext context, {
   required AssetAction action,
@@ -71,7 +96,15 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
   bool _registered = false;
   String? _error;
 
-  bool get _dirty => _step == _Step.form && _controllers.values.any((c) => c.text.isNotEmpty);
+  /// Foto de la entrega, solo en memoria, y el `evidenceRef` que devolvió su subida.
+  PickedPhoto? _photo;
+  String? _evidenceRef;
+  bool _photoMissing = false;
+  String? _photoError;
+
+  bool get _isDeliver => widget.action == AssetAction.deliver;
+
+  bool get _dirty => _step == _Step.form && (_controllers.values.any((c) => c.text.isNotEmpty) || _photo != null);
 
   @override
   void didChangeDependencies() {
@@ -109,20 +142,65 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
     super.dispose();
   }
 
+  Map<String, String> get _input => {for (final e in _controllers.entries) e.key: e.value.text};
+
   void _toReview() {
     final errors = <String>[];
-    final cmd = AssetCommand.build(widget.action, widget.assetRef, {
-      for (final e in _controllers.entries) e.key: e.value.text,
-    }, errors: errors);
+    final cmd = AssetCommand.build(widget.action, widget.assetRef, _input, evidenceRef: _evidenceRef, errors: errors);
+    // Entregar: el evidenceRef llega al confirmar, al subir la foto; aquí basta con que haya foto.
+    final fieldErrors = errors.where((e) => e != 'evidenceRef').toList();
+    final ready = cmd != null || (_isDeliver && fieldErrors.isEmpty && _photo != null);
     setState(() {
       _invalid
         ..clear()
-        ..addAll(errors);
-      if (cmd != null) {
+        ..addAll(fieldErrors);
+      _photoMissing = _isDeliver && _photo == null;
+      if (ready) {
         _command = cmd;
         _step = _Step.review;
       }
     });
+  }
+
+  Future<void> _pickPhoto({required bool camera}) async {
+    setState(() => _photoError = null);
+    try {
+      final picker = _services.photoPicker;
+      final photo = camera ? await picker.takePhoto() : await picker.choosePhoto();
+      if (photo == null || !mounted) return;
+      setState(() {
+        _photo = photo;
+        _evidenceRef = null; // otra foto, otra huella
+        _photoMissing = false;
+      });
+    } on UnsupportedPhotoException {
+      if (mounted) setState(() => _photoError = 'La foto tiene que ser JPEG o PNG. Prueba con otra.');
+    } on Object {
+      // Permiso denegado o cámara no disponible: se puede elegir de la galería o volver a intentarlo.
+      if (mounted) setState(() => _photoError = 'No pudimos abrir la cámara ni la galería.');
+    }
+  }
+
+  /// Entregar: sube la foto (una sola vez por foto) y construye el comando con su `evidenceRef`.
+  Future<AssetCommand?> _deliverCommand() async {
+    final organizationId = _services.session.principal?.organizationId;
+    final photo = _photo;
+    if (organizationId == null || photo == null) {
+      setState(() => _error = 'Tu cuenta no pertenece a una organización.');
+      return null;
+    }
+    try {
+      _evidenceRef ??= await DeliveryEvidenceApi(_services.apiClient).upload(
+        organizationId: organizationId,
+        bytes: photo.bytes,
+        contentType: photo.contentType,
+        filename: photo.filename,
+      );
+    } on AppException catch (e) {
+      if (mounted) setState(() => _error = evidenceUploadError(e));
+      return null;
+    }
+    return AssetCommand.build(widget.action, widget.assetRef, _input, evidenceRef: _evidenceRef);
   }
 
   Future<void> _confirm() async {
@@ -131,7 +209,10 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       _error = null;
     });
     try {
-      final (item, outcome) = await widget.ops.submit(_command!, accountId: widget.accountId);
+      final command = _isDeliver ? await _deliverCommand() : _command;
+      if (command == null) return;
+      _command = command;
+      final (item, outcome) = await widget.ops.submit(command, accountId: widget.accountId);
       if (!mounted) return;
       setState(() {
         _item = item;
@@ -243,12 +324,67 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       ),
       const SizedBox(height: 14),
     ],
+    if (_isDeliver) ..._photoSection(context),
     const SizedBox(height: 4),
     FilledButton(key: const Key('form.submit'), onPressed: _toReview, child: const Text('Revisar operación')),
   ];
 
+  /// Foto de la entrega (E-04): obligatoria, de la ayuda entregada y no de las personas (ADR de fotos, punto 6).
+  List<Widget> _photoSection(BuildContext context) {
+    final photo = _photo;
+    final error = _photoError ?? (_photoMissing ? 'Toma la foto de la entrega.' : null);
+    return [
+      Text('Foto de la entrega', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 6),
+      const NoticeBanner(
+        'Fotografía la ayuda entregada (bolsas, cajas, el lugar), no a las personas. La foto solo la ve la '
+        'organización.',
+        tone: Tone.info,
+      ),
+      const SizedBox(height: 10),
+      if (photo != null) ...[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(
+            Uint8List.fromList(photo.bytes),
+            key: const Key('form.photo.preview'),
+            height: 180,
+            fit: BoxFit.cover,
+            semanticLabel: 'Foto de la entrega',
+            errorBuilder: (_, _, _) => const SizedBox(height: 60, child: Center(child: Text('Foto lista'))),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              key: const Key('form.photo.take'),
+              onPressed: () => _pickPhoto(camera: true),
+              icon: const Icon(Icons.photo_camera_outlined),
+              label: Text(photo == null ? 'Tomar foto' : 'Tomar otra'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextButton.icon(
+              key: const Key('form.photo.choose'),
+              onPressed: () => _pickPhoto(camera: false),
+              icon: const Icon(Icons.photo_library_outlined),
+              label: const Text('Galería'),
+            ),
+          ),
+        ],
+      ),
+      if (error != null) ...[const SizedBox(height: 6), ErrorMessage(error, textKey: const Key('form.photo.error'))],
+      const SizedBox(height: 14),
+    ];
+  }
+
   List<Widget> _review(BuildContext context) {
-    final cmd = _command!;
+    final values = {for (final f in AssetCommand.fields[widget.action]!) f.key: _controllers[f.key]!.text.trim()};
+    final photo = _photo;
     return [
       ..._header(context, 'Paso 2 de 2 / Revisión', 'Revisa antes de enviar'),
       SectionCard(
@@ -256,10 +392,28 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             LabeledValue('Acción', actionLabel(widget.action)),
-            for (final e in cmd.values.entries) LabeledValue(fieldLabels[e.key] ?? e.key, e.value, mono: true),
+            for (final e in values.entries) LabeledValue(fieldLabels[e.key] ?? e.key, e.value, mono: true),
+            if (photo != null) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  Uint8List.fromList(photo.bytes),
+                  key: const Key('review.photo'),
+                  height: 140,
+                  fit: BoxFit.cover,
+                  semanticLabel: 'Foto de la entrega',
+                  errorBuilder: (_, _, _) => const SizedBox(height: 40, child: Center(child: Text('Foto lista'))),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+      if (_isDeliver) ...[
+        const SizedBox(height: 12),
+        const NoticeBanner('La foto se sube al confirmar: necesitas conexión.', tone: Tone.info),
+      ],
       const SizedBox(height: 12),
       const NoticeBanner('Esto queda registrado para siempre.', textKey: Key('review.permanent')),
       if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],

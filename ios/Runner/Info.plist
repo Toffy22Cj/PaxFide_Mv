@@ -5,7 +5,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Para entrar a PaxFide con tu rostro sin escribir la contraseña.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>La cámara se usa para escanear los códigos QR de PaxFide.</string>
+	<string>La cámara se usa para escanear los códigos QR de PaxFide y para tomar la foto de cada entrega.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para elegir la foto de una entrega que ya tomaste.</string>
 	<key>FlutterDeepLinkingEnabled</key>
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

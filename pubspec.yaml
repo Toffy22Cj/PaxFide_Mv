@@ -42,6 +42,7 @@ dependencies:
   # Enmienda 2 de ADR-043: abrir el pago en el navegador (M-12) y subir el brillo del QR (E-11).
   url_launcher: ^6.3.1
   screen_brightness: ^2.1.1
+  image_picker: ^1.2.4
 
 dev_dependencies:
   flutter_test:

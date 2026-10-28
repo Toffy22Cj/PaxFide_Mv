@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:paxfide_mobile/core/links/link_opener.dart';
+import 'package:paxfide_mobile/core/media/photo_picker.dart';
 import 'package:paxfide_mobile/core/network/api_client.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
 import 'package:paxfide_mobile/core/network/auth_response_handler.dart';
@@ -198,4 +199,27 @@ class FakeLinkOpener implements LinkOpener {
     opened.add(url);
     return succeed;
   }
+}
+
+/// Cámara y galería simuladas: devuelven [next] (null = la persona cancela) y cuentan las llamadas.
+class FakePhotoPicker implements PhotoPicker {
+  PickedPhoto? next = const PickedPhoto(
+    bytes: [0xFF, 0xD8, 0xFF, 0xD9],
+    contentType: 'image/jpeg',
+    filename: 'entrega.jpg',
+  );
+  Object? error;
+  int calls = 0;
+
+  Future<PickedPhoto?> _pick() async {
+    calls++;
+    if (error case final Object e) throw e;
+    return next;
+  }
+
+  @override
+  Future<PickedPhoto?> takePhoto() => _pick();
+
+  @override
+  Future<PickedPhoto?> choosePhoto() => _pick();
 }

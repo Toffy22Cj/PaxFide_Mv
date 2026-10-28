@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../core/links/link_opener.dart';
+import '../core/media/photo_picker.dart';
 import '../core/network/api_client.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
@@ -41,6 +42,7 @@ class AppServices {
     this.receiptSource = const UnavailableReceiptSource(),
     this.receiptSharer = const UnavailableReceiptSharer(),
     this.linkOpener = const UrlLauncherLinkOpener(),
+    PhotoPicker? photoPicker,
     ThemeController? theme,
     TextSizeController? textSize,
     DeviceCredentialStore? deviceCredentialStore,
@@ -49,6 +51,7 @@ class AppServices {
        theme = theme ?? ThemeController(),
        campaignSearch = campaignSearch ?? PublicCampaignSearch(CampaignApi(apiClient)),
        impactSource = impactSource ?? ApiImpactSource(AccountImpactApi(apiClient)),
+       photoPicker = photoPicker ?? ImagePickerPhotoPicker(),
        textSize = textSize ?? TextSizeController(),
        biometricLogin = BiometricLogin(
          api: authApi,
@@ -81,6 +84,9 @@ class AppServices {
 
   /// Abre enlaces fuera de la app (M-12).
   final LinkOpener linkOpener;
+
+  /// Cámara y galería para la foto de entrega (ADR de fotos, ADR-051).
+  final PhotoPicker photoPicker;
 
   /// Modo claro, oscuro o "como el teléfono", recordado entre aperturas.
   final ThemeController theme;
