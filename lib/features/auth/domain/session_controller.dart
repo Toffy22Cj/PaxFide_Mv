@@ -50,9 +50,20 @@ class SessionController extends ChangeNotifier {
   }
 
   /// `LOGGED_OUT → AUTHENTICATED`. Errores: [UnauthorizedException] (credenciales), [TransportException],
-  /// [ApiHttpException]. Sin efectos duplicables: reintentar es seguro (§13).
-  Future<void> login(String email, String password) async {
-    final token = await authApi.login(email, password);
+  /// [ApiHttpException], o [AcceptanceRequiredException] si la cuenta tiene aceptaciones legales pendientes.
+  /// Sin efectos duplicables: reintentar es seguro (§13).
+  Future<void> login(
+    String email,
+    String password, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
+    final token = await authApi.login(
+      email,
+      password,
+      acceptedTermsVersion: acceptedTermsVersion,
+      acceptedDataPolicyVersion: acceptedDataPolicyVersion,
+    );
     await tokenStore.writeToken(token);
     await _loadProfileAfterToken();
     if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_services.dart';
 import '../../../shared/money.dart';
+import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../data/campaign_api.dart';
 import '../domain/campaign_progress.dart';
-import '../domain/campaign_search.dart';
 
 CampaignProgress _progressOf(CampaignSummary c) => CampaignProgress.of(
   target: int.tryParse(c.targetAmount ?? ''),
@@ -11,27 +13,162 @@ CampaignProgress _progressOf(CampaignSummary c) => CampaignProgress.of(
   endDate: c.endDate,
 );
 
+/// Insignia / sello «✓ Organización verificada», solo visible si la organización está verificada.
+class OrganizationVerifiedBadge extends StatelessWidget {
+  const OrganizationVerifiedBadge({super.key = const Key('campaign.verified')});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fg = isDark ? PaxDarkTokens.green : PaxTokens.brandGreen800;
+    final bg = isDark ? PaxDarkTokens.surfaceHigh : PaxTokens.brandGreen50;
+    final border = isDark ? PaxDarkTokens.green.withValues(alpha: 0.3) : PaxTokens.brandGreen500.withValues(alpha: 0.3);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        '✓ Organización verificada',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
+}
+
+/// Logo circular de la organización con iniciales de reserva sobre fondo de tokens.
+class OrganizationLogo extends StatelessWidget {
+  const OrganizationLogo({super.key, required this.organizationName, this.logoUrl, this.size = 32});
+
+  final String organizationName;
+  final Uri? logoUrl;
+  final double size;
+
+  static String initialsOf(String name) {
+    final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return 'O';
+    if (words.length == 1) {
+      final chars = words[0].characters.toList();
+      return chars.take(2).join().toUpperCase();
+    }
+    return '${words[0].characters.first}${words[1].characters.first}'.toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initials = initialsOf(organizationName);
+    final fallback = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDark ? PaxDarkTokens.surfaceHigh : PaxTokens.brandGreen50,
+        border: Border.all(
+          color: isDark ? PaxDarkTokens.neutral.withValues(alpha: 0.3) : PaxTokens.brandGreen500.withValues(alpha: 0.3),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        key: const Key('organization.initials'),
+        style: TextStyle(
+          color: isDark ? PaxDarkTokens.green : PaxTokens.brandGreen900,
+          fontWeight: FontWeight.w700,
+          fontSize: (size * 0.4).clamp(12.0, 20.0),
+        ),
+      ),
+    );
+
+    if (logoUrl == null) return fallback;
+
+    return ClipOval(
+      child: Image.network(
+        logoUrl.toString(),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        excludeFromSemantics: true,
+        loadingBuilder: (context, child, progress) => progress == null ? child : fallback,
+        errorBuilder: (context, error, stackTrace) => fallback,
+      ),
+    );
+  }
+}
+
+/// Portada de la convocatoria con relación de aspecto 16:9 y fondo de reserva.
+class CampaignCoverImage extends StatelessWidget {
+  const CampaignCoverImage({super.key, required this.coverUrl, this.aspectRatio = 16 / 9});
+
+  final Uri? coverUrl;
+  final double aspectRatio;
+
+  @override
+  Widget build(BuildContext context) {
+    if (coverUrl == null) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fallback = Container(
+      color: isDark ? PaxDarkTokens.surfaceHigh : PaxTokens.brandGreen50,
+      alignment: Alignment.center,
+      child: Icon(Icons.image_outlined, color: isDark ? PaxDarkTokens.neutral : PaxTokens.brandGreen500, size: 32),
+    );
+
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: Image.network(
+        coverUrl.toString(),
+        fit: BoxFit.cover,
+        excludeFromSemantics: true,
+        loadingBuilder: (context, child, progress) => progress == null ? child : fallback,
+        errorBuilder: (context, error, stackTrace) => fallback,
+      ),
+    );
+  }
+}
+
 /// Tarjeta compacta de una convocatoria del listado público (Inicio, decisión 5): organización, título, barra de la
 /// meta y días que quedan. Tocarla llama a [onTap].
 class CampaignSummaryCard extends StatelessWidget {
-  const CampaignSummaryCard(this.campaign, {super.key, required this.onTap});
+  const CampaignSummaryCard(this.campaign, {super.key, required this.onTap, this.apiBaseUrl});
   final CampaignSummary campaign;
   final VoidCallback onTap;
+  final Uri? apiBaseUrl;
 
   @override
-  Widget build(BuildContext context) => Card(
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(padding: const EdgeInsets.all(14), child: CampaignSummaryCardBody(campaign)),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final baseUrl = apiBaseUrl ?? AppScope.maybeOf(context)?.config.apiBaseUrl;
+    final coverUrl = resolveApiMediaUrl(baseUrl, campaign.coverImageUrl);
+    final logoUrl = resolveApiMediaUrl(baseUrl, campaign.organizationLogoUrl);
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (coverUrl != null) CampaignCoverImage(coverUrl: coverUrl),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: CampaignSummaryCardBody(campaign, logoUrl: logoUrl),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Contenido de [CampaignSummaryCard].
 class CampaignSummaryCardBody extends StatelessWidget {
-  const CampaignSummaryCardBody(this.c, {super.key});
+  const CampaignSummaryCardBody(this.c, {super.key, this.logoUrl});
   final CampaignSummary c;
+  final Uri? logoUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +177,27 @@ class CampaignSummaryCardBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (c.organizationName.isNotEmpty)
-          Text(
-            c.organizationName,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            OrganizationLogo(organizationName: c.organizationName, logoUrl: logoUrl, size: 32),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (c.organizationName.isNotEmpty)
+                    Text(
+                      c.organizationName,
+                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  if (c.organizationVerified) ...[const SizedBox(height: 2), const OrganizationVerifiedBadge()],
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(c.title, style: theme.textTheme.titleSmall),
         if (p.fraction != null) ...[
           const SizedBox(height: 8),

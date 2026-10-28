@@ -385,8 +385,8 @@ void main() {
     expect(find.text('1 000,00 COP'), findsOneWidget);
   });
 
-  testWidgets('M-07: insignia de organización verificada solo con VERIFIED', (tester) async {
-    for (final (status, shown) in [('VERIFIED', true), ('PENDING', false), (null, false)]) {
+  testWidgets('M-07: insignia de organización verificada solo con organizationVerified == true', (tester) async {
+    for (final (status, shown) in [(true, true), (false, false), (null, false)]) {
       final h = AppHarness();
       h.api.routes['GET /public/campaigns/PUB1'] = (_) => ApiResponse(
         statusCode: 200,
@@ -396,7 +396,7 @@ void main() {
           'status': 'OPEN',
           'startDate': '2026-10-01T00:00:00Z',
           'endDate': '2026-12-01T00:00:00Z',
-          'verificationStatus': ?status,
+          'organizationVerified': ?status,
         },
       );
       h.api.routes['GET /public/campaigns/PUB1/narrative'] = (_) =>

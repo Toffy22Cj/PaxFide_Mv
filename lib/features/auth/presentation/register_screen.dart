@@ -5,9 +5,13 @@ import '../../../app/app_services.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/theme/pax_tokens.dart';
+import '../domain/legal_versions.dart';
 import 'auth_layout.dart';
 
-/// `/register`: `POST /auth/register` (`{email, password}` → 201). No inicia sesión: el backend no devuelve token.
+/// `/register`: `POST /auth/register` (`{email, password, acceptedTermsVersion, acceptedDataPolicyVersion}` → 201).
+/// No inicia sesión: el backend no devuelve token.
+/// Exige aceptar las versiones vigentes de los términos y de la política de tratamiento de datos ([currentTermsVersion]
+/// y [currentDataPolicyVersion]).
 /// La única regla de contraseña es la del backend: al menos 12 caracteres (`PasswordTooShort`); se comprueba antes de
 /// enviar y el backend la vuelve a validar.
 /// Mínimo de la contraseña según el backend (`PasswordTooShort`, referencia-api-v1 §1, develop 1b012da).
@@ -25,6 +29,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _password = TextEditingController();
   bool _sending = false;
   bool _done = false;
+  bool _acceptTerms = false;
+  bool _acceptDataPolicy = false;
   String? _error;
 
   @override
@@ -45,12 +51,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _error = 'La contraseña debe tener al menos $minPasswordLength caracteres.');
       return;
     }
+    if (!_acceptTerms || !_acceptDataPolicy) {
+      setState(
+        () => _error = 'Para crear la cuenta debes aceptar los términos y autorizar el tratamiento de tus datos.',
+      );
+      return;
+    }
     setState(() {
       _sending = true;
       _error = null;
     });
     try {
-      await AppScope.of(context).authApi.register(email, password);
+      await AppScope.of(context).authApi.register(
+        email,
+        password,
+        acceptedTermsVersion: currentTermsVersion,
+        acceptedDataPolicyVersion: currentDataPolicyVersion,
+      );
       if (!mounted) return;
       setState(() {
         _sending = false;
@@ -158,7 +175,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
             length >= minPasswordLength
                 ? 'Largo suficiente'
                 : 'Al menos $minPasswordLength caracteres (llevas $length)',
-            style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: ink.muted),
+            style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: ink.muted),
+          ),
+          const SizedBox(height: 10),
+          MergeSemantics(
+            child: InkWell(
+              key: const Key('register.acceptTerms'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: _sending ? null : () => setState(() => _acceptTerms = !_acceptTerms),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _acceptTerms,
+                      onChanged: _sending ? null : (v) => setState(() => _acceptTerms = v ?? false),
+                      activeColor: ink.button,
+                      checkColor: ink.onButton,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Acepto los términos y condiciones (versión $currentTermsVersion)',
+                        style: TextStyle(fontSize: 13, color: ink.body),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          MergeSemantics(
+            child: InkWell(
+              key: const Key('register.acceptDataPolicy'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: _sending ? null : () => setState(() => _acceptDataPolicy = !_acceptDataPolicy),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _acceptDataPolicy,
+                      onChanged: _sending ? null : (v) => setState(() => _acceptDataPolicy = v ?? false),
+                      activeColor: ink.button,
+                      checkColor: ink.onButton,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Autorizo el tratamiento de mis datos personales (versión $currentDataPolicyVersion)',
+                        style: TextStyle(fontSize: 13, color: ink.body),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           if (_error != null) ...[const SizedBox(height: 14), AuthNotice(_error!, ink: ink)],
           const SizedBox(height: 18),

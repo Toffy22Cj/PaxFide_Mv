@@ -2,6 +2,26 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/credential_mode.dart';
 
+/// Resuelve una ruta relativa de medios de la API contra el esquema, host y puerto de [apiBaseUrl].
+/// Solo acepta rutas que empiecen por `/api/v1/public/`.
+/// Devuelve null si la ruta es null o no empieza por `/api/v1/public/`, si es externa o si [apiBaseUrl] es null o inválido.
+/// No añade códigos de rastreo en la URL.
+Uri? resolveApiMediaUrl(Uri? apiBaseUrl, String? relativePath) {
+  if (apiBaseUrl == null || relativePath == null) return null;
+  final trimmed = relativePath.trim();
+  if (!trimmed.startsWith('/api/v1/public/')) return null;
+  if (trimmed.startsWith('//')) return null;
+  final parsed = Uri.tryParse(trimmed);
+  if (parsed == null || parsed.hasScheme || parsed.hasAuthority) return null;
+  if (apiBaseUrl.scheme.isEmpty || apiBaseUrl.host.isEmpty) return null;
+  return Uri(
+    scheme: apiBaseUrl.scheme,
+    host: apiBaseUrl.host,
+    port: apiBaseUrl.hasPort ? apiBaseUrl.port : null,
+    path: parsed.path,
+  );
+}
+
 /// `GET /public/campaigns/{publicCode}` (CV-07). Importes como texto de dígitos.
 class PublicCampaign {
   const PublicCampaign({
@@ -16,7 +36,9 @@ class PublicCampaign {
     this.currency,
     this.targetAmount,
     this.clearedAmount,
-    this.verificationStatus,
+    this.organizationVerified = false,
+    this.organizationLogoUrl,
+    this.coverImageUrl,
   });
   final String organizationName;
   final String title;
@@ -29,10 +51,9 @@ class PublicCampaign {
   final String? currency;
   final String? targetAmount;
   final String? clearedAmount;
-
-  /// Verificación de la organización (ADR-038). Hoy la respuesta pública no la trae (M-07, pendiente de backend):
-  /// si falta, es null y la app no afirma nada.
-  final String? verificationStatus;
+  final bool organizationVerified;
+  final String? organizationLogoUrl;
+  final String? coverImageUrl;
 }
 
 /// Hechos de la narrativa de convocatoria (B5, DD-39): son los datos verificables; la narrativa se apoya en ellos.
@@ -73,6 +94,9 @@ class CampaignSummary {
     this.currency,
     this.targetAmount,
     this.clearedAmount,
+    this.organizationVerified = false,
+    this.organizationLogoUrl,
+    this.coverImageUrl,
   });
   final String publicCode;
   final String title;
@@ -83,6 +107,9 @@ class CampaignSummary {
   final String? currency;
   final String? targetAmount;
   final String? clearedAmount;
+  final bool organizationVerified;
+  final String? organizationLogoUrl;
+  final String? coverImageUrl;
 }
 
 class CampaignApi {
@@ -112,6 +139,9 @@ class CampaignApi {
               currency: _opt(i, 'currency'),
               targetAmount: _opt(i, 'targetAmount'),
               clearedAmount: _opt(i, 'clearedAmount'),
+              organizationVerified: i['organizationVerified'] is bool ? i['organizationVerified'] as bool : false,
+              organizationLogoUrl: _opt(i, 'organizationLogoUrl'),
+              coverImageUrl: _opt(i, 'coverImageUrl'),
             ),
       ],
       _opt(j, 'nextCursor'),
@@ -138,7 +168,9 @@ class CampaignApi {
       currency: _opt(j, 'currency'),
       targetAmount: _opt(j, 'targetAmount'),
       clearedAmount: _opt(j, 'clearedAmount'),
-      verificationStatus: _opt(j, 'verificationStatus'),
+      organizationVerified: j['organizationVerified'] is bool ? j['organizationVerified'] as bool : false,
+      organizationLogoUrl: _opt(j, 'organizationLogoUrl'),
+      coverImageUrl: _opt(j, 'coverImageUrl'),
     );
   }
 

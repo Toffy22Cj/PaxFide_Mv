@@ -339,7 +339,7 @@ class AuthBadge extends StatelessWidget {
             'TU CUENTA PAXFIDE',
             style: TextStyle(
               fontFamily: 'monospace',
-              fontSize: 10.5,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               color: ink.dark ? PaxDarkTokens.green : PaxTokens.brandGreen900,
@@ -535,9 +535,9 @@ class _PasswordFieldState extends State<PasswordField> {
 }
 
 /// Tipo de aviso de la caja (`.auth-feedback-msg`).
-enum AuthNoticeKind { info, success, error }
+enum AuthNoticeKind { success, error }
 
-/// Aviso de la caja: verde (hecho), azul (información) o rojo (error).
+/// Aviso de la caja: verde (hecho) o rojo (error).
 class AuthNotice extends StatelessWidget {
   const AuthNotice(this.text, {super.key, this.kind = AuthNoticeKind.error, this.textKey, required this.ink});
   final String text;
@@ -552,11 +552,6 @@ class AuthNotice extends StatelessWidget {
         PaxTokens.brandGreen500.withValues(alpha: 0.16),
         PaxTokens.brandGreen500.withValues(alpha: 0.35),
         ink.dark ? PaxDarkTokens.green : PaxTokens.brandGreen900,
-      ),
-      AuthNoticeKind.info => (
-        PaxTokens.brandBlue500.withValues(alpha: 0.14),
-        PaxTokens.brandBlue500.withValues(alpha: 0.35),
-        ink.dark ? PaxDarkTokens.blueStrong : PaxTokens.brandBlue800,
       ),
       AuthNoticeKind.error => (
         PaxTokens.danger700.withValues(alpha: 0.1),
@@ -687,7 +682,7 @@ class AuthDivider extends StatelessWidget {
           child: Text(
             text,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 0.2, color: ink.muted),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.2, color: ink.muted),
           ),
         ),
       ),
@@ -729,42 +724,4 @@ class AuthSwitch extends StatelessWidget {
       ),
     ],
   );
-}
-
-/// La «G» de Google dibujada con cuatro arcos (colores de la paleta, sin imagen).
-class GoogleMark extends StatelessWidget {
-  const GoogleMark({super.key, this.size = 18});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    child: CustomPaint(size: Size.square(size), painter: const _GPainter()),
-  );
-}
-
-class _GPainter extends CustomPainter {
-  const _GPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width * 0.2;
-    final r = Rect.fromLTWH(w / 2, w / 2, size.width - w, size.height - w);
-    final p = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w
-      ..isAntiAlias = true;
-    const deg = 3.1415926535 / 180;
-    canvas.drawArc(r, -40 * deg, -100 * deg, false, p..color = PaxTokens.danger700);
-    canvas.drawArc(r, -140 * deg, -80 * deg, false, p..color = PaxTokens.brandYellow400);
-    canvas.drawArc(r, -220 * deg, -95 * deg, false, p..color = PaxTokens.brandGreen500);
-    canvas.drawArc(r, 45 * deg, -45 * deg, false, p..color = PaxTokens.brandBlue700);
-    canvas.drawLine(
-      Offset(size.width / 2, size.height / 2),
-      Offset(size.width - w / 2, size.height / 2),
-      p..color = PaxTokens.brandBlue700,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_GPainter old) => false;
 }

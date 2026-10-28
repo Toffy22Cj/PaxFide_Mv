@@ -103,6 +103,8 @@ class AppScope extends InheritedWidget {
     return scope!.services;
   }
 
+  static AppServices? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<AppScope>()?.services;
+
   @override
   bool updateShouldNotify(AppScope oldWidget) => oldWidget.services != services;
 }

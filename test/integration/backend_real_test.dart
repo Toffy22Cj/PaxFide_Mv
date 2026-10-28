@@ -28,6 +28,7 @@ import 'package:paxfide_mobile/core/storage/outbox_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
 import 'package:paxfide_mobile/core/util/command_id.dart';
 import 'package:paxfide_mobile/features/auth/data/auth_api.dart';
+import 'package:paxfide_mobile/features/auth/domain/legal_versions.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_controller.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/features/campaigns/data/campaign_api.dart';
@@ -109,14 +110,24 @@ void main() {
 
   test('0. registro con contraseña de menos de 12 caracteres → 400 (PasswordTooShort, develop 1b012da)', () async {
     await expectLater(
-      AuthApi(Device().api).register('corta-$stamp@demo.paxfide.local', 'once-chars!'),
+      AuthApi(Device().api).register(
+        'corta-$stamp@demo.paxfide.local',
+        'once-chars!',
+        acceptedTermsVersion: currentTermsVersion,
+        acceptedDataPolicyVersion: currentDataPolicyVersion,
+      ),
       throwsA(isA<BadRequestException>()),
     );
   });
 
   test('1. registro de cuenta (POST /auth/register) y login con /me; sin rol en el JWT', () async {
     final email = 'donante-movil-$stamp@demo.paxfide.local';
-    await AuthApi(donor.api).register(email, env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
+    await AuthApi(donor.api).register(
+      email,
+      env['TRACEABILITY_DEMO_SEED_PASSWORD']!,
+      acceptedTermsVersion: currentTermsVersion,
+      acceptedDataPolicyVersion: currentDataPolicyVersion,
+    );
     await donor.session.restore();
     await donor.session.login(email, env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
     expect(donor.session.state.status, SessionStatus.authenticated);

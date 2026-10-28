@@ -17,6 +17,7 @@ import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/widgets/pax_logo.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../../campaigns/data/campaign_api.dart';
 import '../../campaigns/domain/campaign_progress.dart';
 import '../../campaigns/domain/campaign_search.dart';
 import '../../campaigns/presentation/campaign_search_view.dart';
@@ -516,9 +517,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
     child: Column(
       children: [
-        _Tag('Catálogo oficial de convocatorias', ink: ink),
+        _Tag('Convocatorias abiertas', ink: ink),
         const SizedBox(height: 14),
-        _TwoTone('Causas abiertas con ', 'trazabilidad garantizada', ink: ink, center: true, size: 30),
+        _TwoTone('Causas abiertas que ', 'puedes seguir paso a paso', ink: ink, center: true, size: 30),
         const SizedBox(height: 10),
         Text(
           'Explora las convocatorias abiertas. Cada donación queda registrada y puedes seguirla hasta su entrega.',
@@ -658,7 +659,7 @@ class _Tag extends StatelessWidget {
     decoration: BoxDecoration(color: ink.tagBg, borderRadius: BorderRadius.circular(7)),
     child: Text(
       text.toUpperCase(),
-      style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 0.3, color: ink.tagFg),
+      style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.3, color: ink.tagFg),
     ),
   );
 }
@@ -1031,7 +1032,7 @@ class _Island extends StatelessWidget {
                     Flexible(
                       child: Text(
                         'SEGUIMIENTO DE DONACIÓN',
-                        style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 0.3, color: ink.tagFg),
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.3, color: ink.tagFg),
                       ),
                     ),
                   ],
@@ -1106,9 +1107,9 @@ class _Island extends StatelessWidget {
   }
 }
 
-/// Tarjeta de convocatoria del landing (variante 12, sin foto: portada ilustrada) con datos reales de
-/// `GET /public/campaigns`: título, organización, fechas, recaudado y meta. Sin categorías, donantes ni insignias que
-/// el contrato no trae.
+/// Tarjeta de convocatoria del landing (variante 12) con datos reales de
+/// `GET /public/campaigns`: portada (si la hay), logo con iniciales de reserva, sello de verificación (si está
+/// verificada), título, fechas, recaudado y meta.
 class _CampaignCard extends StatelessWidget {
   const _CampaignCard(this.c, {super.key, required this.ink, required this.onOpen, this.detailsKey});
   final CampaignSummary c;
@@ -1122,6 +1123,59 @@ class _CampaignCard extends StatelessWidget {
     final cleared = int.tryParse(c.clearedAmount ?? '');
     final p = CampaignProgress.of(target: target, cleared: cleared, endDate: c.endDate);
     final closed = c.status.isNotEmpty && c.status != 'OPEN';
+    final baseUrl = AppScope.maybeOf(context)?.config.apiBaseUrl;
+    final coverUrl = resolveApiMediaUrl(baseUrl, c.coverImageUrl);
+    final logoUrl = resolveApiMediaUrl(baseUrl, c.organizationLogoUrl);
+
+    Widget header() {
+      final statusBadge = Positioned(
+        left: 12,
+        top: 12,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: PaxTokens.white.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: PaxTokens.white.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            closed ? 'Cerrada' : (p.reached ? 'Meta alcanzada' : 'Convocatoria abierta'),
+            style: const TextStyle(color: PaxTokens.white, fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+
+      if (coverUrl != null) {
+        return Stack(
+          children: [
+            CampaignCoverImage(coverUrl: coverUrl),
+            statusBadge,
+          ],
+        );
+      }
+
+      return SizedBox(
+        height: 132,
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [PaxTokens.brandGreen800, PaxTokens.brandGreen900],
+                  ),
+                ),
+              ),
+            ),
+            const Positioned(right: 16, top: 10, bottom: 6, width: 150, child: CrateArt()),
+            statusBadge,
+          ],
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: Material(
@@ -1131,41 +1185,7 @@ class _CampaignCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: 132,
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [PaxTokens.brandGreen800, PaxTokens.brandGreen900],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Positioned(right: 16, top: 10, bottom: 6, width: 150, child: CrateArt()),
-                    Positioned(
-                      left: 12,
-                      top: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: PaxTokens.white.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: PaxTokens.white.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          closed ? 'Cerrada' : (p.reached ? 'Meta alcanzada' : 'Convocatoria abierta'),
-                          style: const TextStyle(color: PaxTokens.white, fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              header(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                 child: Column(
@@ -1189,9 +1209,28 @@ class _CampaignCard extends StatelessWidget {
                         color: ink.strong,
                       ),
                     ),
-                    if (c.organizationName.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(c.organizationName, style: TextStyle(color: ink.body)),
+                    if (c.organizationName.isNotEmpty || c.organizationVerified) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          OrganizationLogo(organizationName: c.organizationName, logoUrl: logoUrl, size: 32),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (c.organizationName.isNotEmpty)
+                                  Text(c.organizationName, style: TextStyle(color: ink.body)),
+                                if (c.organizationVerified) ...[
+                                  const SizedBox(height: 2),
+                                  const OrganizationVerifiedBadge(),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                     const SizedBox(height: 12),
                     if (cleared != null && target != null)

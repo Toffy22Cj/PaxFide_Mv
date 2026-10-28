@@ -41,25 +41,68 @@ class AuthApi {
   final ApiClient _api;
 
   /// Devuelve el JWT. 401 único para email inexistente, contraseña errónea o cuenta inactiva.
-  Future<String> login(String email, String password) async {
+  /// Si la cuenta tiene aceptaciones pendientes, el backend responde 403 `AcceptanceRequired`
+  /// y se lanza [AcceptanceRequiredException] con las versiones pendientes.
+  Future<String> login(
+    String email,
+    String password, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
     final r = await _api.post(
       '/auth/login',
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
       credentialMode: CredentialMode.none,
     );
+    if (r.statusCode == 403 && r.data?['title'] == 'AcceptanceRequired') {
+      final terms = r.data?['pendingTermsVersion'];
+      final dataPolicy = r.data?['pendingDataPolicyVersion'];
+      final pendingTerms = terms is String && terms.isNotEmpty ? terms : null;
+      final pendingDataPolicy = dataPolicy is String && dataPolicy.isNotEmpty ? dataPolicy : null;
+      if (pendingTerms == null && pendingDataPolicy == null) {
+        throw const MalformedResponseException();
+      }
+      throw AcceptanceRequiredException(pendingTermsVersion: pendingTerms, pendingDataPolicyVersion: pendingDataPolicy);
+    }
     final token = r.requireData()['token'];
     if (token is! String || token.isEmpty) throw const MalformedResponseException();
     return token;
   }
 
-  /// 201 `{accountId, status}`. Sin `Command-Id` (DD-56). 409 si el email ya existe.
-  Future<void> register(String email, String password) async {
+  /// 201 `{accountId, status}`. Sin `Command-Id` (DD-56). 409 si el email ya existe; 400 si la contraseña es corta
+  /// o si falta alguna de las versiones vigentes de términos o política de datos (`acceptedTermsVersion`,
+  /// `acceptedDataPolicyVersion`).
+  Future<void> register(
+    String email,
+    String password, {
+    required String acceptedTermsVersion,
+    required String acceptedDataPolicyVersion,
+  }) async {
     final r = await _api.post(
       '/auth/register',
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'acceptedTermsVersion': acceptedTermsVersion,
+        'acceptedDataPolicyVersion': acceptedDataPolicyVersion,
+      },
       credentialMode: CredentialMode.none,
     );
     r.requireData();
+  }
+
+  /// `POST /auth/password-reset`: solicita un enlace de recuperación de contraseña.
+  /// Responde 202 sin cuerpo tanto si la cuenta existe como si no. 400 si el email va vacío.
+  Future<void> requestPasswordReset(String email) async {
+    final r = await _api.post('/auth/password-reset', body: {'email': email}, credentialMode: CredentialMode.none);
+    if (!r.isSuccess) {
+      throw r.error ?? BadRequestException(r.statusCode);
+    }
   }
 
   /// `POST /auth/device-credentials` con la sesión iniciada: da de alta este dispositivo para entrar con biometría.

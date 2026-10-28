@@ -6,11 +6,10 @@ abstract interface class OrganizationVerification {
   bool isVerified(PublicCampaign campaign);
 }
 
-/// Lee `verificationStatus` de la respuesta pública de la convocatoria (`VERIFIED`, ADR-038). Mientras el backend no
-/// lo exponga, nunca devuelve verdadero (ver PENDIENTES_ADONIS.md).
+/// Lee `organizationVerified` de la respuesta pública de la convocatoria (ADR-038).
 class PublicFieldVerification implements OrganizationVerification {
   const PublicFieldVerification();
 
   @override
-  bool isVerified(PublicCampaign campaign) => campaign.verificationStatus == 'VERIFIED';
+  bool isVerified(PublicCampaign campaign) => campaign.organizationVerified;
 }

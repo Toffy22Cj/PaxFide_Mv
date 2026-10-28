@@ -9,8 +9,12 @@ import '../../../shared/widgets/pax_app_bar.dart';
 import '../biometrics/biometric_login.dart';
 import 'auth_layout.dart';
 import 'biometric_login_dialog.dart';
+import 'forgot_password_sheet.dart';
+import 'legal_acceptance_dialog.dart';
 
 /// `/login` (§13). Sin selector de rol: el rol sale de `GET /me` tras entrar (encargo §3).
+/// Si la cuenta tiene términos o políticas de datos pendientes (403 `AcceptanceRequired`),
+/// abre un diálogo de aceptación legal y reintenta con las versiones pendientes aceptadas.
 /// Estados: formulario; enviando; credenciales inválidas; error de red. Reintentar es seguro (no duplica nada).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,9 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   bool _sending = false;
   String? _error;
-
-  /// Aviso informativo (Google, Billetera Web3, contraseña olvidada).
-  String? _notice;
 
   /// "Recordarme en este teléfono": sin marcar, la sesión no se guarda y al cerrar la app hay que volver a entrar.
   bool _remember = true;
@@ -167,11 +168,43 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _sending = true;
       _error = null;
-      _notice = null;
     });
     try {
       // Con el JWT en la mano y antes de salir del login: ofrecer la biometría si el teléfono la tiene (M-28).
-      final token = await services.authApi.login(email, password);
+      String token;
+      try {
+        token = await services.authApi.login(email, password);
+      } on AcceptanceRequiredException catch (pending) {
+        if (!mounted) return;
+        final accepted = await showLegalAcceptanceDialog(context, pending);
+        if (!accepted) {
+          services.pendingIntents.discard();
+          if (mounted) {
+            setState(() {
+              _sending = false;
+              _error = 'Para entrar debes aceptar las condiciones vigentes.';
+            });
+          }
+          return;
+        }
+        try {
+          token = await services.authApi.login(
+            email,
+            password,
+            acceptedTermsVersion: pending.pendingTermsVersion,
+            acceptedDataPolicyVersion: pending.pendingDataPolicyVersion,
+          );
+        } on AcceptanceRequiredException {
+          services.pendingIntents.discard();
+          if (mounted) {
+            setState(() {
+              _sending = false;
+              _error = 'Las condiciones cambiaron mientras entrabas. Inténtalo de nuevo.';
+            });
+          }
+          return;
+        }
+      }
       final enroll = await _askToEnableBiometric();
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -188,16 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Google y Billetera Web3 están en el landing pero el backend no los tiene: se avisa, sin simular nada.
-  void _socialNotice(String provider) =>
-      setState(() => _notice = 'El acceso con $provider aún no está disponible en PaxFide.');
-
-  /// El backend aún no tiene recuperación de contraseña: se avisa, sin simular un correo.
-  void _forgotNotice() => setState(
-    () => _notice =
-        'La recuperación de contraseña aún no está disponible en PaxFide. Si no la recuerdas, crea una '
-        'cuenta nueva o pide ayuda a la organización.',
-  );
+  Future<void> _openForgotPassword() async {
+    final services = AppScope.of(context);
+    await showForgotPasswordSheet(context, initialEmail: _email.text.trim(), authApi: services.authApi);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final fieldStyle = TextStyle(color: ink.title, fontWeight: FontWeight.w500);
     return AuthLayout(
       title: 'Iniciar Sesión',
-      subtitle: 'Gestiona tus donaciones, verifica lotes en blockchain y apoya convocatorias.',
+      subtitle: 'Gestiona tus donaciones, sigue su recorrido y apoya convocatorias.',
       tab: AuthTab.login,
       // Enmienda 3: con la bienvenida (u otra pantalla) debajo, flecha para volver.
       back: services.router.stack.length > 1,
@@ -250,24 +277,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AuthOutlineButton(
-              key: const Key('login.google'),
-              ink: ink,
-              label: 'Google',
-              leading: const GoogleMark(),
-              onPressed: _sending ? null : () => _socialNotice('Google'),
-            ),
-            const SizedBox(height: 10),
-            AuthOutlineButton(
-              key: const Key('login.wallet'),
-              ink: ink,
-              label: 'Billetera Web3',
-              leading: const Icon(Icons.account_balance_wallet_outlined, size: 18),
-              onPressed: _sending ? null : () => _socialNotice('Billetera Web3'),
-            ),
-            const SizedBox(height: 18),
-            AuthDivider('o continúa con correo electrónico', ink: ink),
-            const SizedBox(height: 18),
             AuthField(
               ink: ink,
               label: 'Correo electrónico',
@@ -292,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   minimumSize: const Size(0, 32),
                 ),
-                onPressed: _sending ? null : _forgotNotice,
+                onPressed: _sending ? null : _openForgotPassword,
                 child: const Text(
                   '¿Olvidaste tu contraseña?',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -336,9 +345,6 @@ class _LoginScreenState extends State<LoginScreen> {
             if (_error != null) ...[
               const SizedBox(height: 6),
               AuthNotice(_error!, ink: ink, textKey: const Key('login.error')),
-            ] else if (_notice != null) ...[
-              const SizedBox(height: 6),
-              AuthNotice(_notice!, ink: ink, kind: AuthNoticeKind.info, textKey: const Key('login.notice')),
             ],
             const SizedBox(height: 12),
             AuthSubmitButton(

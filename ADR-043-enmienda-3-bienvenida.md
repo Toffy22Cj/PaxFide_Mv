@@ -77,3 +77,22 @@ Sin sesión, la app abre directamente `/login` (D8, fila `LOGGED_OUT` de la tabl
 - **Logo**: `PaxLogo` es ahora el logo del landing dibujado en vector (sol, hoja, corazón, caja y mano), sin la imagen con fondo blanco. Usa colores de la paleta.
 - **Pruebas**: se ejecutan con pantalla de teléfono (411 × 891). Así aparecieron y se corrigieron desbordes reales con el texto grande.
 - **Pendiente de confirmar**: el subtítulo del landing «verifica lotes en blockchain» se dejó tal cual, pero la verificación aún no está disponible en la app.
+
+## Actualización (2026-10-28): aceptación de términos y política de datos en registro y login
+
+- **Registro (`/register`)**: el registro ahora lleva dos casillas de verificación obligatorias para aceptar los términos y condiciones y autorizar el tratamiento de datos personales con las versiones vigentes (`currentTermsVersion` y `currentDataPolicyVersion`, ambas `v1-2026-10`). No van marcadas por defecto. Si falta alguna casilla, no se envía la petición y se muestra el aviso de requerimiento con `AuthNotice`.
+- **Login (`/login`)**: ante un 403 `AcceptanceRequired`, el login muestra el diálogo modal `LegalAcceptanceDialog` para aceptar las versiones legales pendientes y reintenta la autenticación enviando exactamente las versiones pendientes aceptadas.
+
+## Actualización (2026-10-28): corrección de login, recuperación de contraseña, textos y catálogo enriquecido
+
+- **Recuperación de contraseña**: implementada vía `AuthApi.requestPasswordReset(email)` (`POST /auth/password-reset`, pública, responde 202 sin cuerpo siempre). Desde `/login`, «¿Olvidaste tu contraseña?» abre la hoja modal inferior `Key('forgot.sheet')` prellenada con el correo del login. Ante 202, muestra el mensaje neutro de envío sin confirmar si la cuenta existe. Validación local de correo vacío (aviso sin petición).
+- **Simplificación del login**: se eliminaron los botones de Google y Billetera Web3 al no formar parte de la API de autenticación, así como el separador de correo y avisos informativos innecesarios (`_notice` y `AuthNoticeKind.info`).
+- **Suavizado de textos promocionales**: se ajustaron los textos visibles que prometían más de lo ofrecido por la app. El subtítulo de login pasa a «Gestiona tus donaciones, sigue su recorrido y apoya convocatorias», el título del catálogo a «Causas abiertas que puedes seguir paso a paso» y la etiqueta a «Convocatorias abiertas». Se preservan intactos los textos de las paradas 04 y 05 a la espera de confirmación del equipo.
+- **Tipografía accesible**: se elevaron a 12 puntos como mínimo todos los tamaños de fuente inferiores a 12 en `lib/` (`AuthBadge`, `AuthDivider`, texto de largo de contraseña en registro y etiquetas en mono de la bienvenida).
+- **Catálogo enriquecido (portada, logo y sello de verificación)**:
+  - `CampaignSummary` y `PublicCampaign` leen `organizationVerified` (booleano defensivo), `organizationLogoUrl` y `coverImageUrl`.
+  - Método auxiliar `resolveApiMediaUrl` en `CampaignApi` resuelve rutas relativas estrictamente bajo `/api/v1/public/` contra el esquema, host y puerto de `apiBaseUrl`, sin parámetros de seguimiento y rechazando dominios externos.
+  - `CampaignSummaryCard`, la tarjeta de bienvenida `_CampaignCard` y `CampaignPublicScreen` incorporan:
+    - Portada arriba en formato 16:9 (`Image.network` con fondo de reserva del tema, `excludeFromSemantics: true`).
+    - Logo circular de la organización con iniciales de reserva sobre fondo de tokens.
+    - Sello «✓ Organización verificada» visible únicamente cuando `organizationVerified == true`.

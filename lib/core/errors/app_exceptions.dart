@@ -67,6 +67,15 @@ class ForbiddenException extends ApiHttpException {
   const ForbiddenException() : super(403, 'Acceso no autorizado para esta operación');
 }
 
+/// 403 `AcceptanceRequired` del login: contraseña correcta, pero faltan aceptaciones legales.
+/// Lleva solo las versiones pendientes; la otra, null.
+class AcceptanceRequiredException extends ApiHttpException {
+  const AcceptanceRequiredException({this.pendingTermsVersion, this.pendingDataPolicyVersion})
+    : super(403, 'Hay que aceptar las versiones legales vigentes');
+  final String? pendingTermsVersion;
+  final String? pendingDataPolicyVersion;
+}
+
 /// 404.
 class NotFoundException extends ApiHttpException {
   const NotFoundException() : super(404, 'Recurso no encontrado');

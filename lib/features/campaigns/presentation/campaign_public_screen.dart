@@ -12,6 +12,7 @@ import '../../../shared/widgets/qr_sheet.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/campaign_api.dart';
 import '../domain/campaign_progress.dart';
+import 'campaign_summary_card.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 
 String campaignStatusLabel(String s) => switch (s) {
@@ -129,31 +130,41 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
     final target = int.tryParse(c.targetAmount ?? '');
     final cleared = int.tryParse(c.clearedAmount ?? '');
     final progress = CampaignProgress.of(target: target, cleared: cleared, endDate: c.endDate);
+    final baseUrl = _services.config.apiBaseUrl;
+    final coverUrl = resolveApiMediaUrl(baseUrl, c.coverImageUrl);
+    final logoUrl = resolveApiMediaUrl(baseUrl, c.organizationLogoUrl);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (c.organizationName.isNotEmpty)
-          Row(
-            children: [
-              Flexible(
-                child: Text(c.organizationName, style: theme.textTheme.labelMedium?.copyWith(color: muted)),
-              ),
-              if (_services.organizationVerification.isVerified(c)) ...[
-                const SizedBox(width: 6),
-                Tooltip(
-                  message: 'Organización verificada por PaxFide',
-                  child: Icon(
-                    Icons.verified,
-                    key: const Key('campaign.verified'),
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                    semanticLabel: 'Organización verificada',
-                  ),
-                ),
-              ],
-            ],
+        if (coverUrl != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CampaignCoverImage(coverUrl: coverUrl),
+            ),
           ),
-        const SizedBox(height: 4),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            OrganizationLogo(organizationName: c.organizationName, logoUrl: logoUrl, size: 36),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (c.organizationName.isNotEmpty)
+                    Text(c.organizationName, style: theme.textTheme.labelMedium?.copyWith(color: muted)),
+                  if (_services.organizationVerification.isVerified(c)) ...[
+                    const SizedBox(height: 2),
+                    const OrganizationVerifiedBadge(),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(c.title, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 10),
         Wrap(
