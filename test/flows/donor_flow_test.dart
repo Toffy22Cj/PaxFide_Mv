@@ -9,6 +9,7 @@ import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/features/tracking/presentation/tracking_screen.dart';
 
 import '../support/app_harness.dart';
+import '../support/fakes.dart';
 
 const trackingBody = ApiResponse(
   statusCode: 200,
@@ -78,13 +79,17 @@ void main() {
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);
     expect(find.textContaining('interno-no-mostrar'), findsNothing);
-    // Integridad: el backend no la expone todavía → "No disponible", nunca "verificado".
+    // Integridad (M-18): sin lotes sellados no se afirma nada.
     expect(
       find.descendant(
         of: find.byKey(const Key('tracking.integrity'), skipOffstage: false),
-        matching: find.text('No disponible', skipOffstage: false),
+        matching: find.text('Todavía no hay registros sellados', skipOffstage: false),
       ),
       findsOneWidget,
+    );
+    expect(
+      h.api.calls.firstWhere((c) => c.path == '/donations/tracking/integrity').headers['Authorization'],
+      'Bearer CODIGO-SECRETO',
     );
     expect(find.textContaining('erificada'), findsNothing);
     expect(find.textContaining('A-1'), findsNothing);
@@ -406,5 +411,151 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('campaign.verified')), shown ? findsOneWidget : findsNothing, reason: '$status');
     }
+  });
+
+  group('M-18: seguimiento verificable', () {
+    final hash = 'a' * 64;
+    final root = 'b' * 64;
+
+    Future<AppHarness> submitted(WidgetTester tester, {required Object Function(RecordedCall) integrity}) async {
+      final h = await openTracking(tester);
+      h.api.routes['GET /donations/tracking'] = (_) => trackingBody;
+      h.api.routes['GET /donations/tracking/narrative'] = (_) =>
+          const ApiResponse(statusCode: 200, data: {'status': 'PENDING'});
+      h.api.routes['GET /donations/tracking/integrity'] = integrity;
+      await tester.enterText(find.byKey(const Key('tracking.code')), 'C');
+      await tester.tap(find.byKey(const Key('tracking.submit')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.byKey(const Key('tracking.integrity')), 300);
+      await tester.pumpAndSettle();
+      return h;
+    }
+
+    Map<String, Object?> batch(String result, {String? reason, bool? affects}) => {
+      'anchorStatus': result == 'MATCH' ? 'ANCHORED' : 'SUBMITTED',
+      'merkleRoot': root,
+      'transactionHash': '0x${'c' * 64}',
+      'network': 'ganache-local',
+      'anchoredAt': '2026-10-27T09:00:00Z',
+      'eventsOfThisDonation': 3,
+      'verification': {'result': result, 'reason': ?reason, 'reasonText': ?reason, 'affectsThisDonation': ?affects},
+    };
+
+    testWidgets('todo sellado y coincide → "sellado y verificado", con el detalle del lote', (tester) async {
+      await submitted(
+        tester,
+        integrity: (_) => ApiResponse(
+          statusCode: 200,
+          data: {
+            'batches': [batch('MATCH')],
+            'unanchoredEvents': 0,
+            'checkedAt': '2026-10-28T12:00:00Z',
+          },
+        ),
+      );
+      expect(find.text('Registro sellado y verificado'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tracking.integrity')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('verification.batch.0')), findsOneWidget);
+      expect(find.text('Coincide'), findsOneWidget);
+      expect(find.text('ganache-local'), findsOneWidget);
+      expect(find.text('bbbbbbbb…bbbbbb'), findsOneWidget);
+    });
+
+    testWidgets('una diferencia que afecta a la donación manda sobre lo demás', (tester) async {
+      await submitted(
+        tester,
+        integrity: (_) => ApiResponse(
+          statusCode: 200,
+          data: {
+            'batches': [batch('MATCH'), batch('MISMATCH', reason: 'ROOT_MISMATCH', affects: true)],
+            'unanchoredEvents': 0,
+            'checkedAt': '2026-10-28T12:00:00Z',
+          },
+        ),
+      );
+      expect(find.text('Hay una diferencia en el registro: se está revisando'), findsOneWidget);
+    });
+
+    testWidgets('si no se puede comprobar, lo dice y deja reintentar sin tocar el resto', (tester) async {
+      var calls = 0;
+      await submitted(
+        tester,
+        integrity: (_) {
+          calls++;
+          return calls == 1
+              ? const ApiResponse(statusCode: 503)
+              : const ApiResponse(
+                  statusCode: 200,
+                  data: {'batches': <Object>[], 'unanchoredEvents': 1, 'checkedAt': '2026-10-28T12:00:00Z'},
+                );
+        },
+      );
+      expect(find.text('No se pudo comprobar ahora'), findsOneWidget);
+      expect(find.byKey(const Key('tracking.narrative')), findsOneWidget, reason: 'el resto del seguimiento sigue');
+      await tester.tap(find.byKey(const Key('tracking.integrity.retry')));
+      await tester.pumpAndSettle();
+      expect(find.text('Todavía no hay registros sellados'), findsOneWidget);
+    });
+
+    testWidgets('cada paso muestra su sello y su huella; la entrega, si tiene evidencia', (tester) async {
+      final h = await submitted(
+        tester,
+        integrity: (_) =>
+            const ApiResponse(statusCode: 200, data: {'batches': <Object>[], 'unanchoredEvents': 0, 'checkedAt': ''}),
+      );
+      h.api.routes['GET /donations/tracking/assets/A-1/history'] = (_) => ApiResponse(
+        statusCode: 200,
+        data: {
+          'history': [
+            {
+              'eventType': 'ASSET_REGISTERED',
+              'timestamp': '2026-10-01T10:00:00Z',
+              'custodianCategory': 'LOCAL_ALLY',
+              'status': 'REGISTERED',
+              'anchorStatus': 'ANCHORED',
+              'eventHash': hash,
+              'anchorProof': {
+                'merkleRoot': root,
+                'leafIndex': 0,
+                'path': <Object>[],
+                'transactionHash': '0x1',
+                'network': 'ganache-local',
+                'anchoredAt': '2026-10-02T10:00:00Z',
+              },
+            },
+            {
+              'eventType': 'ASSET_DELIVERED',
+              'timestamp': '2026-10-07T10:00:00Z',
+              'custodianCategory': 'LOCAL_ALLY',
+              'status': 'DELIVERED',
+              'anchorStatus': 'IN_BATCH',
+              'eventHash': 'no-es-hex',
+              'evidenceRegistered': true,
+              'evidenceRef': 'sha256:${'d' * 64}',
+            },
+          ],
+        },
+      );
+      await tester.scrollUntilVisible(find.text('BLANKET · 6 UNITS'), -300);
+      await tester.tap(find.text('BLANKET · 6 UNITS'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: find.byKey(const Key('tracking.step.0.seal')), matching: find.text('Sellado')),
+        findsOneWidget,
+      );
+      expect(find.text('Huella: aaaaaaaa…aaaaaa'), findsOneWidget);
+      expect(find.byKey(const Key('tracking.step.0.proof')), findsOneWidget);
+      expect(
+        find.descendant(of: find.byKey(const Key('tracking.step.1.seal')), matching: find.text('En lote, por sellar')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('tracking.step.1.hash')),
+        findsNothing,
+        reason: 'una huella mal formada no se muestra',
+      );
+      expect(find.byKey(const Key('tracking.step.1.evidence')), findsOneWidget);
+    });
   });
 }

@@ -72,6 +72,13 @@ class AppHarness {
           },
         );
       }
+      // Seguimiento: sin lotes sellados todavía.
+      if (call.method == 'GET' && call.path == '/donations/tracking/integrity') {
+        return const ApiResponse(
+          statusCode: 200,
+          data: {'batches': <Object>[], 'unanchoredEvents': 2, 'checkedAt': '2026-10-28T12:00:00Z'},
+        );
+      }
       if (call.method == 'GET' && call.path.startsWith('/public/campaigns/')) {
         if (call.path.endsWith('/narrative')) {
           return const ApiResponse(statusCode: 202, data: {'status': 'PENDING'});

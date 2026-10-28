@@ -60,6 +60,16 @@ class TrackingNarrative {
   final String? source; // LLM_GENERATED | FALLBACK_TEMPLATE
 }
 
+/// Prueba de que la huella de un paso está en la raíz anclada (ADR-039 Enmienda 1, E1). La app la muestra; no la
+/// recalcula (decisión del 2026-10-28: el estado y las huellas, sin verificación en el teléfono).
+class AnchorProof {
+  const AnchorProof({required this.merkleRoot, required this.transactionHash, required this.network, this.anchoredAt});
+  final String merkleRoot;
+  final String transactionHash;
+  final String network;
+  final String? anchoredAt;
+}
+
 class HistoryEntry {
   const HistoryEntry({
     required this.eventType,
@@ -67,12 +77,81 @@ class HistoryEntry {
     required this.locationZone,
     required this.custodianCategory,
     required this.status,
+    this.anchorStatus = 'PENDING',
+    this.eventHash,
+    this.anchorProof,
+    this.evidenceRegistered,
+    this.evidenceRef,
   });
   final String eventType;
   final String timestamp;
   final String locationZone;
   final String custodianCategory;
   final String status;
+
+  /// `ANCHORED`, `IN_BATCH`, `PENDING` o `UNDER_REVIEW` (G-3).
+  final String anchorStatus;
+
+  /// Huella del evento: 64 hexadecimales en minúscula. Falta en proyecciones antiguas.
+  final String? eventHash;
+  final AnchorProof? anchorProof;
+
+  /// Solo en la entrega: si el evento lleva una evidencia (ADR-051 F6). La foto nunca sale.
+  final bool? evidenceRegistered;
+
+  /// Solo en la entrega y solo con la forma `sha256:<64 hex>`.
+  final String? evidenceRef;
+}
+
+/// Un lote de anclaje con eventos de esta donación (`GET /donations/tracking/integrity`, P4).
+class IntegrityBatch {
+  const IntegrityBatch({
+    required this.anchorStatus,
+    required this.eventsOfThisDonation,
+    required this.result,
+    this.merkleRoot,
+    this.transactionHash,
+    this.network,
+    this.anchoredAt,
+    this.reason,
+    this.reasonText,
+    this.affectsThisDonation,
+  });
+  final String anchorStatus;
+  final int eventsOfThisDonation;
+
+  /// `MATCH`, `MISMATCH` o `INCONCLUSIVE`, calculado por el servidor.
+  final String result;
+  final String? merkleRoot;
+  final String? transactionHash;
+  final String? network;
+  final String? anchoredAt;
+  final String? reason;
+  final String? reasonText;
+  final bool? affectsThisDonation;
+}
+
+/// Resultado global para la pantalla, a partir de los lotes.
+enum IntegrityVerdict { verified, partial, pending, inconclusive, mismatch }
+
+class TrackingIntegrity {
+  const TrackingIntegrity({required this.batches, required this.unanchoredEvents, required this.checkedAt});
+  final List<IntegrityBatch> batches;
+  final int unanchoredEvents;
+  final String checkedAt;
+
+  /// Una diferencia que afecta (o puede afectar) a esta donación manda sobre todo lo demás; después, lo no
+  /// comprobable; después, lo que falta por sellar.
+  IntegrityVerdict get verdict {
+    if (batches.any((b) => b.result == 'MISMATCH' && b.affectsThisDonation != false)) return IntegrityVerdict.mismatch;
+    if (batches.any((b) => b.result == 'INCONCLUSIVE' && b.reason != 'NOT_ANCHORED')) {
+      return IntegrityVerdict.inconclusive;
+    }
+    final verified = batches.where((b) => b.result == 'MATCH');
+    if (verified.isEmpty) return IntegrityVerdict.pending;
+    final open = unanchoredEvents > 0 || batches.any((b) => b.result != 'MATCH');
+    return open ? IntegrityVerdict.partial : IntegrityVerdict.verified;
+  }
 }
 
 /// Seguimiento del donante (referencia-api-v1 §8). El código viaja **solo** en la cabecera `Authorization`
@@ -151,7 +230,59 @@ class TrackingApi {
             locationZone: e['locationZone'] is String ? e['locationZone'] as String : '',
             custodianCategory: e['custodianCategory'] is String ? e['custodianCategory'] as String : '',
             status: '${e['status']}',
+            anchorStatus: e['anchorStatus'] is String ? e['anchorStatus'] as String : 'PENDING',
+            eventHash: _hash(e['eventHash']),
+            anchorProof: _proof(e['anchorProof']),
+            evidenceRegistered: e['evidenceRegistered'] is bool ? e['evidenceRegistered'] as bool : null,
+            evidenceRef: e['evidenceRef'] is String && _evidence.hasMatch(e['evidenceRef'] as String)
+                ? e['evidenceRef'] as String
+                : null,
           ),
     ];
+  }
+
+  static final _hex64 = RegExp(r'^[0-9a-f]{64}$');
+  static final _evidence = RegExp(r'^sha256:[0-9a-f]{64}$');
+
+  static String? _hash(Object? v) => v is String && _hex64.hasMatch(v) ? v : null;
+
+  static String? _opt(Map j, String k) => j[k] is String && (j[k] as String).isNotEmpty ? j[k] as String : null;
+
+  static AnchorProof? _proof(Object? p) {
+    if (p is! Map) return null;
+    final root = _hash(p['merkleRoot']);
+    final tx = _opt(p, 'transactionHash');
+    final network = _opt(p, 'network');
+    if (root == null || tx == null || network == null) return null;
+    return AnchorProof(merkleRoot: root, transactionHash: tx, network: network, anchoredAt: _opt(p, 'anchoredAt'));
+  }
+
+  /// `GET /donations/tracking/integrity`: lo comprueba el servidor (no-store, caché de 5 min por lote).
+  Future<TrackingIntegrity> integrity(String code) async {
+    final j = await _get('/donations/tracking/integrity', code);
+    final batches = j['batches'];
+    if (batches is! List) throw const MalformedResponseException();
+    return TrackingIntegrity(
+      unanchoredEvents: j['unanchoredEvents'] is int ? j['unanchoredEvents'] as int : 0,
+      checkedAt: '${j['checkedAt'] ?? ''}',
+      batches: [
+        for (final b in batches)
+          if (b is Map && b['verification'] is Map)
+            IntegrityBatch(
+              anchorStatus: '${b['anchorStatus']}',
+              eventsOfThisDonation: b['eventsOfThisDonation'] is int ? b['eventsOfThisDonation'] as int : 0,
+              result: '${(b['verification'] as Map)['result']}',
+              reason: _opt(b['verification'] as Map, 'reason'),
+              reasonText: _opt(b['verification'] as Map, 'reasonText'),
+              affectsThisDonation: (b['verification'] as Map)['affectsThisDonation'] is bool
+                  ? (b['verification'] as Map)['affectsThisDonation'] as bool
+                  : null,
+              merkleRoot: _opt(b, 'merkleRoot'),
+              transactionHash: _opt(b, 'transactionHash'),
+              network: _opt(b, 'network'),
+              anchoredAt: _opt(b, 'anchoredAt'),
+            ),
+      ],
+    );
   }
 }

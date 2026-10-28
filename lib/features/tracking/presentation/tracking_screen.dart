@@ -58,6 +58,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
   TrackingSummary? _summary;
   TrackingNarrative? _narrative;
   bool _narrativeLoading = false;
+  TrackingIntegrity? _integrity;
+  bool _integrityLoading = false;
 
   @override
   void initState() {
@@ -95,6 +97,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         _loading = false;
       });
       _loadNarrative();
+      _loadIntegrity();
     } on InvalidTrackingCodeException {
       if (mounted) {
         setState(() {
@@ -126,10 +129,26 @@ class _TrackingScreenState extends State<TrackingScreen> {
     }
   }
 
+  /// M-18: integridad comprobada por el servidor. Es una sección: si falla, se puede volver a pedir.
+  Future<void> _loadIntegrity() async {
+    final code = _code;
+    if (code == null) return;
+    setState(() => _integrityLoading = true);
+    try {
+      final i = await _api.integrity(code);
+      if (mounted) setState(() => _integrity = i);
+    } on AppException {
+      if (mounted) setState(() => _integrity = null);
+    } finally {
+      if (mounted) setState(() => _integrityLoading = false);
+    }
+  }
+
   void _forget() => setState(() {
     _code = null;
     _summary = null;
     _narrative = null;
+    _integrity = null;
   });
 
   @override
@@ -304,17 +323,30 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ),
           ),
         const SizedBox(height: 12),
-        // Verificación de integridad (anclaje): el backend aún no la expone (S-09). Sin datos, no se afirma nada.
+        // M-18: integridad comprobada por el servidor (`GET /donations/tracking/integrity`). Sin datos, no se afirma nada.
         Card(
           key: const Key('tracking.integrity'),
           child: ListTile(
-            leading: const Icon(Icons.verified_user_outlined),
+            leading: Icon(integrityIcon(_integrity?.verdict)),
             title: const Text('Verificación de integridad'),
-            subtitle: const Text('No disponible'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () =>
-                Navigator.of(context)
-                    .push(MaterialPageRoute<void>(fullscreenDialog: true, builder: (_) => const VerificationScreen())),
+            subtitle: _integrityLoading
+                ? const LinearProgressIndicator()
+                : Text(_integrity == null ? 'No se pudo comprobar ahora' : integrityTitle(_integrity!.verdict)),
+            trailing: _integrity == null && !_integrityLoading
+                ? TextButton(
+                    key: const Key('tracking.integrity.retry'),
+                    onPressed: _loadIntegrity,
+                    child: const Text('Reintentar'),
+                  )
+                : const Icon(Icons.chevron_right),
+            onTap: _integrity == null
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      fullscreenDialog: true,
+                      builder: (_) => VerificationScreen(integrity: _integrity!),
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -458,42 +490,115 @@ class _AssetRouteScreenState extends State<AssetRouteScreen> {
   }
 }
 
-/// "Ver verificación" (Figma 03): el backend todavía no expone el sello; no se afirma nada.
+/// "a3f9c8d1…c801": el principio y el final de una huella, en monoespaciada.
+String shortHash(String h) => h.length <= 16 ? h : '${h.substring(0, 8)}…${h.substring(h.length - 6)}';
+
+String integrityTitle(IntegrityVerdict v) => switch (v) {
+  IntegrityVerdict.verified => 'Registro sellado y verificado',
+  IntegrityVerdict.partial => 'Lo sellado está verificado; hay registros por sellar',
+  IntegrityVerdict.pending => 'Todavía no hay registros sellados',
+  IntegrityVerdict.inconclusive => 'No se pudo comprobar en este momento',
+  IntegrityVerdict.mismatch => 'Hay una diferencia en el registro: se está revisando',
+};
+
+IconData integrityIcon(IntegrityVerdict? v) => switch (v) {
+  IntegrityVerdict.verified => Icons.verified_user,
+  IntegrityVerdict.mismatch => Icons.gpp_maybe_outlined,
+  _ => Icons.verified_user_outlined,
+};
+
+Tone _verdictTone(IntegrityVerdict v) => switch (v) {
+  IntegrityVerdict.verified => Tone.success,
+  IntegrityVerdict.partial || IntegrityVerdict.pending => Tone.pending,
+  IntegrityVerdict.inconclusive => Tone.neutral,
+  IntegrityVerdict.mismatch => Tone.error,
+};
+
+/// Sello de un paso (G-3): en qué punto del anclaje está su huella.
+(String, Tone, IconData) anchorLabel(String status) => switch (status) {
+  'ANCHORED' => ('Sellado', Tone.success, Icons.lock_outline),
+  'IN_BATCH' => ('En lote, por sellar', Tone.pending, Icons.hourglass_bottom),
+  'UNDER_REVIEW' => ('En revisión', Tone.error, Icons.gpp_maybe_outlined),
+  _ => ('Sin sellar todavía', Tone.neutral, Icons.lock_open_outlined),
+};
+
+/// "Ver verificación" (M-18, Figma 03): el resultado que calcula el servidor, lote a lote. La app no recalcula
+/// nada: muestra el estado, la red y las huellas.
 class VerificationScreen extends StatelessWidget {
-  const VerificationScreen({super.key});
+  const VerificationScreen({super.key, required this.integrity});
+  final TrackingIntegrity integrity;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: PaxAppBar(
-      automaticallyImplyLeading: false,
-      leading: IconButton(
-        tooltip: 'Cerrar',
-        icon: const Icon(Icons.close),
-        onPressed: () => Navigator.of(context).pop(),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = TextStyle(color: theme.colorScheme.onSurfaceVariant);
+    final v = integrity.verdict;
+    return Scaffold(
+      appBar: PaxAppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          tooltip: 'Cerrar',
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Ver verificación'),
       ),
-      title: const Text('Ver verificación'),
-    ),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SectionCard(
-          padding: EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(Icons.verified_user_outlined),
-              SizedBox(width: 10),
-              Expanded(child: Text('La verificación todavía no está disponible')),
-            ],
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StatusChip(
+              integrityTitle(v),
+              key: const Key('verification.verdict'),
+              icon: integrityIcon(v),
+              tone: _verdictTone(v),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Cuando el sistema la ofrezca, podrás consultar aquí la verificación del registro.',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 12),
+          Text(
+            'Cada registro de tu donación tiene una huella digital. Por lotes, esas huellas se resumen en una raíz que '
+            'se ancla en una red pública. El servidor comprueba que la raíz anclada coincide con los registros.',
+            style: muted,
+          ),
+          if (integrity.unanchoredEvents > 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              '${integrity.unanchoredEvents} '
+              '${integrity.unanchoredEvents == 1 ? 'registro está' : 'registros están'} esperando su sello.',
+              key: const Key('verification.unanchored'),
+            ),
+          ],
+          const SizedBox(height: 16),
+          for (final (i, b) in integrity.batches.indexed) ...[
+            SectionCard(
+              key: Key('verification.batch.$i'),
+              title: 'Lote ${i + 1}',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LabeledValue('Resultado', switch (b.result) {
+                    'MATCH' => 'Coincide',
+                    'MISMATCH' => 'No coincide',
+                    _ => 'Sin comprobar',
+                  }),
+                  if (b.reasonText != null) LabeledValue('Detalle', b.reasonText!),
+                  LabeledValue('Registros de tu donación', '${b.eventsOfThisDonation}'),
+                  if (b.anchoredAt != null) LabeledValue('Sellado', formatEventTime(b.anchoredAt!)),
+                  if (b.network != null) LabeledValue('Red', b.network!),
+                  if (b.transactionHash != null) LabeledValue('Transacción', shortHash(b.transactionHash!), mono: true),
+                  if (b.merkleRoot != null) LabeledValue('Raíz', shortHash(b.merkleRoot!), mono: true),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (integrity.checkedAt.isNotEmpty)
+            Text('Comprobado: ${formatEventTime(integrity.checkedAt)}', style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
 }
 
 /// M-17: línea de tiempo del recorrido de un bien, del primer movimiento al último (el actual, resaltado).
@@ -558,6 +663,19 @@ class RouteTimeline extends StatelessWidget {
                           if (h.locationZone.isNotEmpty) ...[const SizedBox(height: 6), Text(h.locationZone)],
                           if (custodianLabel(h.custodianCategory).isNotEmpty)
                             Text(custodianLabel(h.custodianCategory), style: TextStyle(color: scheme.onSurfaceVariant)),
+                          if (h.evidenceRegistered == true) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              key: Key('tracking.step.$i.evidence'),
+                              children: [
+                                Icon(Icons.photo_camera_outlined, size: 16, color: scheme.onSurfaceVariant),
+                                const SizedBox(width: 6),
+                                const Expanded(child: Text('Evidencia de entrega registrada')),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          _StepSeal(entry: h, index: i),
                         ],
                       ),
                     ),
@@ -565,6 +683,52 @@ class RouteTimeline extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Sello y huella de un paso. La huella completa se lee en voz alta y se puede copiar.
+class _StepSeal extends StatelessWidget {
+  const _StepSeal({required this.entry, required this.index});
+  final HistoryEntry entry;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, tone, icon) = anchorLabel(entry.anchorStatus);
+    final hash = entry.eventHash;
+    final proof = entry.anchorProof;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        StatusChip(label, key: Key('tracking.step.$index.seal'), icon: icon, tone: tone),
+        if (hash != null)
+          Semantics(
+            label: 'Huella del registro: $hash',
+            excludeSemantics: true,
+            child: InkWell(
+              key: Key('tracking.step.$index.hash'),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: hash));
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Huella copiada.')));
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  'Huella: ${shortHash(hash)}',
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 13, color: muted),
+                ),
+              ),
+            ),
+          ),
+        if (proof != null)
+          Text(
+            'Sellado en ${proof.network}${proof.anchoredAt == null ? '' : ', ${formatEventTime(proof.anchoredAt!)}'}',
+            key: Key('tracking.step.$index.proof'),
+            style: TextStyle(fontSize: 13, color: muted),
           ),
       ],
     );
