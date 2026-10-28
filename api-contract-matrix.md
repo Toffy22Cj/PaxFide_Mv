@@ -123,3 +123,19 @@ Mapeo completo de pantallas, rutas UX, estados y dependencias contractuales para
 ## Nota de procedencia y vigencia
 
 Este documento refleja el estado conceptual y los hallazgos observados durante la revisión de Fase 6 en esta conversación. La implementación real (especialmente Fase 5, en curso por el equipo en paralelo) puede avanzar simultáneamente — **antes de considerar cualquier endpoint operativo, verificar contra el repositorio actual**, no asumir que los estados aquí anotados siguen vigentes. Mismo criterio que ya rige `golden-path.md`.
+
+## Nota (2026-10-28): rutas que la app móvil empezó a usar
+
+Las filas de arriba no se reescriben. Contrato: `referencia-api-v1.md` del backend (`develop` `993c3e8`).
+
+| Ruta | Para qué en la app | Estado en el móvil |
+|---|---|---|
+| `POST /auth/password-reset` | «¿Olvidaste tu contraseña?»: pide el enlace (202 siempre); la contraseña nueva se pone en la web | HECHO |
+| `GET` / `PUT /account/profile` | Correo y nombre en Cuenta | HECHO |
+| `POST /account/password` | Cambiar la contraseña; el token nuevo sustituye al anterior | HECHO |
+| `POST /account/deactivate` | Desactivar la propia cuenta | HECHO |
+| `GET /account/impact` | Mi impacto | HECHO |
+| `POST /organizations/{id}/delivery-evidence` | Subir la foto de entrega (multipart, sin `Command-Id`) | HECHO |
+| `POST /physical-assets/{assetRef}/deliver` | Ahora con el `evidenceRef` (`sha256:<64 hex>`) de la foto subida | HECHO |
+| `GET /donations/tracking/integrity` y, en el historial, `anchorStatus`, `eventHash`, `anchorProof`, `evidenceRegistered` | Integridad visible y sello por paso | HECHO |
+| `assetType` en `GET /physical-assets/{assetRef}` y en la lista de la organización | Tipo del activo en la ficha | HECHO |

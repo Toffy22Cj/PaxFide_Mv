@@ -23,6 +23,8 @@
 
 Sin estas dependencias: M-12 se queda en "copiar el enlace"; E-11 muestra el QR sin cambiar el brillo; M-28 no existe.
 
+*Nota (2026-10-28, aprobada por Adonis):* se añade **`image_picker` ^1.2.4** para la foto de entrega (cámara y galería; ver §7). No hace falta `crypto`: la huella la calcula el backend al recibir la foto (ADR-051 F3).
+
 ## 3. Reglas que no cambian
 
 - Los campos de referencia (`carrierRef`, `receiverRef`, `beneficiaryRef`, `facilityLocation`) nunca piden nombres ni documentos: aviso fijo bajo cada campo.
@@ -88,3 +90,30 @@ Registro de lo que ya está en el código y no estaba documentado en ningún ADR
 - **M-22 (comprobante):** no hay endpoint en el backend.
 - **M-25 (mapa del recorrido):** depende de `ADR-050-mapa-del-recorrido.md`, sin aprobar.
 - **M-10:** la búsqueda en el servidor no existe; la del teléfono cubre hasta 5 páginas (100 convocatorias).
+
+## 7. Implementación (2026-10-28, rama `chore/landing-bienvenida-movil`)
+
+Decisiones de Adonis del 2026-10-28: entregar con foto se implementa (el backend ya tenía ADR-051); la biometría se queda visible; desactivar la cuenta va en Cuenta; el seguimiento muestra el estado y las huellas, sin recalcular la prueba en el teléfono. Con esto, las filas de §6.2 quedan hechas y la §6.1 se actualiza así:
+
+| Función | Cómo quedó | Dónde |
+|---|---|---|
+| E-12 / M-26 Cuenta | Correo y nombre (`GET`/`PUT /account/profile`); el nombre se edita y es privado | `account/data/account_api.dart`, `account_screen.dart` |
+| M-27 Cambiar contraseña | En Cuenta → Seguridad. `POST /account/password`; el token nuevo sustituye al anterior con la misma persistencia («Recordarme»), y las demás sesiones quedan cerradas. Un 500 lleva a entrar otra vez (ADR-038 #7) | `account_screen.dart`, `SessionController.replaceToken` |
+| M-30 Desactivar la cuenta | En Cuenta → Seguridad, con la contraseña. Explica los 409 (representante, responsable de convocatoria, administrador de plataforma). Al confirmarse se cierra la sesión y se olvida la biometría del teléfono | `account_screen.dart` |
+| M-21 Mi impacto | `ApiImpactSource` sobre `GET /account/impact`: donaciones confirmadas, convocatorias apoyadas, total por moneda y barras de unidades **entregadas en las convocatorias apoyadas** (no atribuidas al donante, P-M21-4). Sin donaciones, no se muestra | `donations/data/account_impact_api.dart`, `impact_card.dart` |
+| Entregar con foto (E-04, E-05) | La foto es obligatoria: el formulario la pide (cámara o galería, 1600 px, JPEG 80) con el aviso de fotografiar la ayuda y no a las personas; la revisión la muestra. Al confirmar se sube primero (`POST /organizations/{id}/delivery-evidence`, multipart, **con conexión**) y la entrega va al Outbox con el `evidenceRef` devuelto. La foto nunca se guarda en el teléfono; reintentar no la vuelve a subir | `core/media/photo_picker.dart`, `delivery_evidence_api.dart`, `field_action_flow.dart` |
+| M-18 Integridad visible | Tarjeta con el resultado del servidor (`GET /donations/tracking/integrity`): verificado, parcial, pendiente, sin comprobar o diferencia; detalle por lote con red, transacción, raíz y fecha | `tracking_api.dart`, `tracking_screen.dart` |
+| M-17 (ampliada) | Cada paso muestra su sello (`anchorStatus`), su huella (`eventHash`, se copia) y, en la entrega, «Evidencia de entrega registrada» | `tracking_screen.dart` |
+| E-03 Tipo del activo | La ficha muestra el `assetType`; Mi día y Mis convocatorias lo anteponen | `physical_asset_api.dart`, `asset_screen.dart` |
+
+**Transporte:** `ApiClient` gana `put` y `postFile` (multipart con un solo archivo). Siguen sin dependencias nuevas de red.
+
+**Sigue pendiente** (no se programa hasta tener contrato o ADR aprobado):
+- M-22 comprobante: no hay endpoint.
+- M-25 mapa del recorrido: `ADR-050-mapa-del-recorrido.md` sin aprobar.
+- M-10 búsqueda en el servidor: sin enmienda de ADR-041; la búsqueda en el teléfono sigue.
+- M-28 biometría: la app está lista, pero `/auth/device-credentials` y `/auth/device-login` solo están en la rama `claude/focused-goodall-meb6sh` del backend.
+- M-26 «ayuda»: no figura en la §1 aprobada y sus textos son los de M-20 (Carlos). No se redacta hasta tenerlos.
+- E-12 invitaciones pendientes: el backend no tiene listado para quien recibe la invitación; se sigue aceptando con el código del correo.
+
+**Verificación:** `flutter analyze` sin avisos y la suite completa en verde; la evidencia de `scripts/ci-local.sh` queda en `Documentos/evidencia-mobile/`.
