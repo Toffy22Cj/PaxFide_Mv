@@ -131,7 +131,7 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen> {
               ListTile(
                 key: Key('mycampaigns.asset.${a.assetRef}'),
                 title: Text(a.assetRef),
-                subtitle: Text(formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
+                subtitle: Text([?a.assetType, formatQuantityWithUnit(a.quantity, a.unitOfMeasure)].join(' · ')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _services.router.push(AppRoutes.assetPath(a.assetRef)),
               ),

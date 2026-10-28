@@ -246,6 +246,8 @@ class _AssetScreenState extends State<AssetScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (a.assetType != null)
+                  KeyedSubtree(key: const Key('asset.type'), child: LabeledValue('Tipo', a.assetType!)),
                 LabeledValue('Cantidad', formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
                 LabeledValue('Custodio actual', a.currentCustodianRef ?? '—', mono: true),
                 KeyedSubtree(

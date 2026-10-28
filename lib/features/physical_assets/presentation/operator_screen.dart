@@ -190,7 +190,11 @@ class _MyDayState extends State<_MyDay> {
                   key: Key('myday.asset.${a.assetRef}'),
                   title: Text(a.assetRef),
                   subtitle: Text(
-                    '${lifecycleLabel(a.lifecycleStatus)} · ${formatQuantityWithUnit(a.quantity, a.unitOfMeasure)}',
+                    [
+                      ?a.assetType,
+                      lifecycleLabel(a.lifecycleStatus),
+                      formatQuantityWithUnit(a.quantity, a.unitOfMeasure),
+                    ].join(' · '),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _services.router.push(AppRoutes.assetPath(a.assetRef)),

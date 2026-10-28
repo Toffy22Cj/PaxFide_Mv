@@ -12,6 +12,7 @@ ApiResponse asset(String status) => ApiResponse(
   data: {
     'assetRef': 'A-1',
     'lifecycleStatus': status,
+    'assetType': 'BLANKET',
     'currentCustodianRef': 'bodega-1',
     'currentLocation': 'bodega-1',
     'quantity': '10',
@@ -75,6 +76,8 @@ void main() {
     await openAsset(tester);
     expect(find.text('Registrado'), findsOneWidget);
     expect(find.text('10 kg'), findsOneWidget);
+    // E-03: el tipo registrado (R-6, G-4b).
+    expect(find.descendant(of: find.byKey(const Key('asset.type')), matching: find.text('BLANKET')), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Despachar'), findsOneWidget);
   });
 

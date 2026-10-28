@@ -11,6 +11,7 @@ class PhysicalAssetDto {
   const PhysicalAssetDto({
     required this.assetRef,
     required this.lifecycleStatus,
+    this.assetType,
     this.currentCustodianRef,
     this.currentLocation,
     this.quantity,
@@ -20,6 +21,9 @@ class PhysicalAssetDto {
 
   final String assetRef;
   final String lifecycleStatus;
+
+  /// El tipo registrado (R-6, G-4b). Falta en respuestas anteriores a esa nota.
+  final String? assetType;
   final String? currentCustodianRef;
   final String? currentLocation;
   final String? quantity;
@@ -38,6 +42,7 @@ class PhysicalAssetDto {
     return PhysicalAssetDto(
       assetRef: req('assetRef'),
       lifecycleStatus: req('lifecycleStatus'),
+      assetType: opt('assetType'),
       currentCustodianRef: opt('currentCustodianRef'),
       currentLocation: opt('currentLocation'),
       quantity: opt('quantity'),
