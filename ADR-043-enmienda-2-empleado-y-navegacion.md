@@ -112,7 +112,7 @@ Decisiones de Adonis del 2026-10-28: entregar con foto se implementa (el backend
 - M-22 comprobante: no hay endpoint.
 - M-25 mapa del recorrido: `ADR-050-mapa-del-recorrido.md` sin aprobar.
 - M-10 búsqueda en el servidor: sin enmienda de ADR-041; la búsqueda en el teléfono sigue.
-- M-28 biometría: la app está lista, pero `/auth/device-credentials` y `/auth/device-login` solo están en la rama `claude/focused-goodall-meb6sh` del backend.
+- M-28 biometría: la app está lista, pero `/auth/device-credentials` y `/auth/device-login` solo están en la rama `claude/focused-goodall-meb6sh` del backend. *Superado el 2026-10-29: ver §9.2.*
 - M-26 «ayuda»: no figura en la §1 aprobada y sus textos son los de M-20 (Carlos). No se redacta hasta tenerlos.
 - E-12 invitaciones pendientes: el backend no tiene listado para quien recibe la invitación; se sigue aceptando con el código del correo.
 

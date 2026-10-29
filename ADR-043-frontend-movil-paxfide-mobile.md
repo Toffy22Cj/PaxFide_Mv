@@ -11,7 +11,7 @@
 **Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-046 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
 
 **Enmiendas aprobadas** (prevalecen sobre este texto en lo que cambian):
-- `ADR-043-enmienda-2-empleado-y-navegacion.md`: navegación del empleado, Cuenta, dependencias nuevas y, en su §6, el estado de las funciones del donante.
+- `ADR-043-enmienda-2-empleado-y-navegacion.md`: navegación del empleado, Cuenta y dependencias nuevas; §6 estado de las funciones; §7 implementación del 2026-10-28 (Cuenta, Mi impacto, entrega con foto, seguimiento verificable); §8 fidelidad con el front web del 2026-10-29 (Inicio con la ciudad, tarjeta de convocatoria, seguimiento, movimiento y cargas, primeros pasos); §9 respuesta a la auditoría de Carlos del 2026-10-29 (correcciones, biometría y lo que queda por decidir).
 - `ADR-043-enmienda-3-bienvenida.md`: bienvenida sin sesión (`/welcome`), login y registro, términos y condiciones, recuperación de contraseña y catálogo con portada, logo y sello.
 
 **Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
@@ -335,19 +335,22 @@ Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `d
 
 `lib/shared/theme/pax_theme.dart` arma el **modo claro solo con esos tokens**. Donde hace falta un tono más suave se usa un token con transparencia, nunca un color nuevo.
 
-| Papel | Modo claro (paleta oficial) | Modo oscuro (`PaxDarkTokens`) |
-|---|---|---|
-| Fondo | `white` | `#121417` (casi negro) |
-| Tarjetas, campos, barra inferior | `brand-green-50` | `#1B1E22`; más elevadas `#23272C` y `#2C3137` |
-| Bordes | `brand-neutral-700` con transparencia | `#5C636B` / `#33383E` |
-| Texto | `brand-neutral-700` | `#E6E8EB`; secundario `#A8AFB7` |
-| Botón principal | `brand-green-800` con texto `white` | verde de marca aclarado `#8CCB94` con texto `#0E2A16` |
-| Enlaces y progreso | `brand-blue-700` | `#8CCB94` |
-| Pestaña elegida | `brand-green-800`, ícono `white` | `#27402D`, ícono `white` |
-| Acento (barras de predicción) | `brand-yellow-400` | `brand-yellow-400` (se lee bien sobre negro) |
-| Error | `danger-700` | rojo claro `#FF8A7A`; avisos con fondo `#5A1610` y texto `#FFDAD5` |
+> **Actualizada (2026-10-29):** la tabla y la decisión de abajo sustituyen a las del 2026-10-20. El modo oscuro de
+> «grises neutros» se cambió por la **misma paleta invertida**; es lo que hay en el código y lo que comprueba
+> `test/architecture/design_tokens_test.dart`.
 
-**Decisión (2026-10-20, dueño del producto): el modo oscuro es oscuro de verdad, aunque esos colores no estén en la paleta.** La paleta oficial es del modo claro y no tiene grises oscuros. Una primera versión usó `brand-green-900` como fondo oscuro y salió un "modo verde"; se rechazó. Ahora el oscuro usa grises neutros casi negros (`PaxDarkTokens`, en el mismo archivo de tokens) y la marca aparece solo como acento, aclarada lo justo para leerse sobre negro.
+| Papel | Modo claro (paleta oficial) | Modo oscuro (`PaxDarkTokens`, paleta invertida) |
+|---|---|---|
+| Fondo de pantalla | `white` con un 4 % de `brand-neutral-700` | `#09110A` (inverso de `brand-green-50`) |
+| Tarjetas, campos, barra inferior | `white`, borde `brand-neutral-700` al 16 % | `#111A15`; más elevadas `#19241E` |
+| Texto | `brand-neutral-700` | `brand-green-50`; secundario `#A9BFBF` (inverso de `brand-neutral-700`) |
+| Botón principal | `brand-green-800` con texto `white` | `#9FDFCB` (inverso de `brand-green-800`) con texto `brand-green-900` |
+| Enlaces y secundario | `brand-blue-700` | `#5DA8CD` (inverso de `brand-blue-700`) |
+| Tarjeta destacada y pestaña elegida | `brand-green-500` al 22 % | `brand-green-900` |
+| Acento | `brand-yellow-400` | `brand-yellow-400` |
+| Error | `danger-700` | `#E7564B` (inverso de `danger-700`); avisos con fondo `danger-700` y texto `white` |
+
+**Decisión vigente: el modo oscuro es la paleta oficial en contraste oscuro.** Cada color oscuro es un token oficial con su luminosidad invertida (HSL: mismo tono y saturación, `L → 1 − L`): el verde-800 de los botones pasa a un verde claro y el verde-50 de los fondos a casi negro. Los fondos de tarjetas y chips son los tonos oscuros de la paleta tal cual (verde-900, azul-800, amarillo-900, danger-700). La prueba de tokens comprueba cada inverso y que el texto principal cumpla contraste AA. La única excepción de colores es la ilustración de la ciudad de Inicio (Enmienda 2, §8).
 
 **Errores:** los avisos de error de las pantallas pasan a `ErrorMessage` (`lib/shared/widgets/error_message.dart`). En claro llevan fondo `danger-700` y texto `white`; en oscuro, fondo rojo oscuro y texto rojo claro. Cubre login, registro, donar (dos avisos), seguimiento y predicción.
 
