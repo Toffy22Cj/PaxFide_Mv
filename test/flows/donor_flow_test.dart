@@ -69,6 +69,8 @@ void main() {
     expect(h.secure.values.values.join(), isNot(contains('CODIGO-SECRETO')));
 
     // Hechos reales y relato separados; sin ids internos.
+    expect(find.text('Historia de tu donación'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const Key('tracking.figure.Asignación confirmada')), 300);
     expect(find.text('Hechos registrados'), findsOneWidget);
     // Unidades mínimas ISO 4217 (COP, exponente 2): 6000000 → 60 000,00 COP.
     String figure(String label) => tester.widget<Text>(find.byKey(Key('tracking.figure.$label'))).data!;
@@ -189,14 +191,14 @@ void main() {
     await tester.enterText(find.byKey(const Key('tracking.code')), 'C');
     await tester.tap(find.byKey(const Key('tracking.submit')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('BLANKET · 6 UNITS'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('BLANKET · 6 UNITS'));
-    await tester.pumpAndSettle();
+    // Los recorridos se piden todos al abrir y se ven en el árbol, sin tener que entrar en cada lote.
     final call = h.api.calls.firstWhere((c) => c.path.endsWith('/history'));
     expect(call.headers['Authorization'], 'Bearer C');
-    expect(find.byKey(const Key('tracking.timeline')), findsOneWidget);
-    expect(find.text('Entregado · Actual'), findsOneWidget);
+    expect(find.byKey(const Key('tracking.lot.0.steps')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('tracking.lot.0.steps')), matching: find.text('Entregado')),
+      findsOneWidget,
+    );
     expect(find.text(formatEventTime('2026-10-07T10:00:00Z')), findsOneWidget);
     expect(find.text('Zona norte'), findsOneWidget);
     expect(find.text('Aliado local'), findsOneWidget);
@@ -295,7 +297,7 @@ void main() {
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path == '/donations/tracking');
     expect(call.headers['Authorization'], 'Bearer CODIGO-DE-LA-CUENTA');
-    expect(find.text('Hechos registrados'), findsOneWidget);
+    expect(find.text('Historia de tu donación'), findsOneWidget);
     expect(h.services.router.stack.join(), isNot(contains('CODIGO-DE-LA-CUENTA')));
     expect(h.secure.values.values.join(), isNot(contains('CODIGO-DE-LA-CUENTA')));
   });
@@ -417,8 +419,13 @@ void main() {
     final hash = 'a' * 64;
     final root = 'b' * 64;
 
-    Future<AppHarness> submitted(WidgetTester tester, {required Object Function(RecordedCall) integrity}) async {
+    Future<AppHarness> submitted(
+      WidgetTester tester, {
+      required Object Function(RecordedCall) integrity,
+      Object Function(RecordedCall)? history,
+    }) async {
       final h = await openTracking(tester);
+      if (history != null) h.api.routes['GET /donations/tracking/assets/A-1/history'] = history;
       h.api.routes['GET /donations/tracking'] = (_) => trackingBody;
       h.api.routes['GET /donations/tracking/narrative'] = (_) =>
           const ApiResponse(statusCode: 200, data: {'status': 'PENDING'});
@@ -499,55 +506,74 @@ void main() {
     });
 
     testWidgets('cada paso muestra su sello y su huella; la entrega, si tiene evidencia', (tester) async {
-      final h = await submitted(
+      await submitted(
         tester,
         integrity: (_) =>
             const ApiResponse(statusCode: 200, data: {'batches': <Object>[], 'unanchoredEvents': 0, 'checkedAt': ''}),
-      );
-      h.api.routes['GET /donations/tracking/assets/A-1/history'] = (_) => ApiResponse(
-        statusCode: 200,
-        data: {
-          'history': [
-            {
-              'eventType': 'ASSET_REGISTERED',
-              'timestamp': '2026-10-01T10:00:00Z',
-              'custodianCategory': 'LOCAL_ALLY',
-              'status': 'REGISTERED',
-              'anchorStatus': 'ANCHORED',
-              'eventHash': hash,
-              'anchorProof': {
-                'merkleRoot': root,
-                'leafIndex': 0,
-                'path': <Object>[],
-                'transactionHash': '0x1',
-                'network': 'ganache-local',
-                'anchoredAt': '2026-10-02T10:00:00Z',
+        history: (_) => ApiResponse(
+          statusCode: 200,
+          data: {
+            'history': [
+              {
+                'eventType': 'ASSET_REGISTERED',
+                'timestamp': '2026-10-01T10:00:00Z',
+                'custodianCategory': 'LOCAL_ALLY',
+                'status': 'REGISTERED',
+                'anchorStatus': 'ANCHORED',
+                'eventHash': hash,
+                'anchorProof': {
+                  'merkleRoot': root,
+                  'leafIndex': 0,
+                  'path': <Object>[],
+                  'transactionHash': '0x1',
+                  'network': 'ganache-local',
+                  'anchoredAt': '2026-10-02T10:00:00Z',
+                },
               },
-            },
-            {
-              'eventType': 'ASSET_DELIVERED',
-              'timestamp': '2026-10-07T10:00:00Z',
-              'custodianCategory': 'LOCAL_ALLY',
-              'status': 'DELIVERED',
-              'anchorStatus': 'IN_BATCH',
-              'eventHash': 'no-es-hex',
-              'evidenceRegistered': true,
-              'evidenceRef': 'sha256:${'d' * 64}',
-            },
-          ],
-        },
+              {
+                'eventType': 'ASSET_DELIVERED',
+                'timestamp': '2026-10-07T10:00:00Z',
+                'custodianCategory': 'LOCAL_ALLY',
+                'status': 'DELIVERED',
+                'anchorStatus': 'IN_BATCH',
+                'eventHash': 'no-es-hex',
+                'evidenceRegistered': true,
+                'evidenceRef': 'sha256:${'d' * 64}',
+              },
+            ],
+          },
+        ),
       );
-      await tester.scrollUntilVisible(find.text('BLANKET · 6 UNITS'), -300);
-      await tester.tap(find.text('BLANKET · 6 UNITS'));
-      await tester.pumpAndSettle();
+      // El detalle de cada paso se abre en una hoja inferior.
+      Future<void> open(int step) async {
+        await tester.scrollUntilVisible(
+          find.byKey(Key('tracking.step.0.$step')),
+          -200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key('tracking.step.0.$step')));
+        await tester.pumpAndSettle();
+      }
+
+      await open(0);
       expect(
-        find.descendant(of: find.byKey(const Key('tracking.step.0.seal')), matching: find.text('Sellado')),
+        find.descendant(
+          of: find.byKey(const Key('tracking.step.0.seal')),
+          matching: find.text('Anclado en blockchain'),
+        ),
         findsOneWidget,
       );
-      expect(find.text('Huella: aaaaaaaa…aaaaaa'), findsOneWidget);
+      expect(find.text('aaaaaaaa…aaaaaa'), findsOneWidget);
       expect(find.byKey(const Key('tracking.step.0.proof')), findsOneWidget);
+      Navigator.of(tester.element(find.byKey(const Key('tracking.detail.step')))).pop();
+      await tester.pumpAndSettle();
+      await open(1);
       expect(
-        find.descendant(of: find.byKey(const Key('tracking.step.1.seal')), matching: find.text('En lote, por sellar')),
+        find.descendant(
+          of: find.byKey(const Key('tracking.step.1.seal')),
+          matching: find.text('En el próximo anclaje'),
+        ),
         findsOneWidget,
       );
       expect(

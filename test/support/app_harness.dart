@@ -74,6 +74,12 @@ class AppHarness {
           },
         );
       }
+      // Seguimiento: cada lote sin movimientos todavía.
+      if (call.method == 'GET' &&
+          call.path.startsWith('/donations/tracking/assets/') &&
+          call.path.endsWith('/history')) {
+        return const ApiResponse(statusCode: 200, data: {'history': <Object>[]});
+      }
       // Seguimiento: sin lotes sellados todavía.
       if (call.method == 'GET' && call.path == '/donations/tracking/integrity') {
         return const ApiResponse(

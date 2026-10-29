@@ -1,3 +1,5 @@
+export 'tracking_story_view.dart' show formatEventTime, shortHash, custodianLabel;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,34 +8,16 @@ import '../../../app/text_size_button.dart';
 import '../../../app/theme_mode_button.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
-import '../../../shared/quantity.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/pax_ui.dart';
-import '../../../shared/widgets/state_views.dart';
-import '../../physical_assets/domain/lifecycle_status.dart';
+import '../../../shared/motion/pax_motion.dart';
+import '../../../shared/widgets/loaders.dart';
 import '../data/tracking_api.dart';
+import '../domain/tracking_story.dart';
+import 'tracking_story_view.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/motion/pax_route.dart';
-
-String custodianLabel(String c) => switch (c) {
-  'LOGISTICS_PARTNER' => 'Operador logístico',
-  'REGIONAL_WAREHOUSE' => 'Bodega regional',
-  'LAST_MILE_CARRIER' => 'Transporte de última milla',
-  'LOCAL_ALLY' => 'Aliado local',
-  'UNCATEGORIZED' => 'Sin categoría',
-  _ => c,
-};
-
-String _lifecycle(String wire) => switch (LifecycleStatus.fromWire(wire)) {
-  LifecycleStatus.registered => 'Registrado',
-  LifecycleStatus.dispatched => 'En camino',
-  LifecycleStatus.received => 'Recibido',
-  LifecycleStatus.delivered => 'Entregado',
-  LifecycleStatus.depleted => 'Dividido',
-  null => wire,
-};
 
 /// `/tracking` (§13), **sin código en la ruta**: el código se escribe a mano, vive solo en la memoria de esta
 /// pantalla y viaja en la cabecera `Authorization`. Nunca se persiste, se registra ni se pone en una URL.
@@ -61,6 +45,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
   bool _narrativeLoading = false;
   TrackingIntegrity? _integrity;
   bool _integrityLoading = false;
+
+  /// Recorrido de cada lote: se piden todos al abrir, cada uno con el código en `Authorization`.
+  final Map<String, HistoryState> _histories = {};
 
   @override
   void initState() {
@@ -99,6 +86,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
       });
       _loadNarrative();
       _loadIntegrity();
+      for (final l in s.logistics) {
+        _loadHistory(l.assetRef);
+      }
     } on InvalidTrackingCodeException {
       if (mounted) {
         setState(() {
@@ -145,11 +135,24 @@ class _TrackingScreenState extends State<TrackingScreen> {
     }
   }
 
+  Future<void> _loadHistory(String assetRef) async {
+    final code = _code;
+    if (code == null) return;
+    setState(() => _histories[assetRef] = const HistoryLoading());
+    try {
+      final h = await _api.history(code, assetRef);
+      if (mounted && _code == code) setState(() => _histories[assetRef] = HistoryReady(h));
+    } on AppException {
+      if (mounted && _code == code) setState(() => _histories[assetRef] = const HistoryFailed());
+    }
+  }
+
   void _forget() => setState(() {
     _code = null;
     _summary = null;
     _narrative = null;
     _integrity = null;
+    _histories.clear();
   });
 
   @override
@@ -220,14 +223,23 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   Widget _content(BuildContext context, TrackingSummary s) {
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     final f = s.financial;
     final base = f.originalAmount <= 0 ? 1 : f.originalAmount;
+    final campaignLine = [s.campaignTitle, s.organizationName].whereType<String>().join(' · ');
+    final payment = PaymentFacts(
+      firstClearedAt: f.firstClearedAt,
+      lastClearedAt: f.lastClearedAt,
+      amount: f.originalAmount,
+      currency: f.currency,
+    );
+    final assets = s.logistics.length;
     Widget figure(String label, int value) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
           const SizedBox(height: 2),
           Text(
             formatMinorUnits(value, f.currency),
@@ -240,129 +252,154 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ],
       ),
     );
+    Widget columnTag(String text, Color dot) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text.toUpperCase(),
+            style: TextStyle(fontFamily: 'monospace', fontSize: 11, letterSpacing: 0.6, color: muted),
+          ),
+        ],
+      ),
+    );
+    var i = 0;
+    Widget rise(Widget w) => RiseIn(index: i++, child: w);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Center(
-          child: TextButton(
-            key: const Key('tracking.other'),
-            onPressed: _forget,
-            child: const Text('Usar otro código'),
-          ),
-        ),
-        Text('Hechos registrados', style: theme.textTheme.headlineSmall),
-        if (s.status != null) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: StatusChip(
-              switch (s.status) {
-                'ACTIVA' => 'Donación activa',
-                'EN_PROCESO' => 'Donación en proceso',
-                _ => s.status!,
-              },
-              icon: Icons.credit_card,
-              tone: Tone.info,
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        SectionCard(
-          title: 'Tu aporte, en cifras',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        // Cabecera de la historia (web: kicker, título, campaña y estado).
+        rise(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              figure('Donado', f.originalAmount),
-              figure('Acreditado', f.clearedAmount),
-              figure('Asignación pendiente', f.pendingAllocationAmount),
-              figure('Asignación confirmada', f.confirmedAllocationAmount),
-              if (f.refundedAmount > 0) figure('Reembolsado', f.refundedAmount),
+              Text(
+                'DONACIÓN · ${formatMinorUnits(f.originalAmount, f.currency)}',
+                style: TextStyle(fontFamily: 'monospace', fontSize: 12, letterSpacing: 0.5, color: muted),
+              ),
+              const SizedBox(height: 4),
+              Text('Historia de tu donación', style: theme.textTheme.headlineSmall),
+              if (campaignLine.isNotEmpty)
+                Text(
+                  campaignLine,
+                  key: const Key('tracking.campaign'),
+                  style: TextStyle(color: muted),
+                ),
+              const SizedBox(height: 8),
+              StatusChip(
+                [
+                  if (s.status != null) donationStateLabel(s.status!),
+                  if (assets > 0) assets == 1 ? '1 bien' : '$assets bienes',
+                ].join(' · '),
+                key: const Key('tracking.pill'),
+                icon: Icons.volunteer_activism_outlined,
+                tone: Tone.info,
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  key: const Key('tracking.other'),
+                  onPressed: _forget,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Text('Usar otro código'),
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        Text('Logística', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        if (s.logistics.isEmpty)
-          const SectionCard(
-            child: Text(
-              'Todavía no hay bienes registrados. Los hechos financieros y el sello se mantienen separados del relato.',
+        rise(columnTag('Recorrido', theme.colorScheme.primary)),
+        rise(TrackingTree(items: s.logistics, payment: payment, histories: _histories, onRetry: _loadHistory)),
+        if (s.logistics.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          rise(columnTag('Recorrido en serpiente', theme.colorScheme.tertiary)),
+          rise(
+            SnakeRoute(
+              items: s.logistics,
+              histories: _histories,
+              payment: payment,
+              campaignLine: campaignLine.isEmpty ? null : campaignLine,
             ),
           ),
-        for (final l in s.logistics)
-          Card(
-            key: Key('tracking.item.${s.logistics.indexOf(l)}'),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => _openRoute(l),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${l.assetType} · ${formatQuantityWithUnit(l.quantity, l.unitOfMeasure)}',
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    lifecycleChip(l.lifecycleStatus),
-                    const SizedBox(height: 8),
-                    Text(
-                      [l.locationZone, custodianLabel(l.custodianCategory)].where((x) => x.isNotEmpty).join(' · '),
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 20),
+        rise(columnTag('Detalle y verificación', theme.colorScheme.secondary)),
         // M-18: integridad comprobada por el servidor (`GET /donations/tracking/integrity`). Sin datos, no se afirma nada.
-        Card(
-          key: const Key('tracking.integrity'),
-          child: ListTile(
-            leading: Icon(integrityIcon(_integrity?.verdict)),
-            title: const Text('Verificación de integridad'),
-            subtitle: _integrityLoading
-                ? const LinearProgressIndicator()
-                : Text(_integrity == null ? 'No se pudo comprobar ahora' : integrityTitle(_integrity!.verdict)),
-            trailing: _integrity == null && !_integrityLoading
-                ? TextButton(
-                    key: const Key('tracking.integrity.retry'),
-                    onPressed: _loadIntegrity,
-                    child: const Text('Reintentar'),
-                  )
-                : const Icon(Icons.chevron_right),
-            onTap: _integrity == null
-                ? null
-                : () => Navigator.of(context).push(
-                    PaxPageRoute<void>(
-                      fullscreenDialog: true,
-                      builder: (_) => VerificationScreen(integrity: _integrity!),
-                    ),
-                  ),
+        rise(_integrityCard(context)),
+        const SizedBox(height: 12),
+        rise(
+          SectionCard(
+            title: 'Hechos registrados',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                figure('Donado', f.originalAmount),
+                figure('Acreditado', f.clearedAmount),
+                figure('Asignación pendiente', f.pendingAllocationAmount),
+                figure('Asignación confirmada', f.confirmedAllocationAmount),
+                if (f.refundedAmount > 0) figure('Reembolsado', f.refundedAmount),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
         _narrativeSection(context),
+        const SizedBox(height: 12),
+        Text.rich(
+          const TextSpan(
+            children: [
+              TextSpan(
+                text: 'Privacidad y transparencia: ',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              TextSpan(
+                text: 'los custodios se identifican solo por su categoría. Nunca se muestra quién recibe la ayuda.',
+              ),
+            ],
+          ),
+          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+        ),
       ],
     );
   }
 
-  /// Recorrido de un bien (Figma 03). El código sigue solo en la memoria de esta pantalla: la otra recibe la consulta.
-  void _openRoute(LogisticsItem l) {
-    final code = _code;
-    if (code == null) return;
-    Navigator.of(context).push(
-      PaxPageRoute<void>(
-        builder: (_) => AssetRouteScreen(item: l, load: () => _api.history(code, l.assetRef)),
+  Widget _integrityCard(BuildContext context) {
+    final i = _integrity;
+    return Card(
+      key: const Key('tracking.integrity'),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: AnimatedSize(
+        duration: PaxMotion.of(context, PaxMotion.normal),
+        curve: PaxMotion.standard,
+        child: _integrityLoading
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(children: [MerkleTreeLoader(), SizedBox(height: 4), Text('Verificando integridad…')]),
+              )
+            : ListTile(
+                leading: Icon(integrityIcon(i?.verdict)),
+                title: const Text('Verificación de integridad'),
+                subtitle: Text(i == null ? 'No se pudo comprobar ahora' : integrityTitle(i.verdict)),
+                trailing: i == null
+                    ? TextButton(
+                        key: const Key('tracking.integrity.retry'),
+                        onPressed: _loadIntegrity,
+                        child: const Text('Reintentar'),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: i == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                        PaxPageRoute<void>(fullscreenDialog: true, builder: (_) => VerificationScreen(integrity: i)),
+                      ),
+              ),
       ),
     );
   }
@@ -403,97 +440,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 }
 
-/// Chip del estado de un bien con su ícono.
-Widget lifecycleChip(String wire) => StatusChip(_lifecycle(wire), icon: _lifecycleIcon(wire));
-
-IconData _lifecycleIcon(String wire) => switch (LifecycleStatus.fromWire(wire)) {
-  LifecycleStatus.registered => Icons.inventory_2_outlined,
-  LifecycleStatus.dispatched => Icons.local_shipping_outlined,
-  LifecycleStatus.received => Icons.inventory_outlined,
-  LifecycleStatus.delivered => Icons.task_alt,
-  LifecycleStatus.depleted => Icons.call_split,
-  null => Icons.circle_outlined,
-};
-
-/// "3 oct 2026, 09:10" en la hora del teléfono; el texto original si no es una fecha.
-String formatEventTime(String iso) => shortDateTime(iso);
-
-/// "Recorrido del bien" (Figma 03): cabecera del bien y su línea de tiempo. Estados: cargando, error, sin eventos.
-class AssetRouteScreen extends StatefulWidget {
-  const AssetRouteScreen({super.key, required this.item, required this.load});
-  final LogisticsItem item;
-  final Future<List<HistoryEntry>> Function() load;
-
-  @override
-  State<AssetRouteScreen> createState() => _AssetRouteScreenState();
-}
-
-class _AssetRouteScreenState extends State<AssetRouteScreen> {
-  List<HistoryEntry>? _entries;
-  bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _run();
-  }
-
-  Future<void> _run() async {
-    setState(() {
-      _failed = false;
-      _entries = null;
-    });
-    try {
-      final e = await widget.load();
-      if (mounted) setState(() => _entries = e);
-    } on AppException {
-      if (mounted) setState(() => _failed = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l = widget.item;
-    final e = _entries;
-    return Scaffold(
-      appBar: PaxAppBar(title: const Text('Recorrido del bien')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            '${l.assetType} · ${formatQuantityWithUnit(l.quantity, l.unitOfMeasure)}',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Align(alignment: Alignment.centerLeft, child: lifecycleChip(l.lifecycleStatus)),
-          const SizedBox(height: 10),
-          Text(
-            'Del primer registro al último hito confirmado',
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          if (_failed)
-            ErrorRetryView(message: 'No pudimos cargar el recorrido.', onRetry: _run)
-          else if (e == null)
-            const LoadingView(label: 'Cargando recorrido…')
-          else if (e.isEmpty)
-            const MessageView(
-              icon: Icons.timeline,
-              title: 'Sin eventos todavía',
-              detail: 'Aquí aparecerán los hitos registrados para este bien.',
-            )
-          else
-            RouteTimeline(e),
-        ],
-      ),
-    );
-  }
-}
-
-/// "a3f9c8d1…c801": el principio y el final de una huella, en monoespaciada.
-String shortHash(String h) => h.length <= 16 ? h : '${h.substring(0, 8)}…${h.substring(h.length - 6)}';
-
 String integrityTitle(IntegrityVerdict v) => switch (v) {
   IntegrityVerdict.verified => 'Registro sellado y verificado',
   IntegrityVerdict.partial => 'Lo sellado está verificado; hay registros por sellar',
@@ -513,14 +459,6 @@ Tone _verdictTone(IntegrityVerdict v) => switch (v) {
   IntegrityVerdict.partial || IntegrityVerdict.pending => Tone.pending,
   IntegrityVerdict.inconclusive => Tone.neutral,
   IntegrityVerdict.mismatch => Tone.error,
-};
-
-/// Sello de un paso (G-3): en qué punto del anclaje está su huella.
-(String, Tone, IconData) anchorLabel(String status) => switch (status) {
-  'ANCHORED' => ('Sellado', Tone.success, Icons.lock_outline),
-  'IN_BATCH' => ('En lote, por sellar', Tone.pending, Icons.hourglass_bottom),
-  'UNDER_REVIEW' => ('En revisión', Tone.error, Icons.gpp_maybe_outlined),
-  _ => ('Sin sellar todavía', Tone.neutral, Icons.lock_open_outlined),
 };
 
 /// "Ver verificación" (M-18, Figma 03): el resultado que calcula el servidor, lote a lote. La app no recalcula
@@ -598,140 +536,6 @@ class VerificationScreen extends StatelessWidget {
             Text('Comprobado: ${formatEventTime(integrity.checkedAt)}', style: theme.textTheme.bodySmall),
         ],
       ),
-    );
-  }
-}
-
-/// M-17: línea de tiempo del recorrido de un bien, del primer movimiento al último (el actual, resaltado).
-class RouteTimeline extends StatelessWidget {
-  const RouteTimeline(this.entries, {super.key});
-  final List<HistoryEntry> entries;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Column(
-      key: const Key('tracking.timeline'),
-      children: [
-        for (final (i, h) in entries.indexed)
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 32,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 30,
-                        height: 30,
-                        margin: const EdgeInsets.only(top: 8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: i == entries.length - 1 ? scheme.primary : scheme.primaryContainer,
-                        ),
-                        child: Icon(
-                          _lifecycleIcon(h.status),
-                          size: 16,
-                          color: i == entries.length - 1 ? scheme.onPrimary : scheme.onPrimaryContainer,
-                        ),
-                      ),
-                      if (i < entries.length - 1) Expanded(child: Container(width: 2, color: scheme.primary)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: i == entries.length - 1 ? scheme.primaryContainer : scheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: i == entries.length - 1 ? null : Border.all(color: scheme.outlineVariant),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            i == entries.length - 1 ? '${_lifecycle(h.status)} · Actual' : _lifecycle(h.status),
-                            style: text.titleSmall,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(formatEventTime(h.timestamp), style: text.labelSmall),
-                          if (h.locationZone.isNotEmpty) ...[const SizedBox(height: 6), Text(h.locationZone)],
-                          if (custodianLabel(h.custodianCategory).isNotEmpty)
-                            Text(custodianLabel(h.custodianCategory), style: TextStyle(color: scheme.onSurfaceVariant)),
-                          if (h.evidenceRegistered == true) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              key: Key('tracking.step.$i.evidence'),
-                              children: [
-                                Icon(Icons.photo_camera_outlined, size: 16, color: scheme.onSurfaceVariant),
-                                const SizedBox(width: 6),
-                                const Expanded(child: Text('Evidencia de entrega registrada')),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          _StepSeal(entry: h, index: i),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Sello y huella de un paso. La huella completa se lee en voz alta y se puede copiar.
-class _StepSeal extends StatelessWidget {
-  const _StepSeal({required this.entry, required this.index});
-  final HistoryEntry entry;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, tone, icon) = anchorLabel(entry.anchorStatus);
-    final hash = entry.eventHash;
-    final proof = entry.anchorProof;
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        StatusChip(label, key: Key('tracking.step.$index.seal'), icon: icon, tone: tone),
-        if (hash != null)
-          Semantics(
-            label: 'Huella del registro: $hash',
-            excludeSemantics: true,
-            child: InkWell(
-              key: Key('tracking.step.$index.hash'),
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: hash));
-                ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Huella copiada.')));
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  'Huella: ${shortHash(hash)}',
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 13, color: muted),
-                ),
-              ),
-            ),
-          ),
-        if (proof != null)
-          Text(
-            'Sellado en ${proof.network}${proof.anchoredAt == null ? '' : ', ${formatEventTime(proof.anchoredAt!)}'}',
-            key: Key('tracking.step.$index.proof'),
-            style: TextStyle(fontSize: 13, color: muted),
-          ),
-      ],
     );
   }
 }

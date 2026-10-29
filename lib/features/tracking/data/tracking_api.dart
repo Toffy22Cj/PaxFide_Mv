@@ -17,6 +17,8 @@ class FinancialSnapshot {
     required this.pendingAllocationAmount,
     required this.confirmedAllocationAmount,
     required this.refundedAmount,
+    this.firstClearedAt,
+    this.lastClearedAt,
   });
   final String? currency;
   final int originalAmount;
@@ -24,6 +26,10 @@ class FinancialSnapshot {
   final int pendingAllocationAmount;
   final int confirmedAllocationAmount;
   final int refundedAmount;
+
+  /// Primer y último `FUNDS_CLEARED` (G-2); faltan sin liquidaciones.
+  final String? firstClearedAt;
+  final String? lastClearedAt;
 }
 
 class LogisticsItem {
@@ -35,6 +41,7 @@ class LogisticsItem {
     required this.quantity,
     required this.locationZone,
     required this.custodianCategory,
+    this.parentAssetRef,
   });
   final String assetRef;
   final String lifecycleStatus;
@@ -43,14 +50,27 @@ class LogisticsItem {
   final String quantity;
   final String locationZone;
   final String custodianCategory;
+
+  /// Lote del que salió este sublote (G-4): siempre otro ítem de la misma lista; si no, falta.
+  final String? parentAssetRef;
 }
 
 /// `GET /donations/tracking` (EF3). Sin `donorRef` ni datos personales: no vienen. `campaignRef` no se expone.
 class TrackingSummary {
-  const TrackingSummary({required this.financial, required this.logistics, this.status});
+  const TrackingSummary({
+    required this.financial,
+    required this.logistics,
+    this.status,
+    this.campaignTitle,
+    this.organizationName,
+  });
   final FinancialSnapshot financial;
   final List<LogisticsItem> logistics;
   final String? status;
+
+  /// G-1: faltan si la donación no tiene convocatoria o no se encuentra. Nunca ciudad ni destinatario.
+  final String? campaignTitle;
+  final String? organizationName;
 }
 
 class TrackingNarrative {
@@ -190,6 +210,8 @@ class TrackingApi {
         pendingAllocationAmount: _int(f['pendingAllocationAmount']),
         confirmedAllocationAmount: _int(f['confirmedAllocationAmount']),
         refundedAmount: f.containsKey('refundedAmount') ? _int(f['refundedAmount']) : 0,
+        firstClearedAt: _opt(f, 'firstClearedAt'),
+        lastClearedAt: _opt(f, 'lastClearedAt'),
       ),
       logistics: [
         for (final l in logistics)
@@ -202,9 +224,12 @@ class TrackingApi {
               quantity: '${l['quantity']}',
               locationZone: l['locationZone'] is String ? l['locationZone'] as String : '',
               custodianCategory: l['custodianCategory'] is String ? l['custodianCategory'] as String : '',
+              parentAssetRef: _opt(l, 'parentAssetRef'),
             ),
       ],
       status: j['status'] is String ? j['status'] as String : null,
+      campaignTitle: _opt(j, 'campaignTitle'),
+      organizationName: _opt(j, 'organizationName'),
     );
   }
 
