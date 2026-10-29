@@ -6,8 +6,11 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
+import '../../../shared/motion/pax_motion.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../../../shared/widgets/loaders.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../tracking/presentation/tracking_screen.dart';
 import '../data/account_donations_api.dart';
@@ -91,7 +94,13 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
   Widget _body() {
     if (_error != null) return ErrorRetryView(message: describeError(_error!), onRetry: _load);
     final items = _items;
-    if (items == null) return const LoadingView();
+    // Carga con el esqueleto, como la web (A-5).
+    if (items == null) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [Skeleton.list(count: 4, label: 'Cargando tus donaciones')],
+      );
+    }
     if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: _load,
@@ -114,9 +123,22 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            '${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · Desliza hacia abajo para actualizar',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: muted),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${items.length} ${items.length == 1 ? 'donación' : 'donaciones'} · Desliza hacia abajo para '
+                  'actualizar',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: muted),
+                ),
+              ),
+              // D-F15: «Seguir con un código» arriba de las donaciones.
+              TextButton(
+                key: const Key('donations.trackCode'),
+                onPressed: () => AppScope.of(context).router.push(AppRoutes.tracking),
+                child: const Text('Seguir con un código'),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           _SummaryCard(items),
@@ -157,6 +179,10 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(_title(d), style: Theme.of(context).textTheme.titleSmall),
+                      if (_meta(d) case final meta? when meta.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(meta, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted)),
+                      ],
                       const SizedBox(height: 6),
                       Text(
                         formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency),
@@ -243,13 +269,28 @@ class _SummaryCard extends StatelessWidget {
 
 String _title(AccountDonation d) => d.campaignTitle.isEmpty ? 'Convocatoria no disponible' : d.campaignTitle;
 
+/// Fecha · organización · medio de pago, cada uno solo si llega (D-P11).
+String? _meta(AccountDonation d) => [
+  if (d.createdAt case final c?) shortDate(c),
+  ?d.organizationName,
+  if (d.paymentMethod case final m?) paymentMethodLabel(m),
+].join(' · ');
+
 /// M-16: detalle de una donación. "Ver el recorrido" abre el seguimiento con el código de la cuenta, sin escribirlo.
 void _showDetail(BuildContext context, AccountDonation d) {
+  final services = AppScope.of(context);
   showModalBottomSheet<void>(
     context: context,
     useSafeArea: true,
-    builder: (sheet) => Padding(
-      padding: const EdgeInsets.all(20),
+    isScrollControlled: true,
+    showDragHandle: true,
+    sheetAnimationStyle: AnimationStyle(
+      duration: PaxMotion.of(context, const Duration(milliseconds: 350)),
+      reverseDuration: PaxMotion.of(context, PaxMotion.normal),
+      curve: Curves.easeOutCubic,
+    ),
+    builder: (sheet) => SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(
         key: const Key('donation.detail'),
         mainAxisSize: MainAxisSize.min,
@@ -257,8 +298,23 @@ void _showDetail(BuildContext context, AccountDonation d) {
         children: [
           Text(_title(d), style: Theme.of(sheet).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text(formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
-          Text(donationStatusLabel(d.status)),
+          if (d.organizationName case final o?) LabeledValue('Organización', o),
+          if (d.createdAt case final c?) LabeledValue('Fecha', shortDateTime(c)),
+          LabeledValue('Monto', formatMinorUnits(d.amount, d.currency.isEmpty ? null : d.currency)),
+          if (d.paymentMethod case final m?) LabeledValue('Medio de pago', paymentMethodLabel(m)),
+          LabeledValue('Estado', donationStatusLabel(d.status)),
+          if (d.publicCode case final code?)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                key: const Key('donation.campaign'),
+                onPressed: () {
+                  Navigator.of(sheet).pop();
+                  services.router.push(AppRoutes.campaignPath(code));
+                },
+                child: const Text('Ver convocatoria'),
+              ),
+            ),
           const SizedBox(height: 16),
           if (d.trackingCode case final code?) ...[
             FilledButton.icon(
