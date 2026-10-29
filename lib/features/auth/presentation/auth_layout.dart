@@ -243,7 +243,7 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PaxGlass(
     radius: 999,
-    opacity: 0.88,
+    opacity: 0.95,
     child: Material(
       type: MaterialType.transparency,
       child: InkWell(

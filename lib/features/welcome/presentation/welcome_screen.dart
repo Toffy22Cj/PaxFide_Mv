@@ -735,7 +735,7 @@ class _Nav extends StatelessWidget {
     return PaxGlass(
       key: const Key('welcome.navigation.surface'),
       radius: open ? 24 : 999,
-      opacity: open ? 1 : 0.84,
+      opacity: open ? 1 : 0.95,
       padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
       child: AnimatedSize(
         duration: reduced ? Duration.zero : const Duration(milliseconds: 250),
@@ -879,7 +879,7 @@ class _StopCard extends StatelessWidget {
     constraints: const BoxConstraints(maxWidth: 470),
     child: PaxGlass(
       radius: 24,
-      opacity: 0.86,
+      opacity: 0.95,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -950,7 +950,7 @@ class _Manifesto extends StatelessWidget {
     return PaxGlass(
       key: const Key('welcome.overview'),
       radius: 28,
-      opacity: 0.82,
+      opacity: 0.95,
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
       child: Column(
         children: [
@@ -1017,7 +1017,7 @@ class _Island extends StatelessWidget {
     );
     return PaxGlass(
       radius: 28,
-      opacity: 0.88,
+      opacity: 0.95,
       padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

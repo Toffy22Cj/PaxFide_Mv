@@ -8,9 +8,9 @@ import 'pax_logo.dart';
 ///
 /// Rendimiento: **sin desenfoque del fondo** (`BackdropFilter`). Un desenfoque se recalcula en cada fotograma en que
 /// algo se mueve en pantalla (el mundo animado de la bienvenida, el desplazamiento, el cursor), y varios a la vez eran
-/// la causa principal del lag. Con la superficie al 92 % el desenfoque apenas se veía.
+/// la causa principal del lag. Con la superficie al 95 % el desenfoque apenas se veía.
 class PaxGlass extends StatelessWidget {
-  const PaxGlass({super.key, required this.child, this.radius = 26, this.padding, this.opacity = 0.92});
+  const PaxGlass({super.key, required this.child, this.radius = 26, this.padding, this.opacity = 0.95});
   final Widget child;
   final double radius;
   final EdgeInsetsGeometry? padding;

@@ -648,32 +648,33 @@ class WorldPainter extends CustomPainter {
 
   // --- vegetación y casas ---
 
-  void _grassTuft(double x, double y, double s, int type) {
-    final p = _pt(x, y);
+  final _grassPath = Path();
+  final _stemPath = Path();
+  final _centerPath = Path();
+  late final _flowerPaths = List.generate(_Tint.flowers.length, (_) => Path());
+
+  /// Una mata de pasto (tres hojas que se mecen), añadida al trazo común del pasto.
+  void _addTuft(double x, double y, Offset p, double s, int type) {
     final h = (type == 1 ? 9 : 7) * _k * s;
     final sway = math.sin(_t * 2.5 + x * 2 + y) * 1.5 * _k;
-    _stroke(_col.grass, math.max(1, 1.2 * _k * s), cap: StrokeCap.round);
-    final path = Path()
+    _grassPath
       ..moveTo(p.dx - 2.5 * _k, p.dy)
       ..quadraticBezierTo(p.dx - 5 * _k + sway, p.dy - h * 0.7, p.dx - 6 * _k + sway * 1.3, p.dy - h)
       ..moveTo(p.dx, p.dy)
       ..quadraticBezierTo(p.dx + sway * 0.5, p.dy - h * 0.8, p.dx + sway, p.dy - h * 1.2)
       ..moveTo(p.dx + 2.5 * _k, p.dy)
       ..quadraticBezierTo(p.dx + 4.5 * _k + sway, p.dy - h * 0.65, p.dx + 6 * _k + sway * 1.2, p.dy - h * 0.95);
-    _c.drawPath(path, _p);
   }
 
-  void _flower(double x, double y, double s, Color col) {
-    if (_col.night > 0.85) return;
-    final p = _pt(x, y);
+  /// Una flor (tallo, pétalo y centro), añadida a los trazos comunes de su color.
+  void _addFlower(Offset p, double s, int col) {
     final r = 2.4 * _k * s;
     final top = p - Offset(0, 5 * _k * s);
-    _stroke(_col.stem, 1);
-    _c.drawLine(p, top, _p);
-    _fill(col);
-    _c.drawCircle(top, r, _p);
-    _fill(_y4);
-    _c.drawCircle(top, r * 0.45, _p);
+    _stemPath
+      ..moveTo(p.dx, p.dy)
+      ..lineTo(top.dx, top.dy);
+    _flowerPaths[col].addOval(Rect.fromCircle(center: top, radius: r));
+    _centerPath.addOval(Rect.fromCircle(center: top, radius: r * 0.45));
   }
 
   void _bush(double x, double y, double r, int ci) {
@@ -1232,16 +1233,36 @@ class WorldPainter extends CustomPainter {
     _strip(_data.sidePts, 0.6, _col.roadBase);
     _strip(_data.sidePts, 0.48, _col.roadSurface);
 
-    // Pasto y flores
+    // Pasto y flores. Rendimiento: todo el pasto va en un solo trazo, los tallos en otro y las flores en uno por
+    // color; antes eran cientos de dibujos sueltos en cada fotograma.
+    _grassPath.reset();
+    _stemPath.reset();
+    _centerPath.reset();
+    for (final f in _flowerPaths) {
+      f.reset();
+    }
+    final flowers = _col.night <= 0.85;
     for (var i = 0; i < _data.grass.length; i += _grassStep) {
       final g = _data.grass[i];
       final p = _pt(g.x, g.y);
       if (p.dx < -40 || p.dx > w + 40 || p.dy < -40 || p.dy > h + 40) continue;
       if (g.type == 2) {
-        _flower(g.x, g.y, g.s, _Tint.flowers[g.col]);
+        if (flowers) _addFlower(p, g.s, g.col);
       } else {
-        _grassTuft(g.x, g.y, g.s, g.type);
+        _addTuft(g.x, g.y, p, g.s, g.type);
       }
+    }
+    _stroke(_col.grass, math.max(1, 1.2 * _k), cap: StrokeCap.round);
+    _c.drawPath(_grassPath, _p);
+    if (flowers) {
+      _stroke(_col.stem, 1);
+      _c.drawPath(_stemPath, _p);
+      for (var c = 0; c < _flowerPaths.length; c++) {
+        _fill(_Tint.flowers[c]);
+        _c.drawPath(_flowerPaths[c], _p);
+      }
+      _fill(_y4);
+      _c.drawPath(_centerPath, _p);
     }
 
     // Luciérnagas

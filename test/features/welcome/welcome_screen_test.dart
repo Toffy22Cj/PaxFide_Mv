@@ -176,7 +176,7 @@ void main() {
     final h = await openWelcome(tester, campaigns: () => list([campaign('PUB1')]));
     final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(find.byKey(const Key('welcome.menu.campaigns')), findsNothing);
-    expect(tester.widget<PaxGlass>(find.byKey(const Key('welcome.navigation.surface'))).opacity, 0.84);
+    expect(tester.widget<PaxGlass>(find.byKey(const Key('welcome.navigation.surface'))).opacity, 0.95);
     await tester.tap(find.byKey(const Key('welcome.menu')));
     await tester.pumpAndSettle();
     expect(tester.widget<PaxGlass>(find.byKey(const Key('welcome.navigation.surface'))).opacity, 1);
