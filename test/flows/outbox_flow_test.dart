@@ -73,6 +73,19 @@ void main() {
     expect(posts(h), 0);
   });
 
+  testWidgets('M-04: AMBIGUOUS → «Reintentar con el mismo envío» sale con el MISMO Command-Id', (tester) async {
+    final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.ambiguous)]);
+    h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const ApiResponse(statusCode: 200, data: {});
+    h.services.router.go(AppRoutes.operator);
+    h.services.router.push(AppRoutes.operatorPending);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('outbox.retry.cmd-1')));
+    await tester.pumpAndSettle();
+    final post = h.api.calls.singleWhere((c) => c.method == 'POST' && c.path == '/physical-assets/A-1/dispatch');
+    expect(post.headers['Command-Id'], 'cmd-1');
+    expect(find.text('No hay operaciones pendientes de tu cuenta.'), findsOneWidget);
+  });
+
   testWidgets('pendientes: FAILED → Descartar pide confirmación; cancelar no borra', (tester) async {
     final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.failed)]);
     h.services.router.go(AppRoutes.operator);

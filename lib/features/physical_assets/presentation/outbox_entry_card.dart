@@ -70,6 +70,12 @@ class OutboxEntryCard extends StatelessWidget {
             onPressed: busy ? null : onVerify,
             child: const Text('Verificar estado'),
           ),
+          // M-04: reintento manual con el mismo `commandId` (el backend no lo aplica dos veces), después de verificar.
+          TextButton(
+            key: Key('outbox.retry.${item.commandId}'),
+            onPressed: busy ? null : onSend,
+            child: const Text('Reintentar con el mismo envío'),
+          ),
         ],
       ),
       OutboxStatus.failed => (
