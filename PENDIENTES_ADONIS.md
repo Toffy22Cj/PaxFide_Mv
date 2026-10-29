@@ -28,7 +28,7 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 - Tema «Como el teléfono»: se añadió sin que nadie lo pidiera. Falta decidir si se queda o se quita (`lib/app/theme_mode_button.dart`, `lib/shared/theme/theme_controller.dart`).
 - Nombre del paquete Android: `com.paxfide.mobile` (y `com.paxfide.mobile.demo`) desde el 2026-10-29, para registrar la app en Google Cloud («Entrar con Google»). La SHA-1 registrada es la de la llave de depuración del PC de Adonis. `google_sign_in` es una dependencia nueva: necesita la aprobación de Carlos (A2) antes de agregarla. iOS sigue con `com.example.paxfideMobile`.
 - Barra de pestañas configurable y pestañas Explorar/Seguimiento de la web: no entran sin otra enmienda de ADR-043 (decisión del 2026-10-29).
-- Rendimiento en un teléfono real: revisar Inicio con la ciudad y el seguimiento con `flutter run --profile` (las pruebas no miden fotogramas).
+- Rendimiento en un teléfono real: las causas del lag se corrigieron (§10 de la Enmienda 2); falta comprobarlo en un teléfono con un APK de release o `flutter run --profile` (las pruebas no miden fotogramas).
 - Entregar con foto en Android/iOS reales: probado con pruebas automáticas y el flujo completo; falta probar la cámara en un teléfono.
 
 ## Auditoría de Carlos (2026-10-29, `revision-auditoria-paxfide-mobile-2026-10-29.md`)

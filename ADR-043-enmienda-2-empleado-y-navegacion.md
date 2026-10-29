@@ -179,3 +179,22 @@ Decisión de Adonis: la biometría **no se oculta**; tiene que funcionar. Oculta
 | DC-8 | «Las donaciones de donantes comunes no son públicas» | Escribirlo en el ADR que Carlos indique |
 | S-07 | Capturas de pantalla | Deuda aceptada; protegerlas pide código nativo o una dependencia |
 | §6.7 | Prueba contra el backend real | Ejecutarla con el backend local y pegar la salida literal |
+
+## 10. Rendimiento: causas del lag y correcciones (2026-10-29)
+
+Se revisó la app pantalla por pantalla y se midió el coste de pintar el mundo de la bienvenida y la ciudad. El lag no tenía una sola causa; estas eran las que pesaban, de más a menos:
+
+| Causa | Dónde | Corrección |
+|---|---|---|
+| **Desenfoques del fondo** (`BackdropFilter`, `ImageFilter.blur`) recalculados en cada fotograma: varios a la vez sobre el mundo animado (barra, píldoras, tarjetas), uno a pantalla completa al llegar al catálogo, y en la caja de entrar y la barra de arriba de todas las pantallas (por el cursor o el desplazamiento) | `PaxGlass`, `AuthLayout`, `WelcomeScreen` | Fuera todos. Las superficies eran casi opacas, así que el «vidrio» queda como superficie al 95 % con borde y sombra; el desenfoque del catálogo y del menú pasan a un velo de color |
+| El **mundo de la bienvenida** se pintaba entero a la frecuencia de la pantalla (60 o 120 por segundo) aunque nadie lo moviera | `WelcomeScreen._tick` | A ritmo completo solo mientras la cámara se mueve (al deslizar); quieto, a 30 por segundo (nubes, pasto y agua son lentos) |
+| Cientos de dibujos sueltos de pasto y flores por fotograma | `WorldPainter` | Todo el pasto en un trazo, los tallos en otro y las flores en uno por color (entre 10 y 30 % menos por fotograma) |
+| Al abrir el **teclado** en entrar o registrarse, la pantalla se encogía y el mundo de fondo se volvía a pintar en cada fotograma de la animación | `AuthLayout` | `resizeToAvoidBottomInset: false`; solo el contenido deja el hueco del teclado (`_KeyboardGap`) |
+| La **vista previa de la foto** de entrega se decodificaba otra vez (1600 px) con cada letra escrita en el formulario | `FieldActionFlow` | Se crea una vez por foto y se decodifica a 1080 px |
+| El **contador de pendientes** leía el almacén cifrado en cada reconstrucción y parpadeaba a 0 | `AppShell`, Inicio, Mi día | `PendingCountBuilder`: lee solo cuando cambian las operaciones y conserva el último número |
+| La bienvenida dependía de todo `MediaQuery` y se reconstruía entera con el teclado | `WelcomeScreen` | `MediaQuery.sizeOf`/`paddingOf` |
+| El logo de la organización se decodificaba a tamaño completo | `OrganizationLogo` | `cacheWidth` al tamaño en que se ve |
+
+**Para que no vuelva:** `test/architecture/performance_rules_test.dart` falla si aparece un `BackdropFilter`, un `ImageFiltered`, un `ImageFilter.blur` o una `Image.memory` creada dentro de `build`.
+
+**Cómo medirlo:** en un teléfono, con un APK de *release* o `flutter run --profile` (en modo depuración todo va mucho más lento y no sirve para juzgar la fluidez).
