@@ -17,7 +17,8 @@ const _deviceKey = 'paxfide.biometric.device';
 ApiResponse _ok(Map<String, dynamic> data, [int code = 200]) => ApiResponse(statusCode: code, data: data);
 
 /// La lista de Cuenta (para desplazarla hasta lo que queda debajo del pliegue).
-final _accountList = find.ancestor(of: find.byKey(const Key('account.identity')), matching: find.byType(Scrollable));
+/// La lista de Cuenta: el primer `Scrollable` de la pantalla (los campos de texto que vienen después tienen el suyo).
+final _accountList = find.byType(Scrollable).first;
 
 void main() {
   group('BiometricLogin (M-28)', () {

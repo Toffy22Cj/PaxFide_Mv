@@ -10,7 +10,8 @@ import '../support/app_harness.dart';
 
 /// E-12 / M-26: pestaña Cuenta.
 /// La lista de Cuenta (para desplazarla hasta lo que queda debajo del pliegue).
-final _accountList = find.ancestor(of: find.byKey(const Key('account.identity')), matching: find.byType(Scrollable));
+/// La lista de Cuenta: el primer `Scrollable` de la pantalla (los campos de texto que vienen después tienen el suyo).
+final _accountList = find.byType(Scrollable).first;
 
 void main() {
   Future<AppHarness> start(
@@ -26,6 +27,19 @@ void main() {
     );
     return h;
   }
+
+  testWidgets('«Animación de la ciudad» pausa la ciudad de Inicio y se recuerda', (tester) async {
+    final h = await start(tester, roles: const [], org: null);
+    await tester.tap(find.byKey(const Key('nav.Cuenta')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('account.cityAnimation')), 200, scrollable: _accountList);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('account.cityAnimation')));
+    await tester.pumpAndSettle();
+    expect(h.services.cityPause.value, isTrue);
+    expect(h.secure.values['paxfide.ui.cityPaused'], '1');
+    expect(find.text('En pausa'), findsOneWidget);
+  });
 
   testWidgets('el empleado y el donante tienen la pestaña Cuenta con su rol', (tester) async {
     var h = await start(tester);

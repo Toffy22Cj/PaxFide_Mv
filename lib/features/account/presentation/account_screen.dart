@@ -75,7 +75,7 @@ class AccountScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               if (p.organizationId == null) ...[const _InvitationCard(), const SizedBox(height: 12)],
-              Text('Apariencia', style: text.titleMedium),
+              Text('Apariencia y ciudad', style: text.titleMedium),
               Card(
                 child: Column(
                   children: [
@@ -96,6 +96,18 @@ class AccountScreen extends StatelessWidget {
                         builder: (context, m, _) => Text(ThemeModeButton.labels[m]!),
                       ),
                       trailing: const ThemeModeButton(),
+                    ),
+                    // La ciudad de Inicio (web: «Animación de la ciudad»). Se recuerda en este teléfono.
+                    ValueListenableBuilder<bool>(
+                      valueListenable: services.cityPause,
+                      builder: (context, paused, _) => SwitchListTile(
+                        key: const Key('account.cityAnimation'),
+                        secondary: const Icon(Icons.location_city_outlined),
+                        title: const Text('Animación de la ciudad'),
+                        subtitle: Text(paused ? 'En pausa' : 'En movimiento'),
+                        value: !paused,
+                        onChanged: (_) => services.cityPause.toggle(),
+                      ),
                     ),
                   ],
                 ),
