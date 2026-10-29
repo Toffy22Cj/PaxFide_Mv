@@ -14,6 +14,7 @@ import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
 import '../data/donation_intent_api.dart';
 import '../domain/donation_flow.dart';
+import '../domain/payment_link.dart';
 import 'my_donations_screen.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/motion/circular_reveal.dart';
@@ -159,9 +160,15 @@ class _DonateSheetState extends State<DonateSheet> {
     _revealing = true;
   }
 
+  bool _canOpen(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null &&
+        isOpenablePaymentUrl(uri, publicOrigin: _services.config.publicOrigin, apiBaseUrl: _services.config.apiBaseUrl);
+  }
+
   Future<void> _openPayment(String url) async {
     final uri = Uri.tryParse(url);
-    final ok = uri != null && uri.hasScheme && await _services.linkOpener.open(uri);
+    final ok = uri != null && _canOpen(url) && await _services.linkOpener.open(uri);
     if (!ok && mounted) {
       ScaffoldMessenger.maybeOf(
         context,
@@ -388,14 +395,16 @@ class _DonateSheetState extends State<DonateSheet> {
                 label: const Text('Copiar enlace'),
                 onPressed: () => _copy(_checkoutUrl(redirect), 'Enlace copiado.'),
               ),
-              const SizedBox(height: 8),
-              // M-12: abrir el pago en el navegador.
-              OutlinedButton.icon(
-                key: const Key('donate.openPayment'),
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('Abrir el pago'),
-                onPressed: () => _openPayment(_checkoutUrl(redirect)),
-              ),
+              // M-12: abrir el pago en el navegador, solo si el enlace es de PaxFide (S-02); si no, se copia.
+              if (_canOpen(_checkoutUrl(redirect))) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('donate.openPayment'),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Abrir el pago'),
+                  onPressed: () => _openPayment(_checkoutUrl(redirect)),
+                ),
+              ],
             ],
           ),
         ),
