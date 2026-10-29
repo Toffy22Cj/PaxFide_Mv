@@ -16,7 +16,7 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 |---|---|---|---|
 | M10 | `CampaignSearch` (`PublicCampaignSearch`) | `lib/features/campaigns/domain/public_campaign_search.dart`, `presentation/campaign_search_view.dart` | Ya funciona buscando en el teléfono sobre `GET /public/campaigns` (hasta 5 páginas). Cuando la enmienda de ADR-041 traiga búsqueda en el backend, implementar otra `CampaignSearch` con ese contrato. |
 | M22 | `ReceiptSource` y `ReceiptSharer` | `lib/features/donations/domain/receipt.dart`, `presentation/receipt_view.dart` | Endpoint del comprobante (Manuel) e implementar `ReceiptSource`; para compartir, aprobar una dependencia (p. ej. `share_plus`) e implementar `ReceiptSharer`. |
-| M28 | Biometría (visible; decisión de Adonis del 2026-10-29 frente a S-01: el backend ya la tenía en otra rama, que hay que actualizar) | `lib/features/auth/biometrics/` | El backend que se use debe tener `/auth/device-credentials` y `/auth/device-login`. Hoy solo están en la rama `claude/focused-goodall-meb6sh` del backend, no en `develop`. |
+| M28 | Biometría (visible y funcionando) | `lib/features/auth/biometrics/` | El backend de la biometría se puso al día sobre `develop` en la rama `claude/beautiful-goodall-ww71gg` de Donaciones (2026-10-29), con caducidad de 30 días y corte al cambiar o recuperar la contraseña (S-01 opción (b)). Falta fusionarlo a `develop` del backend. |
 | E-12 | Invitaciones pendientes en Cuenta | `lib/features/account/presentation/account_screen.dart` | El backend no tiene un listado para quien recibe la invitación; se acepta pegando el código del correo. |
 
 ## Otros
@@ -45,7 +45,7 @@ Corregido en la app, cada punto en su commit con su prueba:
 
 Esperando decisión de Carlos (no se tocan hasta que decida):
 
-- **DC-1 a DC-8** de la §7: rama, biometría (S-01: Adonis la mantiene visible; el backend que la soporta está en `claude/focused-goodall-meb6sh`, desactualizada respecto a `develop`), Enmiendas 2 y 3 y sección de fotos (P-1, P-3, P-4), las cuatro dependencias (P-2), biometría definitiva, `url_launcher`, `trackingCode` en «Ver el recorrido» (S-03, DDM-25), firma de la app (S-05) y dónde escribir que las donaciones de donantes comunes no son públicas.
+- **DC-1 a DC-8** de la §7: rama, biometría (S-01: se aplicó la opción (b) en el backend; sigue siendo un token portador y Carlos tiene que aceptar ese riesgo por escrito o pedir la (a)), Enmiendas 2 y 3 y sección de fotos (P-1, P-3, P-4), las cuatro dependencias (P-2), biometría definitiva, `url_launcher`, `trackingCode` en «Ver el recorrido» (S-03, DDM-25), firma de la app (S-05) y dónde escribir que las donaciones de donantes comunes no son públicas.
 - **S-07** (capturas de pantalla): aceptarlo como deuda o protegerlo; protegerlo pide código nativo o una dependencia.
 - **Prueba contra el backend real (§6.7):** volver a ejecutarla con el backend local y pegar la salida literal en el PR.
 - **Ramas (§6):** Carlos pide cada corrección en su rama `fix/`. Esta sesión solo puede subir a `claude/…`; las correcciones van en commits separados para poder pasarlas a ramas `fix/`.
