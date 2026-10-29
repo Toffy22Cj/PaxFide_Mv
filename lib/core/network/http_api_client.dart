@@ -122,9 +122,10 @@ class HttpApiClient implements ApiClient {
     if (mode == CredentialMode.jwt) {
       final token = await tokenStore.readToken();
       if (token == null || token.isEmpty) {
-        // Sin JWT la petición no sale; para la sesión equivale a un 401 (T-1).
+        // Sin JWT la petición no sale. La sesión no tiene credencial y se cierra (T-1), pero quien llama recibe
+        // «no salió», no un 401 inventado: una operación del Outbox no puede acabar como rechazada.
         await authResponseHandler.handleResponse(statusCode: 401, credentialMode: mode);
-        return const ApiResponse(statusCode: 401);
+        throw const MissingCredentialException();
       }
       extra['Authorization'] = 'Bearer $token';
     }

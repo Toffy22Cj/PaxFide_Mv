@@ -152,9 +152,11 @@ void main() {
     expect(loggedOut, 0);
   });
 
-  test('sin JWT guardado: la petición no sale y equivale a 401 (T-1)', () async {
-    final r = await client.get('/me', credentialMode: CredentialMode.jwt);
-    expect(r.statusCode, 401);
+  test('sin JWT guardado: la petición no sale, cierra la sesión (T-1) y avisa «no salió», no un 401', () async {
+    await expectLater(
+      client.get('/me', credentialMode: CredentialMode.jwt),
+      throwsA(isA<MissingCredentialException>().having((e) => e.isAmbiguous, 'ambigua', false)),
+    );
     expect(srv.requests, isEmpty);
     expect(loggedOut, 1);
   });

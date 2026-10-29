@@ -29,6 +29,15 @@ class ConnectionNotEstablishedException extends TransportException {
   bool get isAmbiguous => false;
 }
 
+/// Determinista: no hay JWT guardado, así que la petición **no salió** del dispositivo. No es un rechazo del backend:
+/// una operación del Outbox sigue como estaba (`PENDING`), nunca `FAILED` (regla 2.6; auditoría 2026-10-29, §3).
+class MissingCredentialException extends TransportException {
+  const MissingCredentialException([super.message = 'No hay sesión: la petición no salió del teléfono']);
+
+  @override
+  bool get isAmbiguous => false;
+}
+
 /// Ambiguo: timeout sin respuesta; el backend pudo haber procesado la petición.
 class NetworkTimeoutException extends TransportException {
   const NetworkTimeoutException([super.message = 'Tiempo de espera agotado sin respuesta confirmada']);

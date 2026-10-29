@@ -3,6 +3,7 @@ import '../core/errors/app_exceptions.dart';
 /// Mensaje para el usuario. Nunca incluye datos de la petición (URL, tokens, cuerpos).
 String describeError(Object error) {
   if (error is ConnectionNotEstablishedException) return 'Sin conexión con el servidor. No se envió nada.';
+  if (error is MissingCredentialException) return 'Tu sesión terminó. Entra de nuevo; no se envió nada.';
   if (error is TransportException) return 'No pudimos confirmar la respuesta del servidor.';
   if (error is UnauthorizedException) return 'Tu sesión no es válida. Vuelve a entrar.';
   if (error is ForbiddenException) return 'Tu cuenta no tiene acceso a esto.';

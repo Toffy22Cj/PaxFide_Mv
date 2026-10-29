@@ -94,6 +94,14 @@ void main() {
     expect(await statusOf('1'), OutboxStatus.pending);
   });
 
+  test('sin JWT: no salió del teléfono → sigue PENDING, nunca FAILED (auditoría 2026-10-29, §3)', () async {
+    await engine.enqueue(pending('1'));
+    final noToken = FakeApiClient()..enqueue(const MissingCredentialException());
+    final e2 = SyncEngine(store: store, apiClient: _NoBeforeSendClient(noToken));
+    expect(await e2.send('1', 'acc-A'), CommandOutcome.notSent);
+    expect(await statusOf('1'), OutboxStatus.pending);
+  });
+
   test('negativa: IN_FLIGHT nunca vuelve a PENDING (fallo ambiguo tras salir)', () async {
     await engine.enqueue(pending('1'));
     api.enqueue(const NetworkTimeoutException());
