@@ -134,6 +134,17 @@ class SyncEngine extends ChangeNotifier {
     return ok;
   }
 
+  /// Retira una entrada que **nunca salió** (`PENDING`). Para operaciones que no pueden quedarse en cola sin
+  /// conexión, como la entrega (ADR-051 F5). `IN_FLIGHT` o `AMBIGUOUS` no: pudieron llegar al servidor.
+  Future<void> withdrawUnsent(String commandId, String accountId) async {
+    final item = await _own(commandId, accountId);
+    if (item.status != OutboxStatus.pending) {
+      throw const OutboxOperationNotAllowedException('Solo se retira una operación que no salió');
+    }
+    await store.deleteItem(commandId);
+    notifyListeners();
+  }
+
   /// Descartar: solo `FAILED` (el backend ya la rechazó; no hay nada que revertir). No envía nada.
   /// La UI pide confirmación antes de llamar.
   Future<void> discard(String commandId, String accountId) async {

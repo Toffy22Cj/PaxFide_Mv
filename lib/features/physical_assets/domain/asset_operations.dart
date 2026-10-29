@@ -20,6 +20,9 @@ class AssetOperations {
   final CommandIdGenerator _ids;
 
   /// Nueva operación: entrada `PENDING` con un `commandId` nuevo, guardada antes de enviarla; luego se envía.
+  ///
+  /// La **entrega** no se queda en cola sin conexión (ADR-051 F5): si no salió, la entrada se retira y quien llama
+  /// recibe `notSent` para pedir que se vuelva a intentar con señal.
   Future<(OutboxItem, CommandOutcome)> submit(AssetCommand command, {required String accountId}) async {
     final item = OutboxItem(
       commandId: _ids.next(),
@@ -32,7 +35,11 @@ class AssetOperations {
       createdAt: DateTime.now().toUtc(),
     );
     await engine.enqueue(item);
-    return (item, await engine.send(item.commandId, accountId));
+    final outcome = await engine.send(item.commandId, accountId);
+    if (outcome == CommandOutcome.notSent && command.action == AssetAction.deliver) {
+      await engine.withdrawUnsent(item.commandId, accountId);
+    }
+    return (item, outcome);
   }
 
   /// "Verificar estado": `GET /physical-assets/{assetRef}`; `lifecycleStatus` esperado → `ACKNOWLEDGED`.

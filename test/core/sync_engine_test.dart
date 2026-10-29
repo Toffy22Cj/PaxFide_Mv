@@ -102,6 +102,16 @@ void main() {
     expect(await statusOf('1'), OutboxStatus.pending);
   });
 
+  test('retirar solo lo que no salió (PENDING); AMBIGUOUS no, porque pudo llegar', () async {
+    await engine.enqueue(pending('1'));
+    await engine.withdrawUnsent('1', 'acc-A');
+    expect(await engine.entriesFor('acc-A'), isEmpty);
+    await engine.enqueue(pending('2'));
+    api.enqueue(const NetworkTimeoutException());
+    await engine.send('2', 'acc-A');
+    expect(() => engine.withdrawUnsent('2', 'acc-A'), throwsA(isA<OutboxOperationNotAllowedException>()));
+  });
+
   test('negativa: IN_FLIGHT nunca vuelve a PENDING (fallo ambiguo tras salir)', () async {
     await engine.enqueue(pending('1'));
     api.enqueue(const NetworkTimeoutException());

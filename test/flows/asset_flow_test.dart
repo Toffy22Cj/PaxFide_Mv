@@ -363,19 +363,31 @@ void main() {
       expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
     });
 
-    testWidgets('si la entrega falla tras subir la foto, al reintentar no se vuelve a subir', (tester) async {
+    testWidgets('M-05: sin conexión la entrega no se guarda; «Reintentar» no vuelve a subir la foto', (tester) async {
       await openReceived(tester);
       var uploads = 0;
+      var online = false;
       h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) {
         uploads++;
         return ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
       };
-      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) => const ConnectionNotEstablishedException();
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) =>
+          online ? const ApiResponse(statusCode: 200, data: {}) : const ConnectionNotEstablishedException();
       await fillDeliver(tester);
-      expect(await confirmAndClose(tester), 'notSent');
-      expect(uploads, 1);
-      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
-      expect(saved.payload['evidenceRef'], ref, reason: 'en la cola va la huella, nunca la foto');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('result.notSent')), findsOneWidget);
+      expect(find.byKey(const Key('result.pending')), findsNothing, reason: 'no hay nada en Pendientes');
+      // ADR-051 F5: la entrega no entra en la cola sin conexión.
+      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+      online = true;
+      await tap(tester, find.byKey(const Key('result.retryDeliver')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('result.acknowledged')), findsOneWidget);
+      expect(uploads, 1, reason: 'la foto ya subida no se vuelve a subir');
+      final delivers = h.api.calls.where((c) => c.path == '/physical-assets/A-1/deliver');
+      expect(delivers.last.body?['evidenceRef'], ref, reason: 'va la huella, nunca la foto');
     });
   });
 }

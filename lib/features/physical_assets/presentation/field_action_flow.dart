@@ -443,6 +443,14 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         scheme.primaryContainer,
         scheme.onPrimaryContainer,
       ),
+      // La entrega no se guarda sin conexión (ADR-051 F5): ni el comando ni la foto quedan en el teléfono.
+      CommandOutcome.notSent when _isDeliver => (
+        Icons.wifi_off,
+        'No se envió',
+        'No hay conexión. La entrega no se guarda en el teléfono: vuelve a intentarlo cuando tengas señal.',
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
       CommandOutcome.notSent => (
         Icons.save_alt,
         'Guardado en el teléfono',
@@ -496,7 +504,13 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
           onPressed: _busy ? null : _verify,
           child: const Text('Verificar estado'),
         ),
-      if (_outcome == CommandOutcome.notSent || _outcome == CommandOutcome.ambiguous)
+      if (_outcome == CommandOutcome.notSent && _isDeliver)
+        FilledButton(
+          key: const Key('result.retryDeliver'),
+          onPressed: _busy ? null : _confirm,
+          child: const Text('Reintentar'),
+        ),
+      if (_outcome == CommandOutcome.ambiguous || (_outcome == CommandOutcome.notSent && !_isDeliver))
         TextButton(
           key: const Key('result.pending'),
           onPressed: () {
