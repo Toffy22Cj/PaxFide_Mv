@@ -24,6 +24,10 @@ import 'qr_scanner_sheet.dart';
 import 'router/app_router_delegate.dart';
 import '../shared/city/city_pause_controller.dart';
 
+/// Si se ofrece entrar con huella o rostro (ver S-01 en `bootstrap`). Apagado salvo que se compile con
+/// `--dart-define=PAXFIDE_BIOMETRICS=true`.
+const biometricsEnabled = bool.fromEnvironment('PAXFIDE_BIOMETRICS');
+
 /// Construye las dependencias. [apiClientFactory] permite inyectar un `ApiClient` falso en los tests.
 AppServices buildServices({
   required AppConfig config,
@@ -58,10 +62,12 @@ AppServices buildServices({
     linkOpener: linkOpener,
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
-    // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
+    // Biometría oculta por defecto (auditoría 2026-10-29, S-01, recomendación (c)): el token del teléfono no queda
+    // ligado a la huella ni caduca, y no hay ADR de Identity aprobado. Solo con `--dart-define=PAXFIDE_BIOMETRICS=true`
+    // (p. ej. para una demo, con el riesgo aceptado por escrito). local_auth no funciona en Linux ni en la web.
     biometricAuthenticator:
         biometricAuthenticator ??
-        (LocalAuthBiometricAuthenticator.supportedPlatform
+        (biometricsEnabled && LocalAuthBiometricAuthenticator.supportedPlatform
             ? LocalAuthBiometricAuthenticator()
             : const UnavailableBiometricAuthenticator()),
   );
