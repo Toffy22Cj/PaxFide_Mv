@@ -15,6 +15,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../physical_assets/domain/lifecycle_status.dart';
 import '../data/tracking_api.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
+import '../../../shared/motion/pax_route.dart';
 
 String custodianLabel(String c) => switch (c) {
   'LOGISTICS_PARTNER' => 'Operador logístico',
@@ -342,7 +343,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
             onTap: _integrity == null
                 ? null
                 : () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    PaxPageRoute<void>(
                       fullscreenDialog: true,
                       builder: (_) => VerificationScreen(integrity: _integrity!),
                     ),
@@ -360,7 +361,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final code = _code;
     if (code == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      PaxPageRoute<void>(
         builder: (_) => AssetRouteScreen(item: l, load: () => _api.history(code, l.assetRef)),
       ),
     );

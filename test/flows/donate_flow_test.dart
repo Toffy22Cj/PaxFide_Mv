@@ -269,7 +269,7 @@ void main() {
     h.api.routes['GET /public/campaigns/PUB1'] = (_) => campaign();
     h.saveToken('jwt');
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
-    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200);
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200, scrollable: _homeList);
     await tester.drag(find.byKey(const Key('home.campaigns')), const Offset(0, -300));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home.campaign.PUB1')));
@@ -300,13 +300,16 @@ void main() {
           );
     h.saveToken('jwt');
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
-    await tester.scrollUntilVisible(find.text('No pudimos cargar las convocatorias.'), 200);
+    await tester.scrollUntilVisible(find.text('No pudimos cargar las convocatorias.'), 200, scrollable: _homeList);
     fail = false;
     await tester.ensureVisible(find.widgetWithText(TextButton, 'Reintentar'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, 'Reintentar'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200);
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200, scrollable: _homeList);
     expect(find.byKey(const Key('home.campaign.PUB1')), findsOneWidget);
   });
 }
+
+/// La lista de Inicio (la tarjeta de seguimiento tiene su propio campo de texto, que también se desplaza).
+final _homeList = find.byType(Scrollable).first;

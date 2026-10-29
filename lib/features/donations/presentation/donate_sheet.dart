@@ -16,6 +16,7 @@ import '../data/donation_intent_api.dart';
 import '../domain/donation_flow.dart';
 import 'my_donations_screen.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
+import '../../../shared/motion/pax_route.dart';
 
 /// "Donar" solo si la convocatoria está abierta, acepta dinero, tiene moneda y admite la pasarela.
 bool canDonate(PublicCampaign c) =>
@@ -30,7 +31,7 @@ Widget donateAction(BuildContext context, PublicCampaign campaign, String public
   return FilledButton(
     key: const Key('donate.open'),
     onPressed: () => Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      PaxPageRoute<void>(
         fullscreenDialog: true,
         builder: (_) => DonateSheet(publicCode: publicCode, currency: campaign.currency!, campaign: campaign),
       ),

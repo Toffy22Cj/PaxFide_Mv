@@ -68,3 +68,53 @@ mixin PaxLoopMixin<T extends StatefulWidget> on State<T>, SingleTickerProviderSt
     super.dispose();
   }
 }
+
+/// Entrada «rise» de las tarjetas de la web: sube 18 px y aparece (`normal`, curva de salida), con [index] × `fast`
+/// de retraso para que entren escalonadas. Solo la primera vez que se monta; con «reducir movimiento», ya está.
+class RiseIn extends StatefulWidget {
+  const RiseIn({super.key, required this.index, required this.child});
+  final int index;
+  final Widget child;
+
+  @override
+  State<RiseIn> createState() => _RiseInState();
+}
+
+class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
+  // El retraso va dentro de la animación (un `Interval`), sin temporizadores sueltos.
+  late final Duration _delay = PaxMotion.fast * widget.index;
+  late final AnimationController _c = AnimationController(vsync: this, duration: _delay + PaxMotion.normal);
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _c,
+    curve: Interval(_delay.inMicroseconds / _c.duration!.inMicroseconds, 1, curve: PaxMotion.out),
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (PaxMotion.reduce(context)) {
+      _c.value = 1;
+    } else {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _t,
+    child: AnimatedBuilder(
+      animation: _t,
+      child: widget.child,
+      builder: (context, child) => Transform.translate(offset: Offset(0, 18 * (1 - _t.value)), child: child),
+    ),
+  );
+}

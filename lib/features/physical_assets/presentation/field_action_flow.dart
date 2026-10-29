@@ -19,6 +19,7 @@ import '../domain/asset_operations.dart';
 import 'command_form_sheet.dart';
 import 'outbox_entry_card.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
+import '../../../shared/motion/pax_route.dart';
 
 /// Etiquetas de los campos de referencia. Nunca piden nombres ni documentos.
 const fieldLabels = {
@@ -65,7 +66,7 @@ Future<CommandOutcome?> runFieldAction(
   required String accountId,
 }) {
   return Navigator.of(context).push<CommandOutcome>(
-    MaterialPageRoute(
+    PaxPageRoute(
       fullscreenDialog: true,
       builder: (_) => _FieldActionFlow(action: action, assetRef: assetRef, ops: operations, accountId: accountId),
     ),

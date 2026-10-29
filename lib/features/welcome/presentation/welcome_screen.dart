@@ -23,6 +23,7 @@ import '../../campaigns/domain/campaign_search.dart';
 import '../../campaigns/presentation/campaign_search_view.dart';
 import '../../campaigns/presentation/campaign_summary_card.dart';
 import 'welcome_world.dart';
+import '../../../shared/motion/pax_route.dart';
 
 /// Colores de texto de la bienvenida, como en el landing: titular en dos tonos de verde, etiquetas en mono ámbar.
 /// Todo de la paleta (en oscuro, sus inversos).
@@ -256,7 +257,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   }
 
   void _openAll() => Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    PaxPageRoute<void>(
       builder: (page) => Scaffold(
         appBar: const PaxAppBar(title: Text('Convocatorias')),
         body: CampaignSearchView(

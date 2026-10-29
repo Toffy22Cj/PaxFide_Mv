@@ -11,13 +11,35 @@ class AccountDonation {
     required this.currency,
     required this.status,
     this.trackingCode,
+    this.createdAt,
+    this.organizationName,
+    this.paymentMethod,
+    this.publicCode,
   });
   final String campaignTitle;
   final String amount;
   final String currency;
   final String status;
   final String? trackingCode;
+
+  /// Falta en intenciones anteriores a la Enmienda 5 de ADR-037.
+  final String? createdAt;
+  final String? organizationName;
+
+  /// `GATEWAY`, `BANK_TRANSFER` o `CASH`.
+  final String? paymentMethod;
+
+  /// Solo si la convocatoria es pública al leer (una `PRIVATE_LINK` nunca lo trae, ADR-041 §2.7).
+  final String? publicCode;
 }
+
+/// Nombre del medio de pago; un literal desconocido se muestra tal cual.
+String paymentMethodLabel(String v) => switch (v) {
+  'GATEWAY' => 'Pasarela de pago',
+  'BANK_TRANSFER' => 'Transferencia bancaria',
+  'CASH' => 'Efectivo',
+  _ => v,
+};
 
 class AccountDonationsApi {
   const AccountDonationsApi(this._api);
@@ -40,7 +62,13 @@ class AccountDonationsApi {
             trackingCode: i['trackingCode'] is String && (i['trackingCode'] as String).isNotEmpty
                 ? i['trackingCode'] as String
                 : null,
+            createdAt: _opt(i['createdAt']),
+            organizationName: _opt(i['organizationName']),
+            paymentMethod: _opt(i['paymentMethod']),
+            publicCode: _opt(i['publicCode']),
           ),
     ];
   }
 }
+
+String? _opt(Object? v) => v is String && v.isNotEmpty ? v : null;

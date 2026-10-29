@@ -15,6 +15,7 @@ import '../domain/achievements.dart';
 import '../domain/receipt.dart';
 import 'impact_card.dart';
 import 'receipt_view.dart';
+import '../../../shared/motion/pax_route.dart';
 
 /// Chip del estado del pago, con el tono del Figma (confirmado en verde, pendiente en amarillo, fallos en rojo).
 Widget donationStatusChip(String status) => StatusChip(
@@ -266,7 +267,7 @@ void _showDetail(BuildContext context, AccountDonation d) {
               label: const Text('Ver el recorrido'),
               onPressed: () {
                 Navigator.of(sheet).pop();
-                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TrackingScreen(initialCode: code)));
+                Navigator.of(context).push(PaxPageRoute<void>(builder: (_) => TrackingScreen(initialCode: code)));
               },
             ),
           ] else
