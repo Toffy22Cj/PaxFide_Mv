@@ -139,3 +139,43 @@ Decisiones de Adonis del 2026-10-29: la app se adapta a lo que ya implementó la
 **Rendimiento (reglas que siguen todas las animaciones).** Un solo reloj por pieza y pintura con `CustomPainter(repaint:)` dentro de un `RepaintBoundary`, sin reconstruir widgets en cada fotograma; los bucles se paran fuera de pantalla (`TickerMode`), con «reducir movimiento» y, la ciudad, en cuanto el contenido la tapa al desplazar. La ciudad pinta el suelo fijo una sola vez en una imagen, descarta lo que cae fuera de la pantalla y va a 30 fotogramas por segundo, para dejar al desplazamiento, los gestos y las transiciones todo el margen del teléfono. Ningún retraso usa temporizadores sueltos (los escalonados van dentro de la animación).
 
 **Verificación:** `flutter analyze` sin avisos y la suite completa en verde (pruebas nuevas de movimiento, ciudad, Inicio, primeros pasos y seguimiento); la evidencia de `scripts/ci-local.sh` queda en `Documentos/evidencia-mobile/`.
+
+## 9. Respuesta a la auditoría de Carlos (2026-10-29)
+
+Base: `revision-auditoria-paxfide-mobile-2026-10-29.md` (borrador de Carlos sobre `chore/landing-bienvenida-movil` en `3cfda18`). Las correcciones que se deducen de ADR aprobados o de la propia auditoría se aplicaron; lo que la auditoría deja a decisión de Carlos **no se da por aprobado** aquí.
+
+### 9.1 Corregido en la app (un commit y una prueba por punto)
+
+| Punto | Problema | Solución y por qué |
+|---|---|---|
+| §3 / §6.6 · 401 sintético | Sin JWT, `HttpApiClient` devolvía un `401` inventado y el `SyncEngine` marcaba la operación `FAILED` sin que hubiera salido del teléfono | Lanza `MissingCredentialException` (transporte, determinista, no ambigua): la operación sigue `PENDING`, como pide la regla 2.6 para un fallo sin envío. La sesión sin credencial se sigue cerrando (T-1), porque sin token no hay sesión válida |
+| M-05 · ADR-051 F5 | La entrega podía quedar en cola sin conexión | Si `DELIVER` no llega a salir, la entrada se retira (`SyncEngine.withdrawUnsent`, solo para `PENDING`: lo que pudo llegar al servidor nunca se retira) y la pantalla pide «Reintentar» con señal. La foto ya subida no se vuelve a subir y nada de la entrega queda en el teléfono |
+| M-04 | Faltaba en la pantalla el reintento manual de `AMBIGUOUS` | «Reintentar con el mismo envío», junto a «Verificar estado», con el **mismo** `commandId` (el motor ya lo permitía; el backend no lo aplica dos veces) |
+| S-04 | La copia reducida de la foto quedaba en la caché | Se borra en cuanto se leen sus bytes, también si no es JPEG ni PNG. Solo se borra lo que está dentro de la caché de la app: un original de la galería nunca se toca |
+| S-02 | El enlace de pago se abría con cualquier esquema | Solo se abre si es `https` hacia la web o la API de PaxFide (y `http` solo hacia el mismo host configurado en `http`, la demo en red local). Cualquier otro se muestra para copiarlo, como DDM-31 (c). Es compatible con las dos salidas de DC-5 |
+| S-06 | `allowBackup` sin fijar | `android:allowBackup="false"`: el almacenamiento seguro y el Outbox no viajan a otro teléfono, donde quedarían ilegibles |
+
+### 9.2 Biometría (S-01): opción (b), funcionando
+
+Decisión de Adonis: la biometría **no se oculta**; tiene que funcionar. Ocultarla (opción c) no arreglaba nada y la función ya estaba aprobada por el equipo (14 de octubre); lo que faltaba era su backend en `develop` y endurecer la credencial.
+
+- **Backend puesto al día.** La credencial de dispositivo estaba en `claude/focused-goodall-meb6sh` (un commit, `e362927`), 152 commits por detrás de `develop`. Se llevó sobre el `develop` actual, resolviendo los choques con ADR-050, en la rama `claude/beautiful-goodall-ww71gg` de Donaciones. Solo biometría: no cambia nada más del backend.
+- **Opción (b) de la auditoría.** La credencial **caduca a los 30 días** de su alta y **deja de valer si es anterior al último cambio de contraseña** (`credentialsNotBefore`, ADR-050 D4). Antes solo la cortaba `changeCredentials`; ahora también cambiar la propia contraseña desde la app y recuperarla. Una credencial activada justo después del cambio vale desde ese instante y no nace invalidada.
+- **App.** Si el backend la rechaza, la app ya la olvidaba y pedía entrar con la contraseña y volver a activarla.
+- **Verificación.** Todo el backend en verde (core 379, crypto 57, ai 47, api 174, identity 404, convocatoria 272, app 628), con pruebas nuevas de caducidad y de cambio de contraseña desde la app contra Mongo real.
+- **Riesgo que queda, a aceptar por Carlos.** Sigue siendo un token portador: la huella se comprueba solo en el teléfono (`local_auth` devuelve un booleano). La opción (a), una clave del Keystore o del Secure Enclave con un reto firmado, no cabe en el plazo.
+
+### 9.3 Pendiente de decisión de Carlos (no se toca hasta que decida)
+
+| # | Qué | Postura de Adonis |
+|---|---|---|
+| DC-1 | Rama base | `chore/landing-bienvenida-movil` |
+| DC-2 | Enmiendas 2 y 3 y sección de fotos (P-1, P-3, P-4) | Pide que se ratifiquen: lo implementado se ajusta a lo aprobado por el equipo el 14 y el 16 de octubre y a ADR-051 |
+| DC-3 | `local_auth`, `url_launcher`, `screen_brightness`, `image_picker` (P-2) | Pide que se acepten: sin ellas no hay biometría, pago abierto en el navegador, QR legible ni foto de entrega. `url_launcher` ya queda limitado (S-02) |
+| DC-4 | Biometría | (b), aplicada (§9.2), con el riesgo aceptado por escrito; fusionar la rama del backend a `develop` |
+| DC-5 | `url_launcher` para el pago | Aceptarlo con la lista de esquemas y hosts ya aplicada |
+| DC-6 | `trackingCode` en «Ver el recorrido» (S-03, DDM-25) | Ratificar el cambio: el código vive solo en memoria y nunca va a una URL ni al almacenamiento (lo comprueban las pruebas) |
+| DC-7 | Firma de la app (S-05) | Deuda aceptada para la demo |
+| DC-8 | «Las donaciones de donantes comunes no son públicas» | Escribirlo en el ADR que Carlos indique |
+| S-07 | Capturas de pantalla | Deuda aceptada; protegerlas pide código nativo o una dependencia |
+| §6.7 | Prueba contra el backend real | Ejecutarla con el backend local y pegar la salida literal |
