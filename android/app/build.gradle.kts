@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.paxfide_mobile"
+    namespace = "com.paxfide.mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,8 +18,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.paxfide_mobile"
+        // Nombre definitivo (2026-10-29): registrado en Google Cloud para «Entrar con Google», junto con
+        // com.paxfide.mobile.demo (sabor demo). Si cambia, hay que registrar la app otra vez.
+        applicationId = "com.paxfide.mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

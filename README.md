@@ -65,7 +65,7 @@ flutter build apk --flavor normal --dart-define-from-file=config/movil.json # AP
 
 ### Alternativa: HTTP sin cifrar en la red local (solo build de demo)
 
-Solo el **sabor `demo`** (id `com.example.paxfide_mobile.demo`, nombre "PaxFide demo") permite HTTP sin cifrar, y **solo para el host** de `PAXFIDE_API_BASE_URL` cuando empieza por `http://`. El sabor `normal` nunca lo permite, ni siquiera en debug (DDM-41).
+Solo el **sabor `demo`** (id `com.paxfide.mobile.demo`, nombre "PaxFide demo") permite HTTP sin cifrar, y **solo para el host** de `PAXFIDE_API_BASE_URL` cuando empieza por `http://`. El sabor `normal` nunca lo permite, ni siquiera en debug (DDM-41).
 
 ```bash
 # config/demo-lan.json: {"PAXFIDE_API_BASE_URL": "http://192.168.1.20:8080/api/v1", "PAXFIDE_PUBLIC_BASE_URL": "..."}

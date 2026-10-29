@@ -1,4 +1,4 @@
-package com.example.paxfide_mobile
+package com.paxfide.mobile
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
