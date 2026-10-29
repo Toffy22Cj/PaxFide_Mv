@@ -11,6 +11,7 @@ import '../../../core/offline/outbox_item.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/pax_ui.dart';
+import '../../../shared/widgets/loaders.dart';
 import '../data/delivery_evidence_api.dart';
 import '../domain/asset_action.dart';
 import '../domain/asset_command.dart';
@@ -421,9 +422,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       FilledButton(
         key: const Key('review.confirm'),
         onPressed: _busy ? null : _confirm,
-        child: _busy
-            ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Text('Confirmar y enviar'),
+        child: _busy ? BrandDots(color: Theme.of(context).colorScheme.primary) : const Text('Confirmar y enviar'),
       ),
       TextButton(
         key: const Key('review.edit'),

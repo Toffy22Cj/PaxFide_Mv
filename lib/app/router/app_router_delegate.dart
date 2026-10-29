@@ -8,6 +8,7 @@ import '../navigation_restore_state.dart';
 import '../navigation_store.dart';
 import '../pending_intent.dart';
 import '../session_guard.dart';
+import 'pax_page.dart';
 
 /// Construye el widget de una ruta del árbol.
 typedef LocationPageBuilder = Widget Function(BuildContext context, String location);
@@ -255,6 +256,23 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
   @override
   Object? get currentConfiguration => null;
 
+  /// Pestañas: fundido; bienvenida, entrar, registrarse e Inicio: eje Z; lo demás (detalles): deslizar.
+  static PaxTransition transitionFor(String location) {
+    if (_tabs.contains(location)) return PaxTransition.fadeThrough;
+    if (_flow.contains(location)) return PaxTransition.zAxis;
+    return PaxTransition.slide;
+  }
+
+  static const _flow = {AppRoutes.welcome, AppRoutes.login, AppRoutes.register, AppRoutes.home};
+
+  static const _tabs = {
+    AppRoutes.donations,
+    AppRoutes.operator,
+    AppRoutes.operatorPending,
+    AppRoutes.prediction,
+    AppRoutes.account,
+  };
+
   @override
   Widget build(BuildContext context) {
     final pages = <Page<void>>[];
@@ -264,7 +282,12 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
       final d = guard.evaluate(session: session.state, category: AppRoutes.categorize(location));
       if (d.type == GuardDecisionType.allow) {
         pages.add(
-          MaterialPage<void>(key: ValueKey('$i:$location'), name: location, child: pageBuilder(context, location)),
+          PaxPage<void>(
+            key: ValueKey('$i:$location'),
+            name: location,
+            transition: transitionFor(location),
+            child: pageBuilder(context, location),
+          ),
         );
       } else if (d.type == GuardDecisionType.wait) {
         waiting = true;
@@ -272,8 +295,9 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     }
     if (waiting || pages.isEmpty) {
       pages.add(
-        MaterialPage<void>(
+        PaxPage<void>(
           key: const ValueKey('waiting'),
+          transition: PaxTransition.zAxis,
           child: Builder(builder: waitingBuilder),
         ),
       );

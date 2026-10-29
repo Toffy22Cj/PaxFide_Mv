@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'loaders.dart';
 import 'pax_ui.dart';
 import 'pax_app_bar.dart';
 
-/// Estados de pantalla (no son rutas, §12 regla 1).
+/// Estados de pantalla (no son rutas, §12 regla 1). La carga son los cubos encadenados, como en la web.
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.label = 'Cargando…'});
   final String label;
@@ -12,7 +13,7 @@ class LoadingView extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
-      children: [const CircularProgressIndicator(), const SizedBox(height: 12), Text(label)],
+      children: [const ChainCubesLoader(), const SizedBox(height: 12), Text(label)],
     ),
   );
 }
@@ -79,16 +80,7 @@ class WaitingView extends StatelessWidget {
         children: [
           const BrandHeader(),
           const SizedBox(height: 40),
-          Container(
-            width: 56,
-            height: 56,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
-            ),
-            child: const CircularProgressIndicator(strokeWidth: 2.5),
-          ),
+          const ChainCubesLoader(),
           const SizedBox(height: 16),
           Text('Comprobando la sesión…', style: Theme.of(context).textTheme.titleMedium),
         ],

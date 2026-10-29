@@ -7,6 +7,7 @@ import 'package:paxfide_mobile/app/bootstrap.dart';
 import 'package:paxfide_mobile/app/navigation_restore_state.dart';
 import 'package:paxfide_mobile/app/paxfide_app.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/shared/motion/pax_motion.dart';
 import 'package:paxfide_mobile/features/welcome/presentation/welcome_world.dart';
 
 import 'fakes.dart';
@@ -23,6 +24,7 @@ class AppHarness {
     : biometric = biometric ?? FakeBiometricAuthenticator(available: false) {
     // El mundo de la bienvenida se mueve sin parar: en las pruebas, solo la cámara al deslizar (pumpAndSettle termina).
     WelcomeWorld.ambientMotion = false;
+    PaxMotion.ambient = false;
     services = buildServices(
       config: AppConfig(apiBaseUrl: Uri.parse('http://api.test/api/v1'), publicOrigin: AppConfig.originOf(testOrigin)),
       secureStore: secure,

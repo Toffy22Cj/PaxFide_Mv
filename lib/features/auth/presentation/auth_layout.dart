@@ -10,6 +10,7 @@ import '../../../app/theme_mode_button.dart';
 import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/widgets/pax_logo.dart';
+import '../../../shared/widgets/loaders.dart';
 import '../../welcome/presentation/welcome_world.dart';
 
 /// Pestaña activa de la caja de acceso.
@@ -601,12 +602,15 @@ class AuthSubmitButton extends StatelessWidget {
     style: FilledButton.styleFrom(
       backgroundColor: ink.button,
       foregroundColor: ink.onButton,
+      // Mientras envía no se ve gris: conserva su color con los puntos de marca (como la web).
+      disabledBackgroundColor: busy ? ink.button : null,
+      disabledForegroundColor: busy ? ink.onButton : null,
       minimumSize: const Size(0, 48),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 0,
     ),
     child: busy
-        ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ink.onButton))
+        ? BrandDots(color: ink.onButton)
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
