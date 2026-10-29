@@ -141,7 +141,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
             padding: const EdgeInsets.only(bottom: 14),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: CampaignCoverImage(coverUrl: coverUrl),
+              child: CampaignCoverImage(coverUrl: coverUrl, heroCode: widget.publicCode),
             ),
           ),
         Row(

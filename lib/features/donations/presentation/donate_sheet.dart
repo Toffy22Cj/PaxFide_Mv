@@ -16,6 +16,7 @@ import '../data/donation_intent_api.dart';
 import '../domain/donation_flow.dart';
 import 'my_donations_screen.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
+import '../../../shared/motion/circular_reveal.dart';
 import '../../../shared/motion/pax_route.dart';
 
 /// "Donar" solo si la convocatoria está abierta, acepta dinero, tiene moneda y admite la pasarela.
@@ -123,21 +124,39 @@ class _DonateSheetState extends State<DonateSheet> {
     });
   }
 
+  /// El botón «Consultar estado del pago»: de ahí sale el círculo del agradecimiento.
+  final _refreshKey = GlobalKey();
+  final _bodyKey = GlobalKey();
+  Offset? _revealFrom;
+  bool _revealing = false;
+
   Future<void> _refresh() async {
     final a = _attempt;
     if (a == null) return;
+    final before = _step;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       await _flow.refresh(a);
+      // La donación se confirmó y ya tiene código: «revelado circular» con el agradecimiento (movimiento.html).
+      if (before < 4 && _step == 4 && mounted) _startReveal();
     } on IntentNotFoundException {
       _error = 'El enlace de consulta caducó.';
     } on AppException catch (e) {
       _error = describeError(e);
     }
     if (mounted) setState(() => _busy = false);
+  }
+
+  void _startReveal() {
+    final button = _refreshKey.currentContext?.findRenderObject() as RenderBox?;
+    final body = _bodyKey.currentContext?.findRenderObject() as RenderBox?;
+    _revealFrom = button != null && body != null && button.attached && body.attached
+        ? body.globalToLocal(button.localToGlobal(button.size.center(Offset.zero)))
+        : null;
+    _revealing = true;
   }
 
   Future<void> _openPayment(String url) async {
@@ -206,29 +225,59 @@ class _DonateSheetState extends State<DonateSheet> {
           ),
           title: const Text('Donar'),
         ),
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const NoticeBanner('Pago simulado (demo): no se mueve dinero real.', textKey: Key('donate.simulated')),
-              const SizedBox(height: 16),
-              StepHeader(step: step, total: 4),
-              const SizedBox(height: 8),
-              Text(_titles[step]!, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              ...switch (step) {
-                1 => _amountStep(theme),
-                2 => _payStep(theme),
-                3 => _statusStep(theme),
-                _ => _codeStep(theme),
-              },
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                ErrorMessage(_error!, textKey: const Key('donate.error')),
-              ],
-              if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
-            ],
-          ),
+        body: Stack(
+          key: _bodyKey,
+          children: [
+            SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const NoticeBanner(
+                    'Pago simulado (demo): no se mueve dinero real.',
+                    textKey: Key('donate.simulated'),
+                  ),
+                  const SizedBox(height: 16),
+                  StepHeader(step: step, total: 4),
+                  const SizedBox(height: 8),
+                  Text(_titles[step]!, style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 8),
+                  ...switch (step) {
+                    1 => _amountStep(theme),
+                    2 => _payStep(theme),
+                    3 => _statusStep(theme),
+                    _ => _codeStep(theme),
+                  },
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorMessage(_error!, textKey: const Key('donate.error')),
+                  ],
+                  if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
+                ],
+              ),
+            ),
+            if (_revealing)
+              Positioned.fill(
+                child: CircularReveal(
+                  key: const Key('donate.thanks'),
+                  origin: _revealFrom,
+                  color: theme.colorScheme.primary,
+                  onEnd: () => setState(() => _revealing = false),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.favorite, size: 48, color: theme.colorScheme.onPrimary),
+                      const SizedBox(height: 12),
+                      Text(
+                        '¡Gracias!',
+                        style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.onPrimary),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('Tu donación quedó confirmada.', style: TextStyle(color: theme.colorScheme.onPrimary)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -385,10 +434,13 @@ class _DonateSheetState extends State<DonateSheet> {
         key: Key('donate.noToken'),
       )
     else
-      FilledButton(
-        key: const Key('donate.refresh'),
-        onPressed: _busy ? null : _refresh,
-        child: Text(_busy ? 'Consultar estado del pago…' : 'Consultar estado del pago'),
+      KeyedSubtree(
+        key: _refreshKey,
+        child: FilledButton(
+          key: const Key('donate.refresh'),
+          onPressed: _busy ? null : _refresh,
+          child: Text(_busy ? 'Consultar estado del pago…' : 'Consultar estado del pago'),
+        ),
       ),
   ];
 

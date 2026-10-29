@@ -105,7 +105,12 @@ void main() {
     expect(get.path, isNot(contains('TOKEN')));
 
     await tester.tap(find.byKey(const Key('donate.refresh')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    // Revelado circular con el agradecimiento, que se va solo.
+    expect(find.text('¡Gracias!'), findsOneWidget);
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.thanks')), findsNothing);
     expect(find.text('CODIGO-NUEVO'), findsOneWidget);
 
     // Ni el Intent-Token ni el código llegan a ningún almacén, ruta o URL.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_services.dart';
 import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
+import '../../../shared/motion/pax_motion.dart';
 import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/loaders.dart';
 import '../../../shared/widgets/pax_ui.dart';
@@ -97,10 +98,16 @@ class OrganizationLogo extends StatelessWidget {
 
 /// Portada de la convocatoria con relación de aspecto 16:9 y fondo de reserva.
 class CampaignCoverImage extends StatelessWidget {
-  const CampaignCoverImage({super.key, required this.coverUrl, this.aspectRatio = 16 / 9});
+  const CampaignCoverImage({super.key, required this.coverUrl, this.aspectRatio = 16 / 9, this.heroCode});
 
   final Uri? coverUrl;
   final double aspectRatio;
+
+  /// Con el código público, la portada «vuela» de la tarjeta a la pantalla de la convocatoria (`movimiento.html`,
+  /// tarjeta que se expande, 450 ms).
+  final String? heroCode;
+
+  static Object heroTag(String code) => 'campaign.cover.$code';
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +120,7 @@ class CampaignCoverImage extends StatelessWidget {
       child: Icon(Icons.image_outlined, color: isDark ? PaxDarkTokens.neutral : PaxTokens.brandGreen500, size: 32),
     );
 
-    return AspectRatio(
+    final image = AspectRatio(
       aspectRatio: aspectRatio,
       child: Image.network(
         coverUrl.toString(),
@@ -124,6 +131,13 @@ class CampaignCoverImage extends StatelessWidget {
         loadingBuilder: (context, child, progress) => progress == null ? child : fallback,
         errorBuilder: (context, error, stackTrace) => fallback,
       ),
+    );
+    final code = heroCode;
+    if (code == null || PaxMotion.reduce(context)) return image;
+    return Hero(
+      tag: heroTag(code),
+      createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
+      child: image,
     );
   }
 }
@@ -150,7 +164,7 @@ class CampaignSummaryCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (coverUrl != null) CampaignCoverImage(coverUrl: coverUrl),
+            if (coverUrl != null) CampaignCoverImage(coverUrl: coverUrl, heroCode: campaign.publicCode),
             Padding(
               padding: const EdgeInsets.all(16),
               child: CampaignSummaryCardBody(campaign, logoUrl: logoUrl),
