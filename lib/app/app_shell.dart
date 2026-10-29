@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../core/offline/outbox_status.dart';
 import '../features/auth/domain/principal.dart';
 import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
+import 'pending_count.dart';
 import 'qr_scanner_sheet.dart';
 import 'text_size_button.dart';
 import 'theme_mode_button.dart';
@@ -157,31 +157,10 @@ class _PendingBadge extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) {
-    final services = AppScope.of(context);
-    final account = services.session.principal?.accountId;
-    return ListenableBuilder(
-      listenable: services.syncEngine,
-      builder: (context, _) => FutureBuilder<int>(
-        future: account == null
-            ? Future.value(0)
-            : services.syncEngine
-                  .entriesFor(account)
-                  .then((all) => all.where((i) => i.status != OutboxStatus.acknowledged).length)
-                  .catchError((_) => 0),
-        builder: (context, snap) {
-          final n = snap.data ?? 0;
-          return Semantics(
-            label: n == 1 ? '1 operación pendiente' : '$n operaciones pendientes',
-            child: Badge(
-              key: const Key('nav.pending.count'),
-              isLabelVisible: n > 0,
-              label: Text('$n'),
-              child: Icon(icon),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PendingCountBuilder(
+    builder: (context, n) => Semantics(
+      label: n == 1 ? '1 operación pendiente' : '$n operaciones pendientes',
+      child: Badge(key: const Key('nav.pending.count'), isLabelVisible: n > 0, label: Text('$n'), child: Icon(icon)),
+    ),
+  );
 }

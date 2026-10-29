@@ -1,14 +1,16 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/pax_tokens.dart';
 import 'pax_logo.dart';
 
-/// Vidrio esmerilado del landing: fondo de superficie translúcido, desenfoque de lo que hay detrás y borde fino.
+/// El «vidrio» del landing: superficie casi opaca con borde fino y sombra suave.
+///
+/// Rendimiento: **sin desenfoque del fondo** (`BackdropFilter`). Un desenfoque se recalcula en cada fotograma en que
+/// algo se mueve en pantalla (el mundo animado de la bienvenida, el desplazamiento, el cursor), y varios a la vez eran
+/// la causa principal del lag. Con la superficie al 92 % el desenfoque apenas se veía.
 class PaxGlass extends StatelessWidget {
-  const PaxGlass({super.key, required this.child, this.radius = 26, this.padding, this.opacity = 0.84});
+  const PaxGlass({super.key, required this.child, this.radius = 26, this.padding, this.opacity = 0.92});
   final Widget child;
   final double radius;
   final EdgeInsetsGeometry? padding;
@@ -21,28 +23,19 @@ class PaxGlass extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: s.primary.withValues(alpha: dark ? 0.0 : 0.12),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        // En oscuro la sombra no se ve: no se dibuja (una sombra transparente también cuesta su desenfoque).
+        boxShadow: dark
+            ? null
+            : [BoxShadow(color: s.primary.withValues(alpha: 0.12), blurRadius: 30, offset: const Offset(0, 10))],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: s.surface.withValues(alpha: opacity),
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: (dark ? s.outline : s.primary).withValues(alpha: dark ? 0.3 : 0.14)),
-            ),
-            child: child,
-          ),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: s.surface.withValues(alpha: opacity),
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: (dark ? s.outline : s.primary).withValues(alpha: dark ? 0.3 : 0.14)),
         ),
+        child: child,
       ),
     );
   }

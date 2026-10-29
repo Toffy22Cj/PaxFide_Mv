@@ -195,13 +195,15 @@ void main() {
     expect(h.location, AppRoutes.login);
   });
 
-  testWidgets('el fondo modal desenfoca el landing y cierra el menú al tocar fuera', (tester) async {
+  testWidgets('el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera', (
+    tester,
+  ) async {
     await openWelcome(tester);
     await tester.tap(find.byKey(const Key('welcome.menu')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('welcome.menu.backdrop')), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(BackdropFilter), findsNothing, reason: 'ningún desenfoque del fondo en la app');
     await tester.tapAt(const Offset(4, 200));
     await tester.pumpAndSettle();
 

@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -228,15 +227,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   }
 
   /// Landing: `frame`. La cámara alcanza su destino con suavidad y el mundo sigue en movimiento.
+  ///
+  /// Rendimiento: mientras la cámara se mueve (al deslizar) el mundo se pinta en cada fotograma; con la cámara quieta
+  /// solo se mueven nubes, pasto y agua, que son lentos, y basta con 30 fotogramas por segundo. Pintarlo a 60 o 120
+  /// sin que nadie lo moviera gastaba el teléfono entero en el fondo.
   void _tick(Duration elapsed) {
     final dt = math.min(0.05, (elapsed - _last).inMicroseconds / 1e6);
     _last = elapsed;
     if (_animateWorld) _t += dt;
+    _sinceFrame += dt;
+    final moving = _camS != _target;
     _camS += (_target - _camS) * math.min(1, dt * 5.5);
     if ((_target - _camS).abs() < 1e-4) _camS = _target;
-    _clock.set(camS: _camS, t: _t, night: _night);
+    if (moving || _sinceFrame >= _ambientFrame) {
+      _sinceFrame = 0;
+      _clock.set(camS: _camS, t: _t, night: _night);
+    }
     if (!_animateWorld && _camS == _target) _ticker.stop();
   }
+
+  static const _ambientFrame = 1 / 30;
+  double _sinceFrame = 0;
 
   void _scrollTo(GlobalKey key) {
     setState(() => _menuOpen = false);
@@ -278,8 +289,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     final theme = PaxTheme.welcome(Theme.of(context));
     final dark = theme.brightness == Brightness.dark;
     final ink = _Ink(dark);
-    final mq = MediaQuery.of(context);
-    final h = mq.size.height;
+    // Solo lo que se usa: MediaQuery.of haría reconstruir toda la bienvenida en cada fotograma del teclado.
+    final h = MediaQuery.sizeOf(context).height;
+    final pad = MediaQuery.paddingOf(context);
     return Theme(
       data: theme,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -288,21 +300,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           extendBody: true,
           body: Stack(
             children: [
+              // El mundo, en su propia capa. Al llegar al catálogo se cubre con un velo del color de la página en vez de
+              // desenfocarse: un desenfoque a pantalla completa se recalcula en cada fotograma y era lo más caro de la
+              // app; el velo es un color con transparencia.
+              Positioned.fill(child: WelcomeWorldView(clock: _clock)),
               Positioned.fill(
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _blur,
-                  builder: (context, blur, world) => TweenAnimationBuilder<double>(
-                    tween: Tween(end: blur ? 5 : 0),
-                    duration: _reduced ? Duration.zero : const Duration(milliseconds: 500),
-                    builder: (context, sigma, world) => sigma < 0.05
-                        ? world!
-                        : ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-                            child: world,
-                          ),
-                    child: world,
+                child: IgnorePointer(
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _blur,
+                    builder: (context, veiled, _) => TweenAnimationBuilder<double>(
+                      tween: Tween(end: veiled ? 1 : 0),
+                      duration: _reduced ? Duration.zero : const Duration(milliseconds: 500),
+                      builder: (context, v, _) => v < 0.01
+                          ? const SizedBox.shrink()
+                          : ColoredBox(
+                              key: const Key('welcome.veil'),
+                              color: theme.scaffoldBackgroundColor.withValues(alpha: 0.55 * v),
+                            ),
+                    ),
                   ),
-                  child: WelcomeWorldView(clock: _clock),
                 ),
               ),
               NotificationListener<ScrollMetricsNotification>(
@@ -323,7 +339,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                           child: Padding(
                             padding: EdgeInsets.fromLTRB(
                               16,
-                              i == 0 ? mq.padding.top + 96 : h * 0.12,
+                              i == 0 ? pad.top + 96 : h * 0.12,
                               16,
                               i == 0 ? 24 : h * 0.12,
                             ),
@@ -380,7 +396,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 style: TextStyle(color: ink.body),
                               ),
                             ),
-                            SizedBox(height: 110 + mq.padding.bottom),
+                            SizedBox(height: 110 + pad.bottom),
                           ],
                         ),
                       ),
@@ -397,13 +413,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       key: const Key('welcome.menu.backdrop'),
                       behavior: HitTestBehavior.opaque,
                       onTap: () => setState(() => _menuOpen = false),
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: ColoredBox(
-                            color: Theme.of(context).colorScheme.scrim.withValues(alpha: dark ? 0.3 : 0.18),
-                          ),
-                        ),
+                      // Velo sin desenfoque (el desenfoque se recalculaba en cada fotograma del mundo animado).
+                      child: ColoredBox(
+                        color: Theme.of(context).colorScheme.scrim.withValues(alpha: dark ? 0.45 : 0.32),
                       ),
                     ),
                   ),

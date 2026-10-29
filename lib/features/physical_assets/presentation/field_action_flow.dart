@@ -100,6 +100,10 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
 
   /// Foto de la entrega, solo en memoria, y el `evidenceRef` que devolvió su subida.
   PickedPhoto? _photo;
+
+  /// La vista previa de la foto, creada una sola vez por foto. Crearla en `build` hacía que la imagen se volviera a
+  /// decodificar entera con cada letra escrita en el formulario.
+  ImageProvider? _preview;
   String? _evidenceRef;
   bool _photoMissing = false;
   String? _photoError;
@@ -172,6 +176,12 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       if (photo == null || !mounted) return;
       setState(() {
         _photo = photo;
+        // Se decodifica al ancho en que se ve (unos 360 px lógicos), no a los 1600 px de la foto.
+        _preview = ResizeImage(
+          MemoryImage(Uint8List.fromList(photo.bytes)),
+          width: 1080,
+          policy: ResizeImagePolicy.fit,
+        );
         _evidenceRef = null; // otra foto, otra huella
         _photoMissing = false;
       });
@@ -347,8 +357,8 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       if (photo != null) ...[
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.memory(
-            Uint8List.fromList(photo.bytes),
+          child: Image(
+            image: _preview!,
             key: const Key('form.photo.preview'),
             height: 180,
             fit: BoxFit.cover,
@@ -399,8 +409,8 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  Uint8List.fromList(photo.bytes),
+                child: Image(
+                  image: _preview!,
                   key: const Key('review.photo'),
                   height: 140,
                   fit: BoxFit.cover,

@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -79,6 +77,10 @@ class AuthLayout extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
+        // El teclado no encoge la pantalla: si lo hiciera, el mundo de fondo cambiaría de tamaño y se volvería a
+        // pintar entero en cada fotograma de la animación del teclado. El hueco del teclado se deja abajo (ver
+        // `viewInsets`), solo para el contenido.
+        resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             Positioned.fill(child: _World(dark: dark)),
@@ -140,55 +142,57 @@ class AuthLayout extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: Center(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 480),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _Card(
-                                ink: ink,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: AuthBadge(ink: ink),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Semantics(
-                                      header: true,
-                                      child: Text(
-                                        title,
-                                        style: TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.7,
-                                          height: 1.1,
-                                          color: ink.title,
+                    child: _KeyboardGap(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 480),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _Card(
+                                  ink: ink,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: AuthBadge(ink: ink),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Semantics(
+                                        header: true,
+                                        child: Text(
+                                          title,
+                                          style: TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.7,
+                                            height: 1.1,
+                                            color: ink.title,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    if (subtitle != null) ...[
-                                      const SizedBox(height: 8),
-                                      Text(subtitle!, style: TextStyle(fontSize: 14, height: 1.45, color: ink.body)),
-                                    ],
-                                    const SizedBox(height: 20),
-                                    if (tab != null) ...[_Tabs(ink: ink, tab: tab!), const SizedBox(height: 20)],
-                                    child,
-                                    if (footer != null) ...[
+                                      if (subtitle != null) ...[
+                                        const SizedBox(height: 8),
+                                        Text(subtitle!, style: TextStyle(fontSize: 14, height: 1.45, color: ink.body)),
+                                      ],
                                       const SizedBox(height: 20),
-                                      Divider(height: 1, color: ink.line),
-                                      const SizedBox(height: 14),
-                                      footer!,
+                                      if (tab != null) ...[_Tabs(ink: ink, tab: tab!), const SizedBox(height: 20)],
+                                      child,
+                                      if (footer != null) ...[
+                                        const SizedBox(height: 20),
+                                        Divider(height: 1, color: ink.line),
+                                        const SizedBox(height: 14),
+                                        footer!,
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
-                              ),
-                              ?below,
-                            ],
+                                ?below,
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -276,20 +280,16 @@ class _Card extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
-            decoration: BoxDecoration(
-              color: ink.card,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: ink.cardEdge),
-            ),
-            child: Material(type: MaterialType.transparency, child: child),
-          ),
+      // Sin desenfoque del fondo: la caja es casi opaca (95 %) y el desenfoque, que se recalculaba en cada fotograma
+      // (cursor, teclado), no se notaba.
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+        decoration: BoxDecoration(
+          color: ink.card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: ink.cardEdge),
         ),
+        child: Material(type: MaterialType.transparency, child: child),
       ),
     );
     if (MediaQuery.disableAnimationsOf(context)) return card;
@@ -728,4 +728,21 @@ class AuthSwitch extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// Deja abajo el hueco del teclado solo para el contenido. Es lo único que depende de `viewInsets`: en cada fotograma
+/// del teclado se reconstruye esto, no la pantalla entera ni el mundo de fondo.
+class _KeyboardGap extends StatelessWidget {
+  const _KeyboardGap({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final safe = MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard > safe ? keyboard - safe : 0),
+      child: child,
+    );
+  }
 }

@@ -87,6 +87,8 @@ class OrganizationLogo extends StatelessWidget {
         logoUrl.toString(),
         width: size,
         height: size,
+        // Se decodifica al tamaño en que se ve, no al del archivo original.
+        cacheWidth: (size * 3).round(),
         fit: BoxFit.cover,
         excludeFromSemantics: true,
         loadingBuilder: (context, child, progress) => progress == null ? child : fallback,

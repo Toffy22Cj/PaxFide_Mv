@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../core/errors/app_exceptions.dart';
-import '../core/offline/outbox_status.dart';
 import '../features/account/data/account_api.dart';
 import '../features/account/presentation/first_steps_screen.dart';
 import '../features/auth/domain/session_controller.dart';
@@ -24,6 +23,7 @@ import '../shared/widgets/loaders.dart';
 import '../shared/widgets/pax_app_bar.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
+import 'pending_count.dart';
 import 'app_shell.dart';
 import 'qr_scanner_sheet.dart';
 
@@ -904,29 +904,16 @@ class _OperationsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
-    final account = services.session.principal?.accountId;
     return _HomeCard(
       key: const Key('home.operations'),
       children: [
         const _CardHead(icon: Icons.inventory_2_outlined, title: 'Operaciones'),
         const SizedBox(height: 8),
-        ListenableBuilder(
-          listenable: services.syncEngine,
-          builder: (context, _) => FutureBuilder<int>(
-            future: account == null
-                ? Future.value(0)
-                : services.syncEngine
-                      .entriesFor(account)
-                      .then((all) => all.where((i) => i.status != OutboxStatus.acknowledged).length)
-                      .catchError((_) => 0),
-            builder: (context, snap) {
-              final n = snap.data ?? 0;
-              return Text(
-                n == 0
-                    ? 'No hay operaciones pendientes en este dispositivo'
-                    : '$n ${n == 1 ? 'operación pendiente' : 'operaciones pendientes'} en este dispositivo',
-              );
-            },
+        PendingCountBuilder(
+          builder: (context, n) => Text(
+            n == 0
+                ? 'No hay operaciones pendientes en este dispositivo'
+                : '$n ${n == 1 ? 'operación pendiente' : 'operaciones pendientes'} en este dispositivo',
           ),
         ),
         const SizedBox(height: 12),

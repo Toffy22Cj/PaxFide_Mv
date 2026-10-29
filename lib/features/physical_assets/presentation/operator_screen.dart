@@ -5,7 +5,6 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
-import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/quantity.dart';
 import '../../../shared/widgets/pax_ui.dart';
@@ -13,6 +12,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/physical_asset_api.dart';
 import 'asset_screen.dart';
+import '../../../app/pending_count.dart';
 
 /// `/operator` → **Mi día** (E-01): cuántos activos de la organización hay por despachar, en tránsito y entregados
 /// (`GET /organizations/{id}/physical-assets`, máx. 200); tocar una tarjeta muestra la lista filtrada. Atajos a
@@ -214,37 +214,26 @@ class _PendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final services = AppScope.of(context);
-    final account = services.session.principal?.accountId;
     final scheme = Theme.of(context).colorScheme;
     return SectionCard(
-      child: ListenableBuilder(
-        listenable: services.syncEngine,
-        builder: (context, _) => FutureBuilder<int>(
-          future: account == null
-              ? Future.value(0)
-              : services.syncEngine
-                    .entriesFor(account)
-                    .then((all) => all.where((i) => i.status != OutboxStatus.acknowledged).length)
-                    .catchError((_) => 0),
-          builder: (context, snap) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: Text('Operaciones pendientes', style: Theme.of(context).textTheme.titleSmall)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                    decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(99)),
-                    child: Text('${snap.data ?? 0}', style: TextStyle(color: scheme.onPrimaryContainer)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text('Guardadas en este dispositivo por tu cuenta', style: TextStyle(color: scheme.onSurfaceVariant)),
-              TextButton(key: const Key('operator.pending'), onPressed: onOpen, child: const Text('Ver pendientes')),
-            ],
-          ),
+      child: PendingCountBuilder(
+        builder: (context, pending) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Operaciones pendientes', style: Theme.of(context).textTheme.titleSmall)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(99)),
+                  child: Text('$pending', style: TextStyle(color: scheme.onPrimaryContainer)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Guardadas en este dispositivo por tu cuenta', style: TextStyle(color: scheme.onSurfaceVariant)),
+            TextButton(key: const Key('operator.pending'), onPressed: onOpen, child: const Text('Ver pendientes')),
+          ],
         ),
       ),
     );
