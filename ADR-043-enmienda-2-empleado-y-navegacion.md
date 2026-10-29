@@ -117,3 +117,25 @@ Decisiones de Adonis del 2026-10-28: entregar con foto se implementa (el backend
 - E-12 invitaciones pendientes: el backend no tiene listado para quien recibe la invitación; se sigue aceptando con el código del correo.
 
 **Verificación:** `flutter analyze` sin avisos y la suite completa en verde; la evidencia de `scripts/ci-local.sh` queda en `Documentos/evidencia-mobile/`.
+
+## 8. Fidelidad con el front web (2026-10-29, rama `chore/landing-bienvenida-movil`)
+
+Decisiones de Adonis del 2026-10-29: la app se adapta a lo que ya implementó la web (`develop`), sin salirse de su alcance (donante y operador de campo; el panel de la organización sigue siendo de la web) y con la fluidez como prioridad. La barra de pestañas **se queda como en la §1** (abajo, sin las pestañas Explorar ni Seguimiento de la web): cambiarla pediría otra enmienda. La ciudad de fondo de Inicio **sí** entra, con pausa. Sin dependencias nuevas (`animations` no se añade: las transiciones se hacen a mano).
+
+| Pieza de la web | En la app | Dónde |
+|---|---|---|
+| Tiempos y curvas (`globals.css`, `movimiento.html`) | `PaxMotion`: rápido 150, normal 300, lento 450 ms y las curvas estándar, salida, ida y vuelta y rebote. «Reducir movimiento» del teléfono deja todo quieto o instantáneo | `shared/motion/pax_motion.dart` |
+| Transiciones de pantalla | Deslizar (350 ms, con vuelta deslizando desde el borde) para los detalles; fundido para las pestañas; eje Z para bienvenida, entrar, registrarse e Inicio; la portada de la convocatoria vuela de la tarjeta a su pantalla (Hero); hoja inferior de 350 ms; revelado circular con «¡Gracias!» al confirmarse una donación | `app/router/pax_page.dart`, `shared/motion/pax_route.dart`, `circular_reveal.dart` |
+| Cargas (`components/loaders`) | Cubos encadenados (carga de pantalla), puntos de marca (botones que envían), esqueleto con brillo (listas y tarjetas), árbol de Merkle (integridad) y camión (lote en camino) | `shared/widgets/loaders.dart` |
+| Tarjeta de convocatoria (`CampaignCard`, variante 01) | Igual: portada, logo o inicial, «Verificada», título, «$X de $Y (N %)» y «Cierra el …». La variante 15 se quita | `campaign_summary_card.dart` |
+| Inicio (`HomeScreen`, `paxfide-home.html`) | Saludo por la hora con nombre e iniciales, aviso «Completa tu perfil», «Seguir una donación» destacada (el código va en memoria), «Sellado en blockchain», «Cierran pronto» / «Convocatorias abiertas» y «Tus donaciones» con fecha, organización y medio de pago. Las tarjetas entran escalonadas. El operador ve primero Operaciones; la Predicción sigue como excepción | `app/home_screen.dart` |
+| Ciudad (`CityBackground`) | Mismo valle (misma semilla), día y noche según el tema, indicador «Sector: Plaza central» y pausa que se recuerda (también en Cuenta → Apariencia y ciudad) | `shared/city/` |
+| Primeros pasos (`LoginScreen` + `NameGate`) | Tras crear la cuenta, al entrar por primera vez: bienvenida y «¿Cómo te llamamos?» (opcional) | `account/presentation/first_steps_screen.dart` |
+| Seguimiento (`TrackingTimeline`, `StepDetail`, `paxfide-linea-tiempo.html`) | Las tres columnas pasan a una: cabecera de la historia, árbol Donada → lotes → sublotes (`parentAssetRef`) con sus pasos, el camión si va en camino, la carretera en serpiente por lote y el detalle de cada paso en una hoja (huella, foto, anclaje). Comprobar la prueba en el teléfono sigue fuera (decisión del 2026-10-28) | `tracking/domain/tracking_story.dart`, `tracking_story_view.dart`, `tracking_screen.dart` |
+| Mis donaciones (`AccountDonationsScreen`) | Esqueleto, «Seguir con un código», fecha, organización y medio de pago, y «Ver convocatoria» en el detalle | `my_donations_screen.dart` |
+
+**Excepción a la regla de colores.** Como en la web (D-P1, DF7-11), la ciudad es una ilustración con su propia paleta de día y de noche; sus colores viven solo en `shared/city/city_palette.dart`, que `design_tokens_test` admite como único archivo además de `pax_tokens.dart`. Nada fuera de la ciudad los usa.
+
+**Rendimiento (reglas que siguen todas las animaciones).** Un solo reloj por pieza y pintura con `CustomPainter(repaint:)` dentro de un `RepaintBoundary`, sin reconstruir widgets en cada fotograma; los bucles se paran fuera de pantalla (`TickerMode`), con «reducir movimiento» y, la ciudad, en cuanto el contenido la tapa al desplazar. La ciudad pinta el suelo fijo una sola vez en una imagen, descarta lo que cae fuera de la pantalla y va a 30 fotogramas por segundo, para dejar al desplazamiento, los gestos y las transiciones todo el margen del teléfono. Ningún retraso usa temporizadores sueltos (los escalonados van dentro de la animación).
+
+**Verificación:** `flutter analyze` sin avisos y la suite completa en verde (pruebas nuevas de movimiento, ciudad, Inicio, primeros pasos y seguimiento); la evidencia de `scripts/ci-local.sh` queda en `Documentos/evidencia-mobile/`.

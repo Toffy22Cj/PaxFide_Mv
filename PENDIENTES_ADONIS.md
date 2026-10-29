@@ -1,8 +1,8 @@
 # Pendientes de Adonis (app móvil)
 
-Rama `chore/landing-bienvenida-movil`, al día 2026-10-28. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
+Rama `chore/landing-bienvenida-movil`, al día 2026-10-29. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
 
-Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que no dependen de un ADR sin aprobar o de un contrato que no existe. El detalle está en la §6 y la §7 de la Enmienda 2 de ADR-043. Lo último (2026-10-28): términos y condiciones, recuperar y cambiar la contraseña, correo y nombre en Cuenta, desactivar la cuenta, Mi impacto, entregar con foto, integridad visible con sello y huella por paso, y el tipo del activo en la ficha.
+Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que no dependen de un ADR sin aprobar o de un contrato que no existe. El detalle está en la §6 y la §7 de la Enmienda 2 de ADR-043. Lo último (2026-10-28): términos y condiciones, recuperar y cambiar la contraseña, correo y nombre en Cuenta, desactivar la cuenta, Mi impacto, entregar con foto, integridad visible con sello y huella por paso, y el tipo del activo en la ficha. El 2026-10-29: la app sigue a la web en Inicio (con la ciudad), la tarjeta de convocatoria, el seguimiento, los primeros pasos, Mis donaciones, las cargas y las transiciones (§8 de la Enmienda 2).
 
 ## Bloqueadas por un ADR sin aprobar
 
@@ -26,4 +26,6 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 - Textos legales: enlazarlos en el registro y en el diálogo de re-aceptación cuando se publiquen.
 - Versiones legales: fijas en `legal_versions.dart` (`v1-2026-10`); hay que actualizarlas a mano si cambian en el backend.
 - Tema «Como el teléfono»: se añadió sin que nadie lo pidiera. Falta decidir si se queda o se quita (`lib/app/theme_mode_button.dart`, `lib/shared/theme/theme_controller.dart`).
+- Barra de pestañas configurable y pestañas Explorar/Seguimiento de la web: no entran sin otra enmienda de ADR-043 (decisión del 2026-10-29).
+- Rendimiento en un teléfono real: revisar Inicio con la ciudad y el seguimiento con `flutter run --profile` (las pruebas no miden fotogramas).
 - Entregar con foto en Android/iOS reales: probado con pruebas automáticas y el flujo completo; falta probar la cámara en un teléfono.
