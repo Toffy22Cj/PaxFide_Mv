@@ -16,3 +16,26 @@ String shortDateTime(String iso) {
   String two(int n) => n.toString().padLeft(2, '0');
   return '${t.day} ${_months[t.month - 1]} ${t.year}, ${two(t.hour)}:${two(t.minute)}';
 }
+
+const _longMonths = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/// "1 de diciembre de 2026", como la fecha larga de la web. El texto original si no es una fecha.
+String longDate(String iso) {
+  final t = DateTime.tryParse(iso);
+  if (t == null) return iso.split('T').first;
+  final d = iso.length <= 10 ? t : t.toLocal();
+  return '${d.day} de ${_longMonths[d.month - 1]} de ${d.year}';
+}

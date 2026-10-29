@@ -391,6 +391,10 @@ class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin
   @override
   Duration get loopDuration => PaxMotion.slow * 3;
 
+  /// Ocupa el sitio del contenido mientras llega, a veces un rato: cuenta como bucle de ambiente.
+  @override
+  bool get ambientLoop => true;
+
   @override
   Widget build(BuildContext context) {
     final s = Theme.of(context).colorScheme;

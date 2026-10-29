@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_services.dart';
+import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
 import '../../../shared/theme/pax_tokens.dart';
+import '../../../shared/widgets/loaders.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../data/campaign_api.dart';
-import '../domain/campaign_progress.dart';
 
-CampaignProgress _progressOf(CampaignSummary c) => CampaignProgress.of(
-  target: int.tryParse(c.targetAmount ?? ''),
-  cleared: int.tryParse(c.clearedAmount ?? ''),
-  endDate: c.endDate,
-);
-
-/// Insignia / sello «✓ Organización verificada», solo visible si la organización está verificada.
+/// «✓ Verificada» (web: `CampaignCard`), solo si la organización está verificada.
 class OrganizationVerifiedBadge extends StatelessWidget {
   const OrganizationVerifiedBadge({super.key = const Key('campaign.verified')});
 
@@ -21,19 +16,20 @@ class OrganizationVerifiedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fg = isDark ? PaxDarkTokens.green : PaxTokens.brandGreen800;
-    final bg = isDark ? PaxDarkTokens.surfaceHigh : PaxTokens.brandGreen50;
-    final border = isDark ? PaxDarkTokens.green.withValues(alpha: 0.3) : PaxTokens.brandGreen500.withValues(alpha: 0.3);
-
+    final bg = isDark ? PaxTokens.brandGreen900 : PaxTokens.brandGreen50;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: border),
-      ),
-      child: Text(
-        '✓ Organización verificada',
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(99)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_rounded, size: 14, color: fg),
+          const SizedBox(width: 4),
+          Text(
+            'Verificada',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+          ),
+        ],
       ),
     );
   }
@@ -122,6 +118,8 @@ class CampaignCoverImage extends StatelessWidget {
       child: Image.network(
         coverUrl.toString(),
         fit: BoxFit.cover,
+        // Se decodifica al ancho de un teléfono, no al de la foto original: menos memoria y desplazamiento fluido.
+        cacheWidth: 1080,
         excludeFromSemantics: true,
         loadingBuilder: (context, child, progress) => progress == null ? child : fallback,
         errorBuilder: (context, error, stackTrace) => fallback,
@@ -130,8 +128,9 @@ class CampaignCoverImage extends StatelessWidget {
   }
 }
 
-/// Tarjeta compacta de una convocatoria del listado público (Inicio, decisión 5): organización, título, barra de la
-/// meta y días que quedan. Tocarla llama a [onTap].
+/// Tarjeta de una convocatoria del listado público: la variante 01 elegida, igual que `CampaignCard` de la web.
+/// Portada arriba si la hay; logo (o la inicial), nombre y «Verificada»; título; barra con «$X de $Y (N %)» y
+/// «Cierra el …». Toda la tarjeta se toca para abrirla ([onTap]).
 class CampaignSummaryCard extends StatelessWidget {
   const CampaignSummaryCard(this.campaign, {super.key, required this.onTap, this.apiBaseUrl});
   final CampaignSummary campaign;
@@ -143,7 +142,6 @@ class CampaignSummaryCard extends StatelessWidget {
     final baseUrl = apiBaseUrl ?? AppScope.maybeOf(context)?.config.apiBaseUrl;
     final coverUrl = resolveApiMediaUrl(baseUrl, campaign.coverImageUrl);
     final logoUrl = resolveApiMediaUrl(baseUrl, campaign.organizationLogoUrl);
-
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -154,7 +152,7 @@ class CampaignSummaryCard extends StatelessWidget {
           children: [
             if (coverUrl != null) CampaignCoverImage(coverUrl: coverUrl),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: CampaignSummaryCardBody(campaign, logoUrl: logoUrl),
             ),
           ],
@@ -173,177 +171,108 @@ class CampaignSummaryCardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final p = _progressOf(c);
+    final s = theme.colorScheme;
+    final target = int.tryParse(c.targetAmount ?? '');
+    final cleared = int.tryParse(c.clearedAmount ?? '0') ?? 0;
+    // Como `percentOf` de la web: entero hacia abajo, sin tope (la barra sí se queda en 100 %).
+    final pct = target == null || target <= 0 ? null : cleared * 100 ~/ target;
+    final hasOrg = c.organizationName.isNotEmpty || logoUrl != null || c.organizationVerified;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            OrganizationLogo(organizationName: c.organizationName, logoUrl: logoUrl, size: 32),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (c.organizationName.isNotEmpty)
-                    Text(
-                      c.organizationName,
-                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  if (c.organizationVerified) ...[const SizedBox(height: 2), const OrganizationVerifiedBadge()],
-                ],
+        if (hasOrg) ...[
+          Row(
+            children: [
+              _OrganizationMark(name: c.organizationName, logoUrl: logoUrl),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (c.organizationName.isNotEmpty)
+                      Text(c.organizationName, style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant)),
+                    if (c.organizationVerified) ...[const SizedBox(height: 4), const OrganizationVerifiedBadge()],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(c.title, style: theme.textTheme.titleSmall),
-        if (p.fraction != null) ...[
-          const SizedBox(height: 8),
-          SlimProgress(p.fraction!, semanticsLabel: p.percentText),
-          const SizedBox(height: 4),
-          Text(p.percentText!, style: theme.textTheme.labelSmall),
+            ],
+          ),
+          const SizedBox(height: 12),
         ],
-        if (p.daysText != null) ...[const SizedBox(height: 2), Text(p.daysText!, style: theme.textTheme.labelSmall)],
+        Text(c.title, style: theme.textTheme.titleMedium?.copyWith(height: 1.2)),
+        if (c.currency != null && target != null) ...[
+          const SizedBox(height: 12),
+          if (pct != null) ...[SlimProgress((pct / 100).clamp(0.0, 1.0)), const SizedBox(height: 8)],
+          Text(
+            '${formatMinorUnits(cleared, c.currency)} de ${formatMinorUnits(target, c.currency)}'
+            '${pct == null ? '' : ' ($pct %)'}',
+            key: const Key('campaign.amounts'),
+            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: s.onSurface),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Text(
+          'Cierra el ${longDate(c.endDate)}',
+          key: const Key('campaign.closes'),
+          style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant),
+        ),
       ],
     );
   }
 }
 
-/// Tarjeta tipográfica de una convocatoria (variante 15 del landing): sin foto, con la cifra como protagonista. Solo
-/// usa lo que trae `GET /public/campaigns`. Estados: con meta (porcentaje), sin meta en dinero (días que quedan), meta
-/// alcanzada y cerrada.
-class CampaignFigureCard extends StatelessWidget {
-  const CampaignFigureCard(this.campaign, {super.key, required this.onOpen, this.detailsKey});
-  final CampaignSummary campaign;
-  final VoidCallback onOpen;
-  final Key? detailsKey;
+/// Logo cuadrado de 40 (radio de control) o la inicial del nombre sobre el verde suave; sin nombre ni logo, nada.
+class _OrganizationMark extends StatelessWidget {
+  const _OrganizationMark({required this.name, this.logoUrl});
+  final String name;
+  final Uri? logoUrl;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final s = theme.colorScheme;
-    final c = campaign;
-    final p = _progressOf(c);
-    final target = int.tryParse(c.targetAmount ?? '');
-    final cleared = int.tryParse(c.clearedAmount ?? '');
-    final closed = c.status.isNotEmpty && c.status != 'OPEN';
-    final figure = p.fraction != null
-        ? '${(p.fraction! * 100).floor()} %'
-        : (p.daysText ?? (closed ? 'Cerrada' : 'Abierta'));
-    final figureCaption = p.fraction != null ? 'de la meta' : 'Sin meta en dinero';
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (c.organizationName.isNotEmpty)
-                Text(
-                  c.organizationName.toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                    color: s.onSurfaceVariant,
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.end,
-                spacing: 8,
-                children: [
-                  Text(
-                    figure,
-                    key: const Key('campaign.figure'),
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700, color: s.primary),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(figureCaption, style: TextStyle(color: s.onSurfaceVariant)),
-                  ),
-                ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final first = name.trim().characters.firstOrNull?.toUpperCase();
+    final initial = first == null
+        ? const SizedBox(width: 40, height: 40)
+        : Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isDark ? PaxTokens.brandGreen900 : PaxTokens.brandGreen50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              first,
+              key: const Key('organization.initials'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isDark ? PaxDarkTokens.green : PaxTokens.brandGreen800,
               ),
-              const SizedBox(height: 6),
-              Text(c.title, style: theme.textTheme.titleMedium),
-              if (p.fraction != null) ...[
-                const SizedBox(height: 10),
-                SlimProgress(p.fraction!, semanticsLabel: p.percentText),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                [
-                  if (cleared != null && target != null)
-                    '${formatMinorUnits(cleared, c.currency)} de ${formatMinorUnits(target, c.currency)}',
-                  if (p.fraction != null && p.daysText != null) p.daysText!,
-                ].join(' · '),
-                style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant),
-              ),
-              if (p.reached || closed) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    if (p.reached)
-                      const StatusChip(
-                        'Meta alcanzada',
-                        key: Key('campaign.reached'),
-                        icon: Icons.emoji_events_outlined,
-                      ),
-                    if (closed)
-                      const StatusChip(
-                        'Cerrada',
-                        key: Key('campaign.closed'),
-                        icon: Icons.lock_outline,
-                        tone: Tone.neutral,
-                      ),
-                  ],
-                ),
-              ],
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(key: detailsKey, onPressed: onOpen, child: const Text('Ver detalles')),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+    final url = logoUrl;
+    if (url == null) return initial;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url.toString(),
+        width: 40,
+        height: 40,
+        cacheWidth: 120,
+        fit: BoxFit.cover,
+        excludeFromSemantics: true,
+        loadingBuilder: (context, child, progress) => progress == null ? child : initial,
+        errorBuilder: (context, error, stackTrace) => initial,
       ),
     );
   }
 }
 
-/// Tarjeta esqueleto mientras responde el listado (variante 17): bloques grises con el borde del tema, sin texto.
+/// Tarjeta esqueleto mientras responde el listado: la forma de la tarjeta con el brillo de carga.
 class CampaignSkeletonCard extends StatelessWidget {
   const CampaignSkeletonCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final block = Theme.of(context).colorScheme.outlineVariant;
-    Widget bar(double widthFactor, double height) => FractionallySizedBox(
-      widthFactor: widthFactor,
-      child: Container(
-        height: height,
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(color: block, borderRadius: BorderRadius.circular(6)),
-      ),
-    );
-    return Semantics(
-      label: 'Cargando convocatoria',
-      child: ExcludeSemantics(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [bar(0.35, 10), bar(0.3, 28), bar(0.85, 14), bar(1, 8), bar(0.6, 10)],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Card(child: Skeleton.card(label: 'Cargando convocatoria'));
 }
