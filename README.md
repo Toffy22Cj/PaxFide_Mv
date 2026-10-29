@@ -46,9 +46,6 @@ Si el llavero no está desbloqueado, la sesión no se puede guardar y el login f
 2. `flutter devices` debe listar el teléfono.
 3. Elegir cómo llega el teléfono al backend:
 
-> La biometría (M-28) está oculta por defecto (auditoría del 2026-10-29, S-01). Para una demo con el riesgo aceptado,
-> añadir `--dart-define=PAXFIDE_BIOMETRICS=true` al comando.
-
 ### Opción recomendada: túnel `https` (Cloudflare quick tunnel)
 
 El teléfono no necesita estar en la misma red y no hace falta HTTP sin cifrar.

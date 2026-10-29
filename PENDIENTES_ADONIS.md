@@ -16,7 +16,7 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 |---|---|---|---|
 | M10 | `CampaignSearch` (`PublicCampaignSearch`) | `lib/features/campaigns/domain/public_campaign_search.dart`, `presentation/campaign_search_view.dart` | Ya funciona buscando en el teléfono sobre `GET /public/campaigns` (hasta 5 páginas). Cuando la enmienda de ADR-041 traiga búsqueda en el backend, implementar otra `CampaignSearch` con ese contrato. |
 | M22 | `ReceiptSource` y `ReceiptSharer` | `lib/features/donations/domain/receipt.dart`, `presentation/receipt_view.dart` | Endpoint del comprobante (Manuel) e implementar `ReceiptSource`; para compartir, aprobar una dependencia (p. ej. `share_plus`) e implementar `ReceiptSharer`. |
-| M28 | Biometría (oculta por defecto desde la auditoría del 2026-10-29, S-01; se activa con `--dart-define=PAXFIDE_BIOMETRICS=true`) | `lib/features/auth/biometrics/` | El backend que se use debe tener `/auth/device-credentials` y `/auth/device-login`. Hoy solo están en la rama `claude/focused-goodall-meb6sh` del backend, no en `develop`. |
+| M28 | Biometría (visible; decisión de Adonis del 2026-10-29 frente a S-01: el backend ya la tenía en otra rama, que hay que actualizar) | `lib/features/auth/biometrics/` | El backend que se use debe tener `/auth/device-credentials` y `/auth/device-login`. Hoy solo están en la rama `claude/focused-goodall-meb6sh` del backend, no en `develop`. |
 | E-12 | Invitaciones pendientes en Cuenta | `lib/features/account/presentation/account_screen.dart` | El backend no tiene un listado para quien recibe la invitación; se acepta pegando el código del correo. |
 
 ## Otros
@@ -40,13 +40,12 @@ Corregido en la app, cada punto en su commit con su prueba:
 | M-05 · ADR-051 F5 | La entrega nunca queda en cola sin conexión: se retira y se pide «Reintentar» con señal (la foto ya subida no se vuelve a subir) |
 | M-04 | «Reintentar con el mismo envío» en las operaciones sin confirmar, junto a «Verificar estado» |
 | S-04 | La copia de la foto se borra de la caché al leerla (solo dentro de la caché; nunca un original) |
-| S-01 · opción (c) | Biometría oculta por defecto |
 | S-02 | El enlace de pago solo se abre si es `https` hacia la web o la API de PaxFide; si no, solo se copia |
 | S-06 | `android:allowBackup="false"` |
 
 Esperando decisión de Carlos (no se tocan hasta que decida):
 
-- **DC-1 a DC-8** de la §7: rama, Enmiendas 2 y 3 y sección de fotos (P-1, P-3, P-4), las cuatro dependencias (P-2), biometría definitiva, `url_launcher`, `trackingCode` en «Ver el recorrido» (S-03, DDM-25), firma de la app (S-05) y dónde escribir que las donaciones de donantes comunes no son públicas.
+- **DC-1 a DC-8** de la §7: rama, biometría (S-01: Adonis la mantiene visible; el backend que la soporta está en `claude/focused-goodall-meb6sh`, desactualizada respecto a `develop`), Enmiendas 2 y 3 y sección de fotos (P-1, P-3, P-4), las cuatro dependencias (P-2), biometría definitiva, `url_launcher`, `trackingCode` en «Ver el recorrido» (S-03, DDM-25), firma de la app (S-05) y dónde escribir que las donaciones de donantes comunes no son públicas.
 - **S-07** (capturas de pantalla): aceptarlo como deuda o protegerlo; protegerlo pide código nativo o una dependencia.
 - **Prueba contra el backend real (§6.7):** volver a ejecutarla con el backend local y pegar la salida literal en el PR.
 - **Ramas (§6):** Carlos pide cada corrección en su rama `fix/`. Esta sesión solo puede subir a `claude/…`; las correcciones van en commits separados para poder pasarlas a ramas `fix/`.
