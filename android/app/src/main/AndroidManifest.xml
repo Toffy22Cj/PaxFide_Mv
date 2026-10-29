@@ -3,7 +3,11 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Entrar con huella o rostro (M-28) -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Sin copia de seguridad (auditoría 2026-10-29, S-06): el almacenamiento seguro y el Outbox no viajan a otro
+         teléfono, donde quedarían ilegibles. -->
     <application
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:label="PaxFide"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
