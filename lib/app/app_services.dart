@@ -17,6 +17,7 @@ import '../features/campaigns/domain/organization_verification.dart';
 import '../features/donations/data/account_impact_api.dart';
 import '../features/donations/domain/impact.dart';
 import '../features/donations/domain/receipt.dart';
+import '../shared/city/city_pause_controller.dart';
 import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
@@ -45,6 +46,7 @@ class AppServices {
     PhotoPicker? photoPicker,
     ThemeController? theme,
     TextSizeController? textSize,
+    CityPauseController? cityPause,
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
   }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
@@ -53,6 +55,7 @@ class AppServices {
        impactSource = impactSource ?? ApiImpactSource(AccountImpactApi(apiClient)),
        photoPicker = photoPicker ?? ImagePickerPhotoPicker(),
        textSize = textSize ?? TextSizeController(),
+       cityPause = cityPause ?? CityPauseController(),
        biometricLogin = BiometricLogin(
          api: authApi,
          store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
@@ -93,6 +96,9 @@ class AppServices {
 
   /// Tamaño del texto elegido en la app (M-04), recordado entre aperturas.
   final TextSizeController textSize;
+
+  /// Pausa de la ciudad de Inicio, recordada entre aperturas.
+  final CityPauseController cityPause;
   late final AppRouterDelegate router;
 
   /// Entrar con huella o rostro, solo desde el login (M-28).

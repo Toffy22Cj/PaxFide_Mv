@@ -10,10 +10,14 @@ import '../features/campaigns/presentation/campaign_summary_card.dart';
 import '../features/donations/data/account_donations_api.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
 import '../features/tracking/presentation/tracking_screen.dart';
+import '../shared/city/city_background.dart';
+import '../shared/city/city_pause_controller.dart';
+import '../shared/city/city_scene.dart';
 import '../shared/dates.dart';
 import '../shared/money.dart';
 import '../shared/motion/pax_motion.dart';
 import '../shared/motion/pax_route.dart';
+import '../shared/theme/pax_theme.dart';
 import '../shared/theme/pax_tokens.dart';
 import '../shared/widgets/loaders.dart';
 import '../shared/widgets/pax_app_bar.dart';
@@ -59,6 +63,26 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _profileLoaded = false;
   bool _nudgeHidden = false;
   bool _wasCurrent = false;
+
+  /// Alto de la franja de la ciudad que se ve sobre el contenido.
+  static const _cityBand = 220.0;
+  final _scroll = ScrollController();
+
+  /// La ciudad se mueve solo mientras se ve: al desplazar Inicio hasta taparla, se queda quieta.
+  final _cityVisible = ValueNotifier(true);
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(() => _cityVisible.value = _scroll.offset < _cityBand - 8);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _cityVisible.dispose();
+    super.dispose();
+  }
 
   DateTime get _now => (widget.now ?? DateTime.now)();
 
@@ -109,25 +133,132 @@ class _HomeScreenState extends State<HomeScreen> {
             _CampaignsCard(key: _campaignsKey, now: _now),
             _DonationsCard(key: _donationsKey),
           ];
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              children: [
-                if (_services.session.profileStatus == ProfileStatus.loading) const LinearProgressIndicator(),
-                _Header(greeting: greetingFor(_now.hour), givenName: given, familyName: _profile?.familyName),
-                if (_profileLoaded && (given == null || given.isEmpty) && !_nudgeHidden) ...[
-                  const SizedBox(height: 16),
-                  _ProfileNudge(
-                    onAdd: () => _services.router.go(AppRoutes.account),
-                    onHide: () => setState(() => _nudgeHidden = true),
-                  ),
-                ],
-                for (final c in cards) ...[const SizedBox(height: 16), RiseIn(index: i++, child: c)],
-              ],
-            ),
+          final page = PaxTheme.pageBackground(Theme.of(context).colorScheme);
+          return Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: _cityBand + 24,
+                child: CityBackground(paused: _services.cityPause, visible: _cityVisible),
+              ),
+              RefreshIndicator(
+                onRefresh: _refresh,
+                child: CustomScrollView(
+                  controller: _scroll,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: _cityBand,
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: _CityHud(pause: _services.cityPause),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // El contenido sube como una hoja sobre la ciudad.
+                    DecoratedSliver(
+                      decoration: BoxDecoration(
+                        color: page,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      sliver: SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                        sliver: SliverList.list(
+                          children: [
+                            if (_services.session.profileStatus == ProfileStatus.loading)
+                              const LinearProgressIndicator(),
+                            _Header(
+                              greeting: greetingFor(_now.hour),
+                              givenName: given,
+                              familyName: _profile?.familyName,
+                            ),
+                            if (_profileLoaded && (given == null || given.isEmpty) && !_nudgeHidden) ...[
+                              const SizedBox(height: 16),
+                              _ProfileNudge(
+                                onAdd: () => _services.router.go(AppRoutes.account),
+                                onHide: () => setState(() => _nudgeHidden = true),
+                              ),
+                            ],
+                            for (final c in cards) ...[const SizedBox(height: 16), RiseIn(index: i++, child: c)],
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverFillRemaining(hasScrollBody: false, child: ColoredBox(color: page)),
+                  ],
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Dónde está la cámara de la ciudad (web: `CityHud`) y el botón para pausarla (web: `PauseButton`).
+class _CityHud extends StatelessWidget {
+  const _CityHud({required this.pause});
+  final CityPauseController pause;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme.labelMedium?.copyWith(color: s.onSurface);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: s.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: s.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(color: PaxTokens.brandGreen500, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Sector: '),
+                    TextSpan(
+                      text: District.home.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(
+                      text: ' · ${District.home.type}',
+                      style: TextStyle(color: s.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+                style: text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: pause,
+              builder: (context, paused, _) => IconButton(
+                key: const Key('home.city.pause'),
+                visualDensity: VisualDensity.compact,
+                tooltip: paused ? 'Reanudar la animación' : 'Pausar la animación',
+                onPressed: pause.toggle,
+                icon: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 20),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

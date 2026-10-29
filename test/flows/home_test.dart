@@ -34,6 +34,8 @@ void main() {
   testWidgets('sin nombre: aviso «Completa tu perfil», que se puede ocultar', (tester) async {
     await _donor(tester);
     expect(find.byKey(const Key('home.profileNudge')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('home.profileNudge.hide')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home.profileNudge.hide')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('home.profileNudge')), findsNothing);
@@ -55,15 +57,29 @@ void main() {
     tester,
   ) async {
     final h = await _donor(tester);
+    await tester.ensureVisible(find.byKey(const Key('home.track.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home.track.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Este campo es obligatorio.'), findsOneWidget);
     h.api.routes['GET /donations/tracking'] = (_) => const ApiResponse(statusCode: 404, data: {});
     await tester.enterText(find.byKey(const Key('home.track.code')), 'TRK-123');
+    await tester.ensureVisible(find.byKey(const Key('home.track.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home.track.submit')));
     await tester.pumpAndSettle();
     expect(h.location, '/home');
     expect(h.api.calls.any((c) => c.path.startsWith('/donations/tracking')), isTrue);
+  });
+
+  testWidgets('la ciudad se pausa con su botón y la elección se recuerda', (tester) async {
+    final h = await _donor(tester);
+    expect(find.byKey(const Key('city')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home.city.pause')));
+    await tester.pumpAndSettle();
+    expect(h.services.cityPause.value, isTrue);
+    expect(h.secure.values['paxfide.ui.cityPaused'], '1');
+    expect(find.byTooltip('Reanudar la animación'), findsOneWidget);
   });
 
   testWidgets('Tus donaciones: hasta 3, con fecha, organización y medio de pago', (tester) async {

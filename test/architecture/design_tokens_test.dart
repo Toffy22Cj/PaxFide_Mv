@@ -8,6 +8,9 @@ import 'package:paxfide_mobile/shared/theme/pax_tokens.dart';
 /// Sistema de diseño: la paleta oficial es la única fuente de color de la app.
 void main() {
   const tokensFile = 'lib/shared/theme/pax_tokens.dart';
+  // Excepción, como en la web (D-P1, DF7-11): la ciudad de Inicio es una ilustración con su paleta de día y de noche;
+  // no lleva texto de la app encima ni comunica estados. Sus colores viven solo en este archivo.
+  const cityPaletteFile = 'lib/shared/city/city_palette.dart';
   final files = Directory('lib')
       .listSync(recursive: true)
       .whereType<File>()
@@ -39,7 +42,7 @@ void main() {
   test('ningún color escrito a mano fuera de pax_tokens.dart', () {
     final bad = <String>[];
     final literal = RegExp(r'Color\(0x|Color\.fromA?RGBO?\(|Colors\.(?!transparent\b)[a-zA-Z]');
-    for (final f in files.where((f) => !rel(f).endsWith(tokensFile))) {
+    for (final f in files.where((f) => !rel(f).endsWith(tokensFile) && !rel(f).endsWith(cityPaletteFile))) {
       final lines = code(f).split('\n');
       for (var i = 0; i < lines.length; i++) {
         if (literal.hasMatch(lines[i])) bad.add('${rel(f)}: ${lines[i].trim()}');

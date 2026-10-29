@@ -141,6 +141,7 @@ class AppHarness {
     }
     await services.theme.load();
     await services.textSize.load();
+    await services.cityPause.load();
     await tester.pumpWidget(PaxFideApp(services: services));
     await runOutboxRecovery(services);
     await services.router.loadRestorable();
