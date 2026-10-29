@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/errors/app_exceptions.dart';
 import '../core/offline/outbox_status.dart';
 import '../features/account/data/account_api.dart';
+import '../features/account/presentation/first_steps_screen.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/campaigns/domain/campaign_search.dart';
 import '../features/campaigns/presentation/campaign_search_view.dart';
@@ -93,6 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final current = ModalRoute.of(context)?.isCurrent ?? true;
     if (current && !_wasCurrent) _loadProfile();
     _wasCurrent = current;
+    // Primera vez tras crear la cuenta: la bienvenida y «¿Cómo te llamamos?» (web: `justRegistered`).
+    if (current && _services.session.consumeJustRegistered()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context)
+            .push(PaxPageRoute<void>(fullscreenDialog: true, builder: (_) => const FirstStepsScreen()));
+      });
+    }
   }
 
   Future<void> _loadProfile() async {

@@ -30,6 +30,19 @@ class SessionController extends ChangeNotifier {
   Principal? _principal;
   ProfileStatus _profile = ProfileStatus.none;
 
+  /// La cuenta se acaba de crear en este teléfono: al entrar por primera vez se muestran la bienvenida y «¿Cómo te
+  /// llamamos?» (web: `justRegistered`). Solo en memoria.
+  bool _justRegistered = false;
+
+  void markJustRegistered() => _justRegistered = true;
+
+  /// Lee y olvida la marca: los primeros pasos se muestran una sola vez.
+  bool consumeJustRegistered() {
+    final v = _justRegistered;
+    _justRegistered = false;
+    return v;
+  }
+
   SessionState get state => _state;
   Principal? get principal => _principal;
   ProfileStatus get profileStatus => _profile;

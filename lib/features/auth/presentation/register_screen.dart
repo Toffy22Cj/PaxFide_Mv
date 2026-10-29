@@ -69,6 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         acceptedDataPolicyVersion: currentDataPolicyVersion,
       );
       if (!mounted) return;
+      AppScope.of(context).session.markJustRegistered();
       setState(() {
         _sending = false;
         _done = true;
