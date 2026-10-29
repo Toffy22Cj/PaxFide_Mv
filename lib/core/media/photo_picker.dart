@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:image_picker/image_picker.dart';
 
 import '../errors/app_exceptions.dart';
@@ -49,10 +51,33 @@ class ImagePickerPhotoPicker implements PhotoPicker {
       requestFullMetadata: false,
     );
     if (file == null) return null;
-    final bytes = await file.readAsBytes();
+    final List<int> bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } finally {
+      // La foto vive solo en memoria: la copia reducida que deja `image_picker` en la caché se borra en cuanto se
+      // lee (ADR-051: nada de fotos de entrega en un teléfono que se puede perder; auditoría 2026-10-29, S-04).
+      await deleteIfTemporary(file.path, Directory.systemTemp);
+    }
     final type = sniffContentType(bytes);
     if (type == null) throw const UnsupportedPhotoException();
     return PickedPhoto(bytes: bytes, contentType: type, filename: type == 'image/png' ? 'entrega.png' : 'entrega.jpg');
+  }
+
+  /// Borra [path] solo si está dentro de [tempRoot] (la caché de la app, donde `image_picker` deja sus copias). Una
+  /// foto que esté en otro sitio, como el original de la galería, no se toca nunca. Devuelve si se borró.
+  static Future<bool> deleteIfTemporary(String path, Directory tempRoot) async {
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return false;
+      final real = file.resolveSymbolicLinksSync();
+      final root = tempRoot.resolveSymbolicLinksSync();
+      if (!real.startsWith('$root${Platform.pathSeparator}')) return false;
+      await file.delete();
+      return true;
+    } on FileSystemException {
+      return false;
+    }
   }
 
   @override
