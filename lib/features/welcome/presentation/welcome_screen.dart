@@ -22,6 +22,7 @@ import '../../campaigns/domain/campaign_search.dart';
 import '../../campaigns/presentation/campaign_search_view.dart';
 import '../../campaigns/presentation/campaign_summary_card.dart';
 import 'welcome_world.dart';
+import '../../../shared/motion/pax_motion.dart';
 import '../../../shared/motion/pax_route.dart';
 
 /// Colores de texto de la bienvenida, como en el landing: titular en dos tonos de verde, etiquetas en mono ámbar.
@@ -154,7 +155,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   Future<List<CampaignSummary>> _fetch() => _services.campaignSearch.search(const CampaignQuery());
 
   bool get _ambient => WelcomeWorld.ambientMotion && !_reduced;
-  bool get _animateWorld => _ambient && !_blur.value;
+  // Con el menú abierto el mundo queda tapado: no se anima.
+  bool get _animateWorld => _ambient && !_blur.value && !_menuOpen;
 
   @override
   void initState() {
@@ -249,8 +251,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   static const _ambientFrame = 1 / 30;
   double _sinceFrame = 0;
 
+  void _setMenu(bool open) {
+    setState(() => _menuOpen = open);
+    if (!open && !_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    }
+  }
+
   void _scrollTo(GlobalKey key) {
-    setState(() => _menuOpen = false);
+    _setMenu(false);
     final ctx = key.currentContext;
     if (ctx == null) return;
     Scrollable.ensureVisible(
@@ -263,7 +273,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   }
 
   void _go(VoidCallback action) {
-    setState(() => _menuOpen = false);
+    _setMenu(false);
     action();
   }
 
@@ -412,10 +422,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     child: GestureDetector(
                       key: const Key('welcome.menu.backdrop'),
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _menuOpen = false),
-                      // Velo sin desenfoque (el desenfoque se recalculaba en cada fotograma del mundo animado).
-                      child: ColoredBox(
-                        color: Theme.of(context).colorScheme.scrim.withValues(alpha: dark ? 0.45 : 0.32),
+                      onTap: () => _setMenu(false),
+                      // Velo casi opaco del color de la superficie: el fondo no se mezcla con el menú. Sin
+                      // desenfoque (se recalculaba en cada fotograma del mundo animado).
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: _reduced ? Duration.zero : PaxMotion.fast,
+                        builder: (context, a, _) =>
+                            ColoredBox(color: theme.colorScheme.surface.withValues(alpha: 0.94 * a)),
                       ),
                     ),
                   ),
@@ -431,7 +445,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     child: _Nav(
                       ink: ink,
                       open: _menuOpen,
-                      onToggle: () => setState(() => _menuOpen = !_menuOpen),
+                      onToggle: () => _setMenu(!_menuOpen),
                       onTop: () => _scrollTo(_sections[0]),
                       links: [
                         ('how', 'Cómo funciona', () => _scrollTo(_sections[0])),
