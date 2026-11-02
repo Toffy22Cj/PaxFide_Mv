@@ -240,6 +240,9 @@ void main() {
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Cuenta creada'), findsOneWidget);
+    // ADR-050 Enmienda 2: la cuenta nace sin verificar; primero hay que confirmar el correo
+    expect(find.textContaining('Te enviamos un correo para confirmar'), findsOneWidget);
+    expect(find.textContaining('Ya puedes entrar'), findsNothing);
     expect(h.services.session.state.status, SessionStatus.loggedOut);
     expect(h.api.calls.last.path, '/auth/register');
     expect(h.api.calls.last.headers.containsKey('Command-Id'), isFalse);

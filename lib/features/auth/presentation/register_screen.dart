@@ -115,12 +115,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_done) {
       return AuthLayout(
         title: 'Cuenta creada',
-        subtitle: 'Ya puedes entrar con tu correo electrónico y tu contraseña.',
+        subtitle: 'Te enviamos un correo para confirmar tu dirección. Ábrelo y después entra con tu correo y tu contraseña.',
         back: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AuthNotice('Tu cuenta de donante está lista.', ink: ink, kind: AuthNoticeKind.success),
+            AuthNotice(
+              'Tu cuenta de donante está creada. Falta confirmar tu correo.',
+              ink: ink,
+              kind: AuthNoticeKind.success,
+            ),
             const SizedBox(height: 16),
             AuthSubmitButton(ink: ink, label: 'Ir a entrar', icon: Icons.arrow_forward, onPressed: toLogin),
           ],
@@ -229,10 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     Expanded(
-                      child: Text(
-                        'Acepto los términos y condiciones',
-                        style: TextStyle(fontSize: 13, color: ink.body),
-                      ),
+                      child: Text('Acepto los términos y condiciones', style: TextStyle(fontSize: 13, color: ink.body)),
                     ),
                   ],
                 ),

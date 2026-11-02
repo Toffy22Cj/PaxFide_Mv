@@ -73,6 +73,40 @@ void main() {
     });
   });
 
+  group('BiometricLogin con las reglas del login de develop', () {
+    late FakeApiClient api;
+    late MemoryDeviceCredentialStore store;
+    late BiometricLogin bio;
+
+    setUp(() async {
+      api = FakeApiClient();
+      store = MemoryDeviceCredentialStore();
+      bio = BiometricLogin(api: AuthApi(api), store: store, authenticator: FakeBiometricAuthenticator());
+      await store.write(_stored);
+    });
+
+    test('403 AcceptanceRequired: pide aceptar, conserva la credencial y reintenta con las versiones', () async {
+      api.enqueue(const ApiResponse(
+        statusCode: 403,
+        data: {'title': 'AcceptanceRequired', 'pendingTermsVersion': 'v2'},
+      ));
+      final r = await bio.login();
+      expect(r, isA<BiometricLoginAcceptanceRequired>());
+      expect(await store.read(), isNotNull);
+
+      api.enqueue(_ok({'token': 'jwt-ok'}));
+      final again = await bio.loginAccepting((r as BiometricLoginAcceptanceRequired).pending);
+      expect(again, isA<BiometricLoginSucceeded>().having((s) => s.token, 'token', 'jwt-ok'));
+      expect(api.calls.last.body, {'deviceToken': 'tok-1', 'acceptedTermsVersion': 'v2'});
+    });
+
+    test('403 EmailNotVerified: lo dice y conserva la credencial', () async {
+      api.enqueue(const ApiResponse(statusCode: 403, data: {'title': 'EmailNotVerified'}));
+      expect(await bio.login(), isA<BiometricLoginEmailNotVerified>());
+      expect(await store.read(), isNotNull);
+    });
+  });
+
   group('login: recuadro "Entrar por biometría"', () {
     Future<AppHarness> openLogin(WidgetTester tester, FakeBiometricAuthenticator reader, {bool enabled = true}) async {
       final h = AppHarness(biometric: reader);
@@ -113,6 +147,47 @@ void main() {
       expect(find.textContaining('ya no sirve en este teléfono'), findsOneWidget);
       expect(find.byKey(const Key('login-biometric')), findsNothing);
       expect(h.secure.values[_deviceKey], isNull);
+    });
+
+    testWidgets('con condiciones nuevas: diálogo de aceptación y entra con la huella, sin la contraseña', (tester) async {
+      final h = AppHarness(biometric: FakeBiometricAuthenticator());
+      h.saveDeviceCredential();
+      var first = true;
+      h.api.routes['POST /auth/device-login'] = (_) {
+        if (first) {
+          first = false;
+          return const ApiResponse(
+            statusCode: 403,
+            data: {'title': 'AcceptanceRequired', 'pendingTermsVersion': 'v1-2026-10', 'pendingDataPolicyVersion': 'v1-2026-10'},
+          );
+        }
+        return _ok({'token': 'jwt-bio'});
+      };
+      h.api.routes['GET /me'] = (_) => meResponse(roles: const []);
+      await h.start(tester);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('legal-acceptance')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('legal-acceptance.terms')));
+      await tester.tap(find.byKey(const Key('legal-acceptance.dataPolicy')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('legal-acceptance.accept')));
+      await tester.pumpAndSettle();
+      final calls = h.api.calls.where((c) => c.path == '/auth/device-login').toList();
+      expect(calls, hasLength(2));
+      expect(calls.last.body?['acceptedTermsVersion'], 'v1-2026-10');
+      expect(h.location, '/home');
+    });
+
+    testWidgets('con el correo sin confirmar: lo dice y la biometría sigue activada', (tester) async {
+      final h = AppHarness(biometric: FakeBiometricAuthenticator());
+      h.saveDeviceCredential();
+      h.api.routes['POST /auth/device-login'] = (_) =>
+          const ApiResponse(statusCode: 403, data: {'title': 'EmailNotVerified'});
+      await h.start(tester);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Confirma tu correo'), findsOneWidget);
+      expect(find.textContaining('Sin conexión'), findsNothing);
+      expect(h.secure.values[_deviceKey], isNotNull);
     });
 
     testWidgets('NEGATIVA: sin activarla, o en un equipo sin biometría (Linux), no aparece', (tester) async {

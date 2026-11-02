@@ -254,4 +254,21 @@ void main() {
       expect(h.services.session.state.status, SessionStatus.loggedOut);
     },
   );
+
+  testWidgets('14. correo sin confirmar (403 EmailNotVerified): lo dice y deja reenviar el correo', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.api.routes['POST /auth/login'] = (_) => const ApiResponse(statusCode: 403, data: {'title': 'EmailNotVerified'});
+    h.api.routes['POST /auth/email-verification'] = (_) => const ApiResponse(statusCode: 202);
+    await tester.enterText(find.byKey(const Key('login.email')), ' nueva@demo ');
+    await tester.enterText(find.byKey(const Key('login.password')), 'password12345');
+    await tap(tester, 'login.submit');
+    expect(find.textContaining('Confirma tu correo'), findsOneWidget);
+    expect(h.services.session.state.status, SessionStatus.loggedOut);
+
+    await tap(tester, 'login.resendVerification');
+    final call = h.api.calls.lastWhere((c) => c.path == '/auth/email-verification');
+    expect(call.body, {'email': 'nueva@demo'});
+    expect(find.textContaining('vuelve a pedirlo en 5 minutos'), findsOneWidget);
+  });
 }

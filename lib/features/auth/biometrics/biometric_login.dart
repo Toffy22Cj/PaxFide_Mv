@@ -30,6 +30,19 @@ class BiometricLoginNetworkError extends BiometricLoginResult {
   const BiometricLoginNetworkError();
 }
 
+/// Huella correcta, pero hay condiciones nuevas que aceptar (403 `AcceptanceRequired`, ADR-050 D3): se muestran y,
+/// aceptadas, [BiometricLogin.loginAccepting] repite con las versiones. La credencial se conserva.
+class BiometricLoginAcceptanceRequired extends BiometricLoginResult {
+  const BiometricLoginAcceptanceRequired(this.pending);
+  final AcceptanceRequiredException pending;
+}
+
+/// Huella correcta, pero el correo de la cuenta no está confirmado (403 `EmailNotVerified`, ADR-050 Enmienda 2). La
+/// credencial se conserva.
+class BiometricLoginEmailNotVerified extends BiometricLoginResult {
+  const BiometricLoginEmailNotVerified();
+}
+
 /// Resultado de registrar este teléfono para entrar con biometría.
 enum BiometricEnableResult { enabled, tooManyDevices, networkError }
 
@@ -68,8 +81,33 @@ class BiometricLogin {
     if (await _authenticator.authenticate(loginReason) != BiometricCheck.success) {
       return const BiometricLoginDismissed();
     }
+    return _deviceLogin(stored);
+  }
+
+  /// Tras [BiometricLoginAcceptanceRequired] y con las condiciones aceptadas en el diálogo: repite la entrada con las
+  /// versiones, sin volver a pedir la huella (se acaba de comprobar).
+  Future<BiometricLoginResult> loginAccepting(AcceptanceRequiredException pending) async {
+    final stored = await _stored();
+    if (stored == null) return const BiometricLoginRevoked();
+    return _deviceLogin(stored, accepted: pending);
+  }
+
+  Future<BiometricLoginResult> _deviceLogin(
+    StoredDeviceCredential stored, {
+    AcceptanceRequiredException? accepted,
+  }) async {
     try {
-      return BiometricLoginSucceeded(await _api.deviceLogin(stored.deviceToken));
+      return BiometricLoginSucceeded(
+        await _api.deviceLogin(
+          stored.deviceToken,
+          acceptedTermsVersion: accepted?.pendingTermsVersion,
+          acceptedDataPolicyVersion: accepted?.pendingDataPolicyVersion,
+        ),
+      );
+    } on AcceptanceRequiredException catch (pending) {
+      return BiometricLoginAcceptanceRequired(pending);
+    } on EmailNotVerifiedException {
+      return const BiometricLoginEmailNotVerified();
     } on UnauthorizedException {
       await _store.clear();
       return const BiometricLoginRevoked();

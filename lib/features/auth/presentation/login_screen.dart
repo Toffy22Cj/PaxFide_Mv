@@ -29,6 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _sending = false;
   String? _error;
 
+  /// El último intento dio 403 `EmailNotVerified` (ADR-050 Enmienda 2): se ofrece reenviar el correo.
+  bool _emailNotVerified = false;
+  bool _resending = false;
+  String? _resendNotice;
+
   /// "Recordarme en este teléfono": sin marcar, la sesión no se guarda y al cerrar la app hay que volver a entrar.
   bool _remember = true;
 
@@ -55,14 +60,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _biometricLogin() async {
     if (_sending) return;
-    final services = AppScope.of(context);
     final result = await showBiometricLoginDialog(context, _biometric);
     if (!mounted || result == null) return;
+    await _onBiometricResult(result);
+  }
+
+  Future<void> _onBiometricResult(BiometricLoginResult result) async {
+    final services = AppScope.of(context);
     switch (result) {
       case BiometricLoginSucceeded(:final token):
         setState(() {
           _sending = true;
           _error = null;
+          _emailNotVerified = false;
         });
         try {
           await services.session.loginWithToken(token);
@@ -75,6 +85,27 @@ class _LoginScreenState extends State<LoginScreen> {
             });
           }
         }
+      // ADR-050 D3: condiciones nuevas; aceptadas, se repite con la huella ya comprobada, sin la contraseña.
+      case BiometricLoginAcceptanceRequired(:final pending):
+        final accepted = await showLegalAcceptanceDialog(context, pending);
+        if (!mounted) return;
+        if (!accepted) {
+          services.pendingIntents.discard();
+          setState(() => _error = 'Para entrar debes aceptar las condiciones vigentes.');
+          return;
+        }
+        final again = await _biometric.loginAccepting(pending);
+        if (!mounted) return;
+        if (again is BiometricLoginAcceptanceRequired) {
+          setState(() => _error = 'Las condiciones cambiaron mientras entrabas. Inténtalo de nuevo.');
+          return;
+        }
+        await _onBiometricResult(again);
+      case BiometricLoginEmailNotVerified():
+        setState(() {
+          _emailNotVerified = true;
+          _error = _emailNotVerifiedText;
+        });
       case BiometricLoginRevoked():
         setState(() {
           _biometricOffered = false;
@@ -84,6 +115,37 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _error = 'Sin conexión con el servidor. Inténtalo de nuevo cuando tengas señal.');
       case BiometricLoginDismissed():
         break;
+    }
+  }
+
+  static const _emailNotVerifiedText =
+      'Confirma tu correo antes de entrar: abre el enlace que te enviamos al crear la cuenta.';
+
+  /// `POST /auth/email-verification`: siempre la misma respuesta, exista o no la cuenta (Enmienda 2, E2-2).
+  Future<void> _resendVerification() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() => _resendNotice = 'Escribe tu correo electrónico para reenviarte el enlace.');
+      return;
+    }
+    setState(() {
+      _resending = true;
+      _resendNotice = null;
+    });
+    String notice;
+    try {
+      await AppScope.of(context).authApi.requestEmailVerification(email);
+      notice =
+          'Si la cuenta existe y falta confirmarla, te enviamos otro correo. Si no llega, vuelve a pedirlo en 5 '
+          'minutos.';
+    } on AppException catch (e) {
+      notice = describeError(e);
+    }
+    if (mounted) {
+      setState(() {
+        _resending = false;
+        _resendNotice = notice;
+      });
     }
   }
 
@@ -168,6 +230,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _sending = true;
       _error = null;
+      _emailNotVerified = false;
+      _resendNotice = null;
     });
     try {
       // Con el JWT en la mano y antes de salir del login: ofrecer la biometría si el teléfono la tiene (M-28).
@@ -216,7 +280,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = e is UnauthorizedException ? 'Email o contraseña incorrectos.' : describeError(e);
+        _emailNotVerified = e is EmailNotVerifiedException;
+        _resendNotice = null;
+        _error = switch (e) {
+          UnauthorizedException() => 'Email o contraseña incorrectos.',
+          EmailNotVerifiedException() => _emailNotVerifiedText,
+          _ => describeError(e),
+        };
       });
     }
   }
@@ -345,6 +415,23 @@ class _LoginScreenState extends State<LoginScreen> {
             if (_error != null) ...[
               const SizedBox(height: 6),
               AuthNotice(_error!, ink: ink, textKey: const Key('login.error')),
+            ],
+            if (_emailNotVerified) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  key: const Key('login.resendVerification'),
+                  style: TextButton.styleFrom(foregroundColor: ink.link),
+                  onPressed: _resending || _sending ? null : _resendVerification,
+                  child: const Text('Reenviar el correo de confirmación'),
+                ),
+              ),
+              if (_resendNotice != null)
+                Text(
+                  _resendNotice!,
+                  key: const Key('login.resendNotice'),
+                  style: TextStyle(fontSize: 13, color: ink.body),
+                ),
             ],
             const SizedBox(height: 12),
             AuthSubmitButton(

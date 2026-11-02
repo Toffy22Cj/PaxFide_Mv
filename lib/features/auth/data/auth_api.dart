@@ -1,5 +1,6 @@
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_response.dart';
 import '../../../core/network/credential_mode.dart';
 
 /// Respuesta de `GET /api/v1/me` (ficha N1): exactamente estos cuatro campos.
@@ -34,7 +35,8 @@ class DeviceEnrollment {
   final String deviceToken;
 }
 
-/// `POST /auth/login`, `POST /auth/register`, `GET /me` y entrar con biometría (referencia-api-v1 §1).
+/// `POST /auth/login`, `POST /auth/register`, `GET /me`, entrar con biometría y reenviar la verificación del correo
+/// (referencia-api-v1 §1).
 class AuthApi {
   const AuthApi(this._api);
 
@@ -59,6 +61,13 @@ class AuthApi {
       },
       credentialMode: CredentialMode.none,
     );
+    return _token(r);
+  }
+
+  /// Respuesta de un inicio de sesión (contraseña o biometría): el JWT, o los 403 con nombre que comparten
+  /// (ADR-050 D3 y Enmienda 2, E2-3).
+  static String _token(ApiResponse r) {
+    if (r.statusCode == 403 && r.data?['title'] == 'EmailNotVerified') throw const EmailNotVerifiedException();
     if (r.statusCode == 403 && r.data?['title'] == 'AcceptanceRequired') {
       final terms = r.data?['pendingTermsVersion'];
       final dataPolicy = r.data?['pendingDataPolicyVersion'];
@@ -119,17 +128,31 @@ class AuthApi {
     return DeviceEnrollment(credentialId: id, deviceToken: token);
   }
 
-  /// `POST /auth/device-login`: devuelve el JWT, como [login]. El mismo 401 para un token inexistente, revocado o de
-  /// una cuenta inactiva.
-  Future<String> deviceLogin(String deviceToken) async {
+  /// `POST /auth/device-login`: devuelve el JWT, con las mismas reglas que [login]: el mismo 401 para un token
+  /// inexistente, revocado o de una cuenta inactiva; [EmailNotVerifiedException]; [AcceptanceRequiredException], y
+  /// entonces se repite con las versiones aceptadas.
+  Future<String> deviceLogin(
+    String deviceToken, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
     final r = await _api.post(
       '/auth/device-login',
-      body: {'deviceToken': deviceToken},
+      body: {
+        'deviceToken': deviceToken,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
       credentialMode: CredentialMode.none,
     );
-    final token = r.requireData()['token'];
-    if (token is! String || token.isEmpty) throw const MalformedResponseException();
-    return token;
+    return _token(r);
+  }
+
+  /// `POST /auth/email-verification` (ADR-050 Enmienda 2): reenvía el correo de confirmación. Siempre el mismo 202,
+  /// exista o no la cuenta; una segunda petición antes de 5 minutos no envía nada.
+  Future<void> requestEmailVerification(String email) async {
+    final r = await _api.post('/auth/email-verification', body: {'email': email}, credentialMode: CredentialMode.none);
+    if (!r.isSuccess) throw r.error ?? BadRequestException(r.statusCode);
   }
 
   Future<MeDto> me() async {

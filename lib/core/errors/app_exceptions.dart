@@ -85,6 +85,12 @@ class AcceptanceRequiredException extends ApiHttpException {
   final String? pendingDataPolicyVersion;
 }
 
+/// 403 `EmailNotVerified` de cualquier inicio de sesión (ADR-050 Enmienda 2, E2-3): contraseña o huella correctas,
+/// pero el correo de la cuenta sin confirmar. Se confirma con el enlace del correo (en la web) y se puede reenviar.
+class EmailNotVerifiedException extends ApiHttpException {
+  const EmailNotVerifiedException() : super(403, 'El correo de la cuenta no está confirmado');
+}
+
 /// 404.
 class NotFoundException extends ApiHttpException {
   const NotFoundException() : super(404, 'Recurso no encontrado');

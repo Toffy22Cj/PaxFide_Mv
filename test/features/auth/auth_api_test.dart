@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/core/errors/app_exceptions.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/features/auth/data/auth_api.dart';
 import 'package:paxfide_mobile/features/auth/domain/legal_versions.dart';
 
@@ -158,6 +159,38 @@ void main() {
     test('500 lanza ServerErrorException', () async {
       api.enqueue(const ApiResponse(statusCode: 500));
       await expectLater(authApi.requestPasswordReset('err@demo.com'), throwsA(isA<ServerErrorException>()));
+    });
+  });
+
+  group('develop: login, biometría y verificación del correo (ADR-050 Enmienda 2)', () {
+    test('8. login 403 EmailNotVerified lanza EmailNotVerifiedException', () async {
+      api.enqueue(const ApiResponse(statusCode: 403, data: {'title': 'EmailNotVerified'}));
+      await expectLater(authApi.login('a@b.c', 'pw'), throwsA(isA<EmailNotVerifiedException>()));
+    });
+
+    test('9. device-login: 403 AcceptanceRequired y EmailNotVerified, como el login; y reenvía las versiones', () async {
+      api.enqueue(const ApiResponse(
+        statusCode: 403,
+        data: {'title': 'AcceptanceRequired', 'pendingTermsVersion': 'v2', 'pendingDataPolicyVersion': 'v2'},
+      ));
+      await expectLater(
+        authApi.deviceLogin('tok'),
+        throwsA(isA<AcceptanceRequiredException>().having((e) => e.pendingTermsVersion, 'terms', 'v2')),
+      );
+      api.enqueue(const ApiResponse(statusCode: 403, data: {'title': 'EmailNotVerified'}));
+      await expectLater(authApi.deviceLogin('tok'), throwsA(isA<EmailNotVerifiedException>()));
+
+      api.enqueue(const ApiResponse(statusCode: 200, data: {'token': 'jwt-2'}));
+      expect(await authApi.deviceLogin('tok', acceptedTermsVersion: 'v2', acceptedDataPolicyVersion: 'v2'), 'jwt-2');
+      expect(api.calls.last.body, {'deviceToken': 'tok', 'acceptedTermsVersion': 'v2', 'acceptedDataPolicyVersion': 'v2'});
+    });
+
+    test('10. reenviar la verificación: POST /auth/email-verification sin sesión; 202 sin cuerpo es éxito', () async {
+      api.enqueue(const ApiResponse(statusCode: 202));
+      await authApi.requestEmailVerification('a@b.c');
+      expect(api.calls.single.path, '/auth/email-verification');
+      expect(api.calls.single.body, {'email': 'a@b.c'});
+      expect(api.calls.single.credentialMode, CredentialMode.none);
     });
   });
 }
