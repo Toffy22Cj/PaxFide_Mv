@@ -10,13 +10,11 @@ import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/theme/text_size_controller.dart';
 import '../../../shared/widgets/error_message.dart';
-import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../../auth/presentation/register_screen.dart' show minPasswordLength;
 import '../data/account_api.dart';
-import '../data/invitation_api.dart';
 
 String roleLabel(String role) => switch (role) {
   Principal.employee => 'Empleado',
@@ -25,8 +23,8 @@ String roleLabel(String role) => switch (role) {
   _ => role,
 };
 
-/// `/account` (E-12, M-26): correo y nombre (`GET`/`PUT /account/profile`), rol y organización, aceptar una
-/// invitación, apariencia, cambiar la contraseña (M-27, `POST /account/password`), desactivar la cuenta (M-30,
+/// `/account` (E-12, M-26): correo y nombre (`GET`/`PUT /account/profile`), rol, organización (solo si la cuenta
+/// tiene una), apariencia, cambiar la contraseña (M-27, `POST /account/password`), desactivar la cuenta (M-30,
 /// `POST /account/deactivate`) y cerrar sesión con confirmación (avisa si hay operaciones guardadas en el teléfono).
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -61,20 +59,18 @@ class AccountScreen extends StatelessWidget {
                       title: const Text('Rol'),
                       subtitle: Text(p.roles.isEmpty ? 'Donante' : p.roles.map(roleLabel).join(', ')),
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.apartment_outlined),
-                      title: const Text('Organización'),
-                      subtitle: Text(
-                        p.organizationId == null
-                            ? 'No perteneces a ninguna organización'
-                            : 'Perteneces a una organización',
+                    // El donante nunca pertenece a una organización (ADR-026): la fila solo es para quien la tiene.
+                    if (p.organizationId != null)
+                      const ListTile(
+                        key: Key('account.organization'),
+                        leading: Icon(Icons.apartment_outlined),
+                        title: Text('Organización'),
+                        subtitle: Text('Perteneces a una organización'),
                       ),
-                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
-              if (p.organizationId == null) ...[const _InvitationCard(), const SizedBox(height: 12)],
               Text('Apariencia y ciudad', style: text.titleMedium),
               Card(
                 child: Column(
@@ -186,94 +182,6 @@ Future<void> _confirmLogout(BuildContext context, AppServices services, String a
     ),
   );
   if (yes == true) await services.session.logout();
-}
-
-/// Aceptar una invitación a una organización con el código del correo (ADR-049). El código no se guarda.
-class _InvitationCard extends StatefulWidget {
-  const _InvitationCard();
-
-  @override
-  State<_InvitationCard> createState() => _InvitationCardState();
-}
-
-class _InvitationCardState extends State<_InvitationCard> {
-  final _token = TextEditingController();
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _token.dispose();
-    super.dispose();
-  }
-
-  Future<void> _accept() async {
-    final token = _token.text.trim();
-    if (token.isEmpty) {
-      setState(() => _error = 'Pega el código de la invitación.');
-      return;
-    }
-    final services = AppScope.of(context);
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await InvitationApi(services.apiClient).accept(token);
-      _token.clear();
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Listo. Ya eres parte de la organización.')));
-      }
-      await services.session.reloadProfile();
-    } on ForbiddenException {
-      if (mounted) setState(() => _error = 'Esa invitación no es válida, ya caducó o es para otro correo.');
-    } on ConflictException {
-      if (mounted) setState(() => _error = 'Tu cuenta ya pertenece a una organización.');
-    } on AppException catch (e) {
-      if (mounted) setState(() => _error = describeError(e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      key: const Key('account.invitation'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('¿Te invitaron a una organización?', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            LabeledField(
-              label: 'Código de la invitación',
-              child: TextField(
-                key: const Key('account.invitation.token'),
-                controller: _token,
-                enabled: !_busy,
-                autocorrect: false,
-                enableSuggestions: false,
-                decoration: const InputDecoration(helperText: 'Viene en el correo de invitación.'),
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              ErrorMessage(_error!, textKey: const Key('account.invitation.error')),
-            ],
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('account.invitation.accept'),
-              onPressed: _busy ? null : _accept,
-              child: const Text('Aceptar invitación'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Correo y nombre de la cuenta (`GET /account/profile`). El nombre es privado: solo lo ve la propia cuenta.

@@ -48,14 +48,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.account);
     expect(find.text('Empleado'), findsOneWidget);
+    expect(find.byKey(const Key('account.organization')), findsOneWidget);
     expect(find.text('Perteneces a una organización'), findsOneWidget);
     expect(find.byKey(const Key('account.invitation')), findsNothing);
 
+    // El donante: su rol, sin fila de organización (nunca tiene una, ADR-026) ni tarjeta de invitación (es de la E-12
+    // del empleado, documento del 16 de octubre).
     h = await start(tester, roles: const [], org: null);
     await tester.tap(find.byKey(const Key('nav.Cuenta')));
     await tester.pumpAndSettle();
     expect(find.text('Donante'), findsOneWidget);
-    expect(find.byKey(const Key('account.invitation')), findsOneWidget);
+    expect(find.byKey(const Key('account.organization')), findsNothing);
+    expect(find.textContaining('organización'), findsNothing);
+    expect(find.byKey(const Key('account.invitation')), findsNothing);
   });
 
   testWidgets('cerrar sesión pide confirmación y avisa de las operaciones guardadas, sin borrarlas', (tester) async {
@@ -92,35 +97,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.login);
     expect(await SecureOutboxStore(h.secure).getAllItems(), hasLength(1));
-  });
-
-  testWidgets('aceptar una invitación: token en el cuerpo, recarga el perfil; 403 da un mensaje claro', (tester) async {
-    final h = await start(tester, roles: const [], org: null);
-    h.services.router.go(AppRoutes.account);
-    await tester.pumpAndSettle();
-
-    h.api.routes['POST /invitations/accept'] = (_) => const ApiResponse(statusCode: 403);
-    await tester.enterText(find.byKey(const Key('account.invitation.token')), 'TOK-MALO');
-    await tester.tap(find.byKey(const Key('account.invitation.accept')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('account.invitation.error')), findsOneWidget);
-
-    h.api.routes['POST /invitations/accept'] = (_) => const ApiResponse(
-      statusCode: 200,
-      data: {
-        'organizationId': 'org-9',
-        'roles': ['EMPLOYEE'],
-      },
-    );
-    h.api.routes['GET /me'] = (_) => meResponse(org: 'org-9');
-    await tester.enterText(find.byKey(const Key('account.invitation.token')), 'TOK-BUENO');
-    await tester.tap(find.byKey(const Key('account.invitation.accept')));
-    await tester.pumpAndSettle();
-    final call = h.api.calls.lastWhere((c) => c.path == '/invitations/accept');
-    expect(call.body, {'token': 'TOK-BUENO'});
-    expect(call.path, isNot(contains('TOK')));
-    expect(find.text('Empleado'), findsOneWidget);
-    expect(h.secure.values.values.join(), isNot(contains('TOK-BUENO')));
   });
 
   testWidgets('M-26: Cuenta muestra el correo y permite editar el nombre', (tester) async {
