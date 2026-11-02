@@ -15,7 +15,9 @@ import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/motion/pax_motion.dart';
 import '../../../shared/widgets/loaders.dart';
 import '../data/tracking_api.dart';
+import '../domain/tracking_map.dart';
 import '../domain/tracking_story.dart';
+import 'tracking_map_view.dart';
 import 'tracking_story_view.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/motion/pax_route.dart';
@@ -397,6 +399,13 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
         const SizedBox(height: 8),
         rise(columnTag('Recorrido', theme.colorScheme.primary)),
         rise(TrackingTree(items: s.logistics, payment: payment, histories: _histories, onRetry: _loadHistory)),
+        // M-25 (ADR-052 D5): el mapa bajo el árbol, solo con teselas configuradas y algún paso con punto.
+        if (_mapRoutes(s) case final routes when routes.isNotEmpty) ...[
+          if (AppScope.of(context).config.mapTileUrl case final tiles?) ...[
+            const SizedBox(height: 12),
+            rise(TrackingMapView(routes: routes, tileUrl: tiles, tileProvider: AppScope.of(context).mapTileProvider)),
+          ],
+        ],
         if (s.logistics.isNotEmpty) ...[
           const SizedBox(height: 20),
           rise(columnTag('Recorrido en serpiente', theme.colorScheme.tertiary)),
@@ -449,6 +458,15 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
       ],
     );
   }
+
+  /// Los recorridos del mapa: con el historial ya cargado, sus paradas; si no, el punto actual del lote.
+  List<MapRoute> _mapRoutes(TrackingSummary s) => routesFor(
+    s.logistics,
+    (ref) => switch (_histories[ref]) {
+      HistoryReady(:final entries) => entries,
+      _ => null,
+    },
+  );
 
   Widget _integrityCard(BuildContext context) {
     final i = _integrity;

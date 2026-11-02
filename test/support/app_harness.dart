@@ -20,13 +20,19 @@ ApiResponse meResponse({List<String> roles = const ['EMPLOYEE'], String? org = '
 /// Arranca la app completa con un `ApiClient` falso y almacenamiento en memoria.
 class AppHarness {
   /// [biometric]: biometría del teléfono simulada; sin ella, el equipo no tiene (como Linux).
-  AppHarness({FakeBiometricAuthenticator? biometric})
+  /// [map]: con teselas configuradas (en memoria) para el mapa del recorrido (M-25); [failingTiles]: sin conexión.
+  AppHarness({FakeBiometricAuthenticator? biometric, bool map = false, bool failingTiles = false})
     : biometric = biometric ?? FakeBiometricAuthenticator(available: false) {
     // El mundo de la bienvenida se mueve sin parar: en las pruebas, solo la cámara al deslizar (pumpAndSettle termina).
     WelcomeWorld.ambientMotion = false;
     PaxMotion.ambient = false;
     services = buildServices(
-      config: AppConfig(apiBaseUrl: Uri.parse('http://api.test/api/v1'), publicOrigin: AppConfig.originOf(testOrigin)),
+      config: AppConfig(
+        apiBaseUrl: Uri.parse('http://api.test/api/v1'),
+        publicOrigin: AppConfig.originOf(testOrigin),
+        mapTileUrl: map ? 'https://tiles.test/{z}/{x}/{y}.png' : null,
+      ),
+      mapTileProvider: MemoryTileProvider(fail: failingTiles),
       secureStore: secure,
       apiClientFactory: (tokens, handler) => api..authHandler = handler,
       qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),

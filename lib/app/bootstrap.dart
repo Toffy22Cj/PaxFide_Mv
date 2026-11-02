@@ -1,3 +1,5 @@
+import 'package:flutter_map/flutter_map.dart' show TileProvider;
+
 import '../core/links/link_opener.dart';
 import '../core/media/photo_picker.dart';
 import '../core/network/api_client.dart';
@@ -33,6 +35,7 @@ AppServices buildServices({
   BiometricAuthenticator? biometricAuthenticator,
   LinkOpener linkOpener = const UrlLauncherLinkOpener(),
   PhotoPicker? photoPicker,
+  TileProvider? mapTileProvider,
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
@@ -58,6 +61,7 @@ AppServices buildServices({
     linkOpener: linkOpener,
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
+    mapTileProvider: mapTileProvider,
     // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
     biometricAuthenticator:
         biometricAuthenticator ??

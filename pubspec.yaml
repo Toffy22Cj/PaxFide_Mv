@@ -43,6 +43,9 @@ dependencies:
   url_launcher: ^6.3.1
   screen_brightness: ^2.1.1
   image_picker: ^1.2.4
+  # ADR-052 D5 (enmienda de ADR-043 A2/D12): mapa del recorrido (M-25) sobre OpenStreetMap, sin geolocalización.
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
 
 dev_dependencies:
   flutter_test:
