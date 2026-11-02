@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../shared/widgets/pax_ui.dart';
+import '../features/auth/domain/session_state.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 import '../shared/widgets/pax_app_bar.dart';
@@ -23,7 +24,7 @@ Widget defaultQrScanner(BuildContext context, ValueChanged<String> onCode) => !c
     ? const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('La cámara no está disponible en este equipo. Pega o escribe la referencia abajo.'),
+          child: Text('La cámara no está disponible en este equipo. Usa el campo de abajo.'),
         ),
       )
     : _CameraScanner(onCode: onCode);
@@ -83,30 +84,63 @@ class _CameraScannerState extends State<_CameraScanner> {
 
 /// Escáner interno: superficie transitoria (no es una ruta, §9). Todo lo leído pasa por el único
 /// `DeepLinkParser` y entra por `openDeepLink` (D9 R1). Nunca ejecuta comandos ni toca el Outbox (R3).
+///
+/// Según el perfil (solo presentación: el guard no mira roles y el permiso lo decide el backend, P7):
+/// - **Empleado** (E-02): lee lotes y convocatorias, y deja pegar o escribir la referencia de un lote, que abre su
+///   ficha (DDM-16).
+/// - **Donante o sin sesión:** solo enlaces de PaxFide. Un texto suelto nunca abre una ficha (un código de
+///   seguimiento pegado ahí no puede acabar en una ruta, ADR-043 §0). El QR de un lote, para el donante, da un aviso
+///   y no se abre; sin sesión sigue R2 (Entrar y luego la ficha), porque puede ser un empleado sin sesión.
+/// Lo que no se reconoce lleva, además del aviso, a «Seguir una donación».
 Future<void> scanQr(BuildContext context) async {
   final services = AppScope.of(context);
+  final employee = services.session.principal?.showsOperatorActions ?? false;
   final raw = await Navigator.of(context).push<String>(
-    MaterialPageRoute(fullscreenDialog: true, builder: (_) => _ScannerSheet(builder: services.qrScannerBuilder)),
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _ScannerSheet(builder: services.qrScannerBuilder, employee: employee),
+    ),
   );
   if (raw == null || !context.mounted) return;
-  // Una referencia escrita a mano (sin enlace) abre directamente la ficha del activo.
-  if (AppRoutes.isValidParam(raw) && !raw.contains(':')) {
+  // E-02: una referencia escrita a mano (sin enlace) abre la ficha del lote. Solo en el escáner del empleado.
+  if (employee && AppRoutes.isValidParam(raw) && !raw.contains(':')) {
     services.router.push(AppRoutes.assetPath(raw));
     return;
   }
   final link = services.deepLinkParser.parseText(raw);
+  final signedIn = services.session.state.status == SessionStatus.authenticated;
+  if (link.isApproved && link.category == RouteCategory.authenticated && signedIn && !employee) {
+    _notice(context, 'Este QR es de un lote de una organización: solo lo abren sus empleados.');
+    return;
+  }
   final opened = link.isApproved && await services.router.openDeepLink(link);
   if (!opened && context.mounted) {
     final reason = services.config.publicOrigin == null
         ? 'La app no tiene configurado el origen de los enlaces de PaxFide.'
         : 'Este código QR no es un enlace de PaxFide reconocido.';
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(reason)));
+    _notice(context, reason, toTracking: !employee);
   }
 }
 
+/// Aviso del escáner. [toTracking]: sin callejón sin salida, lleva a «Seguir una donación».
+void _notice(BuildContext context, String text, {bool toTracking = false}) {
+  final services = AppScope.of(context);
+  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    SnackBar(
+      content: Text(text),
+      action: toTracking
+          ? SnackBarAction(label: 'Seguir una donación', onPressed: () => services.router.push(AppRoutes.tracking))
+          : null,
+    ),
+  );
+}
+
 class _ScannerSheet extends StatefulWidget {
-  const _ScannerSheet({required this.builder});
+  const _ScannerSheet({required this.builder, required this.employee});
   final QrScannerBuilder builder;
+
+  /// Escáner del empleado (lotes y referencia escrita) o del donante (convocatorias).
+  final bool employee;
 
   @override
   State<_ScannerSheet> createState() => _ScannerSheetState();
@@ -154,7 +188,7 @@ class _ScannerSheetState extends State<_ScannerSheet> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('Activo o convocatoria', style: theme.textTheme.labelMedium?.copyWith(color: muted)),
+            Text(widget.employee ? 'Lote o convocatoria' : 'Convocatoria', style: theme.textTheme.labelMedium?.copyWith(color: muted)),
             const SizedBox(height: 10),
             SizedBox(
               height: (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 320.0),
@@ -188,12 +222,12 @@ class _ScannerSheetState extends State<_ScannerSheet> {
             const SizedBox(height: 18),
             // Alternativa sin cámara (escritorio, QR dañado): el texto pegado pasa por el mismo DeepLinkParser.
             LabeledField(
-              label: 'O pega el enlace del QR',
+              label: widget.employee ? 'Pegar o escribir la referencia' : 'O pega el enlace de la convocatoria',
               child: TextField(
                 key: const Key('scanner.paste'),
                 controller: _pasted,
                 decoration: InputDecoration(
-                  hintText: 'Enlace o referencia',
+                  hintText: widget.employee ? 'Enlace o referencia del lote' : 'Enlace',
                   suffixIcon: TextButton(
                     key: const Key('scanner.paste.clipboard'),
                     onPressed: _paste,
@@ -207,7 +241,7 @@ class _ScannerSheetState extends State<_ScannerSheet> {
             OutlinedButton(
               key: const Key('scanner.paste.open'),
               onPressed: () => _pasted.text.trim().isEmpty ? null : _onCode(_pasted.text.trim()),
-              child: const Text('Abrir enlace'),
+              child: Text(widget.employee ? 'Abrir' : 'Abrir enlace'),
             ),
             const SizedBox(height: 12),
             Text(
