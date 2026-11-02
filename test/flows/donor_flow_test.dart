@@ -426,9 +426,12 @@ void main() {
       h.api.calls.where((c) => c.path.startsWith('/public/')).every((c) => c.credentialMode == CredentialMode.none),
       isTrue,
     );
-    await tester.tap(find.byKey(const Key('campaign.qr')));
-    await tester.pumpAndSettle();
+    // Corrección 7: el QR está en la misma pantalla (sin icono ni hoja aparte), con su URL debajo (DDM-24)
+    expect(find.byKey(const Key('campaign.qr')), findsNothing);
+    await tester.scrollUntilVisible(find.byKey(const Key('campaign.qr.panel')), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.byKey(const Key('qr.image')), findsOneWidget);
     expect(find.text('$testOrigin/c/PUB1'), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
   });
 
   testWidgets('convocatoria inexistente → 404 como estado de pantalla', (tester) async {
@@ -438,7 +441,7 @@ void main() {
     await h.services.router.openDeepLink(h.services.deepLinkParser.parse(Uri.parse('$testOrigin/c/NO')));
     await tester.pumpAndSettle();
     expect(find.text('No encontramos esta convocatoria.'), findsOneWidget);
-    expect(find.byKey(const Key('campaign.qr')), findsNothing);
+    expect(find.byKey(const Key('campaign.qr.panel')), findsNothing);
   });
 
   testWidgets('mis donaciones: campaignTitle ausente (rama defensiva del backend) → "Convocatoria no disponible"', (

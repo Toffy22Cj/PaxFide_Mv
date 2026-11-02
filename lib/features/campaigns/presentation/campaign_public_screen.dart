@@ -82,20 +82,12 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final qr = _campaign == null ? null : PublicLinks(_services.config.publicOrigin).campaign(widget.publicCode);
     final c = _campaign;
     final action = c == null || widget.actionsBuilder == null ? null : widget.actionsBuilder!(context, c);
     return Scaffold(
       appBar: PaxAppBar(
         title: const Text('Convocatoria'),
         actions: [
-          if (qr != null)
-            IconButton(
-              key: const Key('campaign.qr'),
-              tooltip: 'Mostrar QR de la convocatoria',
-              icon: const Icon(Icons.qr_code_2),
-              onPressed: () => showQrSheet(context, title: 'QR de la convocatoria', url: qr),
-            ),
           const TextSizeButton(),
           const ThemeModeButton(),
         ],
@@ -232,6 +224,17 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
         ],
         const SizedBox(height: 12),
         _narrativeSection(context),
+        // Corrección 7: el QR de la convocatoria en la misma pantalla, para todos (DDM-24: con su URL debajo; sin el
+        // origen configurado no se genera, DDM-03).
+        if (PublicLinks(_services.config.publicOrigin).campaign(widget.publicCode) case final qr?) ...[
+          const SizedBox(height: 16),
+          QrPanel(
+            key: const Key('campaign.qr.panel'),
+            title: 'QR de la convocatoria',
+            detail: 'Muéstralo o compártelo: quien lo escanee abre esta convocatoria.',
+            url: qr,
+          ),
+        ],
       ],
     );
   }
