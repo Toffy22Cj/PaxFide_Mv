@@ -1,14 +1,32 @@
 # Pendientes de Adonis (app móvil)
 
-Rama `chore/landing-bienvenida-movil`, al día 2026-10-29. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
+Rama `chore/landing-bienvenida-movil`, al día 2026-11-02. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
 
 Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que no dependen de un ADR sin aprobar o de un contrato que no existe. El detalle está en la §6 y la §7 de la Enmienda 2 de ADR-043. Lo último (2026-10-28): términos y condiciones, recuperar y cambiar la contraseña, correo y nombre en Cuenta, desactivar la cuenta, Mi impacto, entregar con foto, integridad visible con sello y huella por paso, y el tipo del activo en la ficha. El 2026-10-29: la app sigue a la web en Inicio (con la ciudad), la tarjeta de convocatoria, el seguimiento, los primeros pasos, Mis donaciones, las cargas y las transiciones (§8 de la Enmienda 2).
 
-## Bloqueadas por un ADR sin aprobar
+## Hechas el 2026-11-02 (correcciones del primer bloque y mapa)
 
-| ID | Falta | Archivo | Siguiente paso exacto |
-|---|---|---|---|
-| M25 | Aprobar `ADR-050-mapa-del-recorrido.md` | `lib/features/tracking/presentation/tracking_screen.dart` (`RouteTimeline`) | Añadir `flutter_map` + OSM bajo la línea de tiempo, con coordenadas del catálogo de lugares (sin GPS del empleado). Backend de M25 solo tras el ADR. |
+| ID | Qué | Dónde |
+|---|---|---|
+| M25 | Mapa del recorrido: ADR-052 (sustituye al borrador ADR-050, cuyo número es «Cuenta y sesiones»); `zonePoint` en el seguimiento del backend; `flutter_map` + `latlong2` bajo el árbol del seguimiento | `lib/features/tracking/presentation/tracking_map_view.dart`, `domain/tracking_map.dart`; backend: `location_reference` con coordenadas de la zona pública |
+| M28 | Biometría sobre `develop` del backend (fusionada en la rama de trabajo del backend) y con las reglas del login: `EmailNotVerified` y `AcceptanceRequired` también al entrar con la huella | `lib/features/auth/biometrics/biometric_login.dart`, `login_screen.dart` |
+| — | Correo sin confirmar en el login (403 `EmailNotVerified`, ADR-050 Enmienda 2) con «Reenviar el correo de confirmación»; el registro ya no dice «Ya puedes entrar» | `login_screen.dart`, `register_screen.dart`, `auth_api.dart` |
+| C1 | Cuenta del donante sin la tarjeta de invitación (es de la E-12 del empleado) | `account_screen.dart` |
+| C2 | Crear cuenta pide «Confirmar contraseña» | `register_screen.dart` |
+| C3 | Textos legales sin «(versión …)» | `register_screen.dart`, `legal_acceptance_dialog.dart` |
+| C4a | Cuenta del donante sin la fila «Organización» | `account_screen.dart` |
+| C5/C6 | Escáner por perfil (donante: convocatorias; empleado: lotes y referencia escrita, E-02); un texto suelto ya no abre `/assets/{texto}`; «Seguir una donación» en vez de callejones sin salida | `app/qr_scanner_sheet.dart` |
+| C5c | «Seguir una donación» pega solo el código copiado y abre los enlaces de PaxFide pegados | `tracking_screen.dart` |
+| C7 | QR de la convocatoria en la misma pantalla | `campaign_public_screen.dart`, `shared/widgets/qr_sheet.dart` (`QrPanel`) |
+
+## Pendientes de este bloque
+
+| ID | Falta | Siguiente paso exacto |
+|---|---|---|
+| C4b | Cuenta del empleado: el nombre (y el logo) de su organización en vez de «Perteneces a una organización» | El backend no da el nombre al `EMPLOYEE` (`GET /organizations/{id}` le da 403; el logo sí lo puede leer). Pedir a Manuel una lectura del nombre de la propia organización para cualquier miembro |
+| — | Escanear el código de seguimiento o sacarlo de un QR/enlace | Necesita una enmienda de ADR-043 §0 (Carlos): hoy el parser descarta el código a propósito |
+| — | ADR-052: falta la firma de quien lo aprueba en nombre del equipo | Escribirla en el `Status` del ADR (backend y copia del móvil) |
+| — | Mapa en producción | Contratar o montar un proveedor de teselas y ponerlo en `PAXFIDE_MAP_TILE_URL` |
 
 ## Hechas en la app, esperando backend
 
@@ -16,8 +34,8 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 |---|---|---|---|
 | M10 | `CampaignSearch` (`PublicCampaignSearch`) | `lib/features/campaigns/domain/public_campaign_search.dart`, `presentation/campaign_search_view.dart` | Ya funciona buscando en el teléfono sobre `GET /public/campaigns` (hasta 5 páginas). Cuando la enmienda de ADR-041 traiga búsqueda en el backend, implementar otra `CampaignSearch` con ese contrato. |
 | M22 | `ReceiptSource` y `ReceiptSharer` | `lib/features/donations/domain/receipt.dart`, `presentation/receipt_view.dart` | Endpoint del comprobante (Manuel) e implementar `ReceiptSource`; para compartir, aprobar una dependencia (p. ej. `share_plus`) e implementar `ReceiptSharer`. |
-| M28 | Biometría (visible y funcionando) | `lib/features/auth/biometrics/` | El backend de la biometría se puso al día sobre `develop` en la rama `claude/beautiful-goodall-ww71gg` de Donaciones (2026-10-29), con caducidad de 30 días y corte al cambiar o recuperar la contraseña (S-01 opción (b)). Falta fusionarlo a `develop` del backend. |
-| E-12 | Invitaciones pendientes en Cuenta | `lib/features/account/presentation/account_screen.dart` | El backend no tiene un listado para quien recibe la invitación; se acepta pegando el código del correo. |
+| M28 | Biometría (visible y funcionando) | `lib/features/auth/biometrics/` | El 2026-11-02 se fusionó sobre `develop` en la rama de trabajo del backend (`claude/magical-hopper-7w941b` de Donaciones), con las reglas del login. Falta el PR de esa rama a `develop`. |
+| E-12 | Invitaciones en Cuenta | — | Quitada del donante el 2026-11-02 (C1). La invitación se acepta desde el enlace del correo en la web (ADR-049). |
 
 ## Otros
 
