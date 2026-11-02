@@ -110,6 +110,75 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(const Key('tracking.code'))).controller!.text, 'CODIGO-PEGADO');
   });
 
+  group('5c: pegado automático del código', () {
+    const copied = 'NWEwNjViM2QtZjRlYi00ZWU2LWI0NmYtYjc1MGQ2MGUyYTQx.bIPYP_oZmBqH9pBT49MhzAHWU1-fBioIFzXGlN43In4';
+
+    void clipboard(WidgetTester tester, String? text) {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.getData') return text == null ? null : {'text': text};
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    }
+
+    String field(WidgetTester tester) =>
+        tester.widget<TextField>(find.byKey(const Key('tracking.code'))).controller!.text;
+
+    testWidgets('al abrir, un código copiado se pone solo y basta con tocar «Ver seguimiento»', (tester) async {
+      clipboard(tester, '  $copied \n');
+      final h = await openTracking(tester);
+      h.api.routes['GET /donations/tracking'] = (_) => trackingBody;
+      h.api.routes['GET /donations/tracking/narrative'] = (_) =>
+          const ApiResponse(statusCode: 200, data: {'status': 'PENDING'});
+      h.api.routes['GET /donations/tracking/integrity'] = (_) =>
+          const ApiResponse(statusCode: 200, data: {'batches': [], 'unanchoredEvents': 0, 'checkedAt': ''});
+      expect(field(tester), copied);
+      expect(find.byKey(const Key('tracking.autoPasted')), findsOneWidget);
+      expect(find.text('Pegamos el código que copiaste.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('tracking.submit')));
+      await tester.pumpAndSettle();
+      expect(h.api.calls.firstWhere((c) => c.path == '/donations/tracking').headers['Authorization'], 'Bearer $copied');
+      expect(h.services.router.stack.join(), isNot(contains(copied)));
+      expect(h.secure.values.values.join(), isNot(contains(copied)));
+    });
+
+    testWidgets('«Borrar» quita el código pegado', (tester) async {
+      clipboard(tester, copied);
+      await openTracking(tester);
+      await tester.tap(find.byKey(const Key('tracking.autoPasted.clear')));
+      await tester.pumpAndSettle();
+      expect(field(tester), isEmpty);
+      expect(find.byKey(const Key('tracking.autoPasted')), findsNothing);
+    });
+
+    testWidgets('lo que no parece un código de seguimiento no se pega solo', (tester) async {
+      clipboard(tester, 'la lista de la compra');
+      await openTracking(tester);
+      expect(field(tester), isEmpty);
+      expect(find.byKey(const Key('tracking.autoPasted')), findsNothing);
+    });
+
+    testWidgets('un enlace de convocatoria pegado abre la convocatoria y nunca va como código', (tester) async {
+      final h = await openTracking(tester);
+      await tester.enterText(find.byKey(const Key('tracking.code')), '$testOrigin/c/PUB-7');
+      await tester.tap(find.byKey(const Key('tracking.submit')));
+      await tester.pumpAndSettle();
+      expect(h.location, '/c/PUB-7');
+      expect(h.api.calls.where((c) => c.path.startsWith('/donations/tracking')), isEmpty);
+    });
+
+    testWidgets('un enlace de seguimiento pegado no trae el código: lo dice y no lo envía', (tester) async {
+      final h = await openTracking(tester);
+      await tester.enterText(find.byKey(const Key('tracking.code')), '$testOrigin/tracking/OTRO-CODIGO');
+      await tester.tap(find.byKey(const Key('tracking.submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Ese enlace no trae el código. Pega el código de seguimiento que recibiste al donar.'),
+          findsOneWidget);
+      expect(h.api.calls.where((c) => c.path.startsWith('/donations/tracking')), isEmpty);
+    });
+  });
+
   testWidgets('código inválido (404) → un único mensaje y la sesión no cambia', (tester) async {
     final h = AppHarness();
     h.saveToken('jwt');

@@ -3,6 +3,7 @@ export 'tracking_story_view.dart' show formatEventTime, shortHash, custodianLabe
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../app/text_size_button.dart';
 import '../../../app/theme_mode_button.dart';
@@ -33,7 +34,13 @@ class TrackingScreen extends StatefulWidget {
   State<TrackingScreen> createState() => _TrackingScreenState();
 }
 
-class _TrackingScreenState extends State<TrackingScreen> {
+/// Forma de un `trackingCode` (dos bloques Base64 URL separados por un punto, como lo emite el backend). Solo sirve
+/// para decidir si se pega solo: el backend sigue siendo quien dice si vale.
+final _trackingCodeShape = RegExp(r'^[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}$');
+
+bool looksLikeTrackingCode(String text) => text.length <= 512 && _trackingCodeShape.hasMatch(text);
+
+class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObserver {
   final _codeField = TextEditingController();
   late final TrackingApi _api = TrackingApi(AppScope.of(context).apiClient);
 
@@ -49,10 +56,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
   /// Recorrido de cada lote: se piden todos al abrir, cada uno con el código en `Authorization`.
   final Map<String, HistoryState> _histories = {};
 
+  /// El campo se llenó solo con el código del portapapeles (5c): se avisa y se puede borrar.
+  bool _autoPasted = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final code = widget.initialCode;
+    if (code == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoPaste());
+    }
     if (code != null) {
       _codeField.text = code;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,8 +75,39 @@ class _TrackingScreenState extends State<TrackingScreen> {
     }
   }
 
+  /// Al volver a la app (p. ej. tras copiar el código en el correo), se vuelve a mirar el portapapeles.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _autoPaste();
+  }
+
+  /// Pegado automático: solo con el formulario a la vista y el campo vacío, y solo si lo copiado tiene la forma de un
+  /// código de seguimiento. El código sigue solo en la memoria de esta pantalla (ADR-043 §0).
+  Future<void> _autoPaste() async {
+    if (!mounted || _summary != null || _loading || _codeField.text.isNotEmpty) return;
+    String? text;
+    try {
+      text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+    } on Object {
+      return; // sin portapapeles (plataforma o permiso): se escribe o se pega a mano
+    }
+    if (text == null || !looksLikeTrackingCode(text)) return;
+    if (!mounted || _summary != null || _codeField.text.isNotEmpty) return;
+    setState(() {
+      _codeField.text = text!;
+      _autoPasted = true;
+      _error = null;
+    });
+  }
+
+  void _clearAutoPaste() => setState(() {
+    _codeField.clear();
+    _autoPasted = false;
+  });
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _codeField.dispose();
     _code = null;
     super.dispose();
@@ -71,6 +116,20 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Future<void> _submit() async {
     final code = _codeField.text.trim();
     if (code.isEmpty) return;
+    // Un enlace de PaxFide pegado aquí pasa por el único DeepLinkParser (D9 R1) y nunca viaja como código.
+    final services = AppScope.of(context);
+    final link = services.deepLinkParser.parseText(code);
+    if (link.isApproved) {
+      if (link.route == AppRoutes.tracking) {
+        // El parser descarta el código de un enlace de seguimiento a propósito (ADR-043 §0).
+        setState(() => _error = 'Ese enlace no trae el código. Pega el código de seguimiento que recibiste al donar.');
+        return;
+      }
+      _codeField.clear();
+      setState(() => _autoPasted = false);
+      await services.router.openDeepLink(link);
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -80,6 +139,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       if (!mounted) return;
       _codeField.clear();
       setState(() {
+        _autoPasted = false;
         _code = code;
         _summary = s;
         _loading = false;
@@ -194,7 +254,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     ? null
                     : () async {
                         final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
-                        if (text != null && text.isNotEmpty && mounted) setState(() => _codeField.text = text);
+                        if (text != null && text.isNotEmpty && mounted) {
+                          setState(() {
+                            _codeField.text = text;
+                            _autoPasted = false;
+                          });
+                        }
                       },
                 child: const Text('Pegar'),
               ),
@@ -202,6 +267,22 @@ class _TrackingScreenState extends State<TrackingScreen> {
             onSubmitted: (_) => _submit(),
           ),
         ),
+        if (_autoPasted) ...[
+          const SizedBox(height: 10),
+          Row(
+            key: const Key('tracking.autoPasted'),
+            children: [
+              Icon(Icons.content_paste_go, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Pegamos el código que copiaste.')),
+              TextButton(
+                key: const Key('tracking.autoPasted.clear'),
+                onPressed: _loading ? null : _clearAutoPaste,
+                child: const Text('Borrar'),
+              ),
+            ],
+          ),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 12),
           ErrorMessage(_error!, textKey: const Key('tracking.error')),
