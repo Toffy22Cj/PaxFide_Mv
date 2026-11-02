@@ -79,7 +79,7 @@ class _LegalAcceptanceDialogState extends State<_LegalAcceptanceDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Para entrar, acepta las versiones vigentes.', style: TextStyle(fontSize: 14, color: ink.body)),
+            Text('Para entrar, acepta las condiciones actualizadas.', style: TextStyle(fontSize: 14, color: ink.body)),
             const SizedBox(height: 12),
             if (needsTerms)
               checkboxRow(
@@ -87,7 +87,7 @@ class _LegalAcceptanceDialogState extends State<_LegalAcceptanceDialog> {
                 value: _acceptedTerms,
                 onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
                 onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
-                label: 'Acepto los términos y condiciones (versión $termsVersion)',
+                label: 'Acepto los términos y condiciones',
               ),
             if (needsTerms && needsDataPolicy) const SizedBox(height: 4),
             if (needsDataPolicy)
@@ -96,7 +96,7 @@ class _LegalAcceptanceDialogState extends State<_LegalAcceptanceDialog> {
                 value: _acceptedDataPolicy,
                 onChanged: (v) => setState(() => _acceptedDataPolicy = v ?? false),
                 onTap: () => setState(() => _acceptedDataPolicy = !_acceptedDataPolicy),
-                label: 'Autorizo el tratamiento de mis datos personales (versión $dataPolicyVersion)',
+                label: 'Autorizo el tratamiento de mis datos personales',
               ),
           ],
         ),

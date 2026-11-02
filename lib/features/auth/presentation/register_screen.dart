@@ -27,6 +27,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _repeat = TextEditingController();
   bool _sending = false;
   bool _done = false;
   bool _acceptTerms = false;
@@ -37,6 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _repeat.dispose();
     super.dispose();
   }
 
@@ -49,6 +51,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (password.length < minPasswordLength) {
       setState(() => _error = 'La contraseña debe tener al menos $minPasswordLength caracteres.');
+      return;
+    }
+    // Se escribe dos veces para no crear la cuenta con un error de tecleo que nadie vio.
+    if (_repeat.text.isEmpty) {
+      setState(() => _error = 'Repite la contraseña para confirmarla.');
+      return;
+    }
+    if (_repeat.text != password) {
+      setState(() => _error = 'Las dos contraseñas no coinciden.');
       return;
     }
     if (!_acceptTerms || !_acceptDataPolicy) {
@@ -178,6 +189,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 : 'Al menos $minPasswordLength caracteres (llevas $length)',
             style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: ink.muted),
           ),
+          const SizedBox(height: 14),
+          AuthField(
+            ink: ink,
+            label: 'Confirmar contraseña',
+            child: PasswordField(
+              key: const Key('register.passwordRepeat'),
+              ink: ink,
+              controller: _repeat,
+              enabled: !_sending,
+              hint: 'Escríbela otra vez',
+              autofillHints: const [AutofillHints.newPassword],
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          if (_repeat.text.isNotEmpty && _repeat.text != _password.text) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Las contraseñas no coinciden.',
+              key: const Key('register.passwordRepeat.mismatch'),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error),
+            ),
+          ],
           const SizedBox(height: 10),
           MergeSemantics(
             child: InkWell(
@@ -197,7 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        'Acepto los términos y condiciones (versión $currentTermsVersion)',
+                        'Acepto los términos y condiciones',
                         style: TextStyle(fontSize: 13, color: ink.body),
                       ),
                     ),
@@ -225,7 +258,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        'Autorizo el tratamiento de mis datos personales (versión $currentDataPolicyVersion)',
+                        'Autorizo el tratamiento de mis datos personales',
                         style: TextStyle(fontSize: 13, color: ink.body),
                       ),
                     ),

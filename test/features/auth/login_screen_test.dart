@@ -131,6 +131,9 @@ void main() {
       expect(find.byKey(const Key('legal-acceptance')), findsOneWidget);
       expect(find.byKey(const Key('legal-acceptance.terms')), findsOneWidget);
       expect(find.byKey(const Key('legal-acceptance.dataPolicy')), findsOneWidget);
+      // Sin la versión interna a la vista: no le sirve a quien entra (se sigue enviando en el reintento)
+      expect(find.textContaining('versión'), findsNothing);
+      expect(find.textContaining('versiones'), findsNothing);
 
       // Marcar casillas
       await tester.tap(find.byKey(const Key('legal-acceptance.terms')));

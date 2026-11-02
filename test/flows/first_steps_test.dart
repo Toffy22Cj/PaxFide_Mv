@@ -14,6 +14,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {}));
     await tester.enterText(find.byKey(const Key('register.email')), 'nueva@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
     for (final k in ['register.acceptTerms', 'register.acceptDataPolicy']) {
       await tester.ensureVisible(find.byKey(Key(k)));
       await tester.pump();

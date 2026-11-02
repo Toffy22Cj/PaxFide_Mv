@@ -230,6 +230,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-9', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
     await tester.tap(find.byKey(const Key('register.acceptTerms')));
     await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
@@ -252,6 +253,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 409));
     await tester.enterText(find.byKey(const Key('register.email')), 'ya@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
     await tester.tap(find.byKey(const Key('register.acceptTerms')));
     await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
@@ -291,12 +293,56 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'onceeeeeeee');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'onceeeeeeee');
     await tester.ensureVisible(find.byKey(const Key('register.submit')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('La contraseña debe tener al menos 12 caracteres.'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('/register: hay que repetir la contraseña; si no coinciden → no se envía', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-charz');
+    await tester.pump();
+    // Aviso en el campo en cuanto se escribe distinta
+    expect(find.text('Las contraseñas no coinciden.'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Las dos contraseñas no coinciden.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+
+    // Sin repetirla tampoco se envía
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), '');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Repite la contraseña para confirmarla.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('/register: los textos legales no muestran la versión interna (se sigue enviando)', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    expect(find.text('Acepto los términos y condiciones'), findsOneWidget);
+    expect(find.text('Autorizo el tratamiento de mis datos personales'), findsOneWidget);
+    expect(find.textContaining('versión'), findsNothing);
+    expect(find.textContaining(currentTermsVersion), findsNothing);
   });
 
   testWidgets('/register: 400 del backend (PasswordTooShort u email) → mensaje que nombra las dos reglas', (
@@ -309,6 +355,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 400));
     await tester.enterText(find.byKey(const Key('register.email')), 'raro');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
     await tester.tap(find.byKey(const Key('register.acceptTerms')));
     await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
@@ -350,6 +397,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'a', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), ' nuevo@demo ');
     await tester.enterText(find.byKey(const Key('register.password')), ' doce-o-mas-chars ');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), ' doce-o-mas-chars ');
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
     await tester.tap(find.byKey(const Key('register.acceptTerms')));
     await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
@@ -372,6 +420,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('register.email')), 'test@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
     await tester.ensureVisible(find.byKey(const Key('register.submit')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
@@ -390,6 +439,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('register.email')), 'test@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
 
     // Solo términos
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
@@ -428,6 +478,7 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-1', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), 'valido@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'contraseña-segura-123');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'contraseña-segura-123');
     await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
     await tester.tap(find.byKey(const Key('register.acceptTerms')));
     await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
