@@ -1,0 +1,598 @@
+# CI local — scripts/ci-local.sh (paxfide-mobile)
+commit:   0608a800b17778c2d53bd05b5ac7f06d91275164
+rama:     chore/landing-bienvenida-movil
+inicio:   2026-11-07T17:44:13Z
+fin:      2026-11-07T17:45:19Z
+comandos: flutter analyze ; flutter test --reporter expanded
+salida:   analyze=0 test=0
+
+## Versiones
+📎
+Flutter 3.47.7 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision abaf9c5237 (4 weeks ago) • 2026-10-08 09:51:21 -0700
+Engine • hash d8a2d6c768c334d53e16277f837970ffa1e2de81 (revision deb287481e) (31 days ago) • 2026-10-07 17:09:12.000Z
+Tools • Dart 3.13.5 • DevTools 2.60.0
+
+## flutter analyze (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.2.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  image_picker_ios 0.8.13+13 (0.8.13+15 available)
+  jni 1.1.0 (1.1.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  mobile_scanner 7.4.2 (7.5.0 available)
+  objective_c 9.5.0 (9.6.3 available)
+  qr 3.0.2 (4.0.1 available)
+  record_use 0.6.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+17 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing PaxFide_Mv...                                         
+No issues found! (ran in 0.9s)
+
+## flutter test (literal)
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.2.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  image_picker_ios 0.8.13+13 (0.8.13+15 available)
+  jni 1.1.0 (1.1.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  mobile_scanner 7.4.2 (7.5.0 available)
+  objective_c 9.5.0 (9.6.3 available)
+  qr 3.0.2 (4.0.1 available)
+  record_use 0.6.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+17 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/user/PaxFide_Mv/test/shared/city_test.dart
+00:00 +0: /home/user/PaxFide_Mv/test/shared/city_test.dart: el generador da los mismos números que el de la web (mismo valle)
+00:00 +1: /home/user/PaxFide_Mv/test/shared/city_test.dart: la escena: nada sembrado sobre el río, las calles ni los barrios
+00:00 +2: /home/user/PaxFide_Mv/test/shared/quantity_test.dart: quita solo los ceros sobrantes
+00:00 +3: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de día sin errores, quieta con «reducir movimiento»
+00:00 +4: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de día sin errores, quieta con «reducir movimiento»
+00:00 +5: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de día sin errores, quieta con «reducir movimiento»
+00:00 +6: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de día sin errores, quieta con «reducir movimiento»
+00:00 +7: /home/user/PaxFide_Mv/test/shared/money_test.dart: mostrar unidades mínimas el ejemplo literal del contrato
+00:00 +8: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +9: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +10: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +11: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +12: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +13: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +14: /home/user/PaxFide_Mv/test/shared/city_test.dart: se dibuja de noche sin errores, quieta con «reducir movimiento»
+00:00 +15: /home/user/PaxFide_Mv/test/shared/city_test.dart: se anima y al pausarla se detiene
+00:00 +16: /home/user/PaxFide_Mv/test/shared/motion_test.dart: keyframes interpola entre fotogramas clave
+00:00 +17: /home/user/PaxFide_Mv/test/shared/motion_test.dart: cubos: se anima y con «reducir movimiento» se queda quieto
+00:00 +18: /home/user/PaxFide_Mv/test/shared/motion_test.dart: cubos: se anima y con «reducir movimiento» se queda quieto
+00:00 +19: /home/user/PaxFide_Mv/test/shared/motion_test.dart: cubos: se anima y con «reducir movimiento» se queda quieto
+00:01 +20: /home/user/PaxFide_Mv/test/shared/motion_test.dart: Merkle: se anima y con «reducir movimiento» se queda quieto
+00:01 +21: /home/user/PaxFide_Mv/test/shared/motion_test.dart: puntos: se anima y con «reducir movimiento» se queda quieto
+00:01 +22: /home/user/PaxFide_Mv/test/app/app_config_test.dart: PAXFIDE_MAP_TILE_URL (ADR del mapa, D4): sin una plantilla válida, no hay mapa https u http con host y las tres variables
+00:01 +23: /home/user/PaxFide_Mv/test/shared/motion_test.dart: esqueleto: se anima y con «reducir movimiento» se queda quieto
+00:01 +24: /home/user/PaxFide_Mv/test/shared/motion_test.dart: esqueleto: se anima y con «reducir movimiento» se queda quieto
+00:01 +25: /home/user/PaxFide_Mv/test/shared/motion_test.dart: camión: bucle de ambiente, apagado si PaxMotion.ambient es false
+00:01 +26: /home/user/PaxFide_Mv/test/shared/motion_test.dart: transición por ruta: pestañas fundido, flujo de entrada eje Z, detalles deslizar
+00:01 +27: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) activo → /assets/:assetRef, autenticada
+00:01 +28: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) convocatoria → /c/:publicCode, pública
+00:01 +29: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento → /tracking SIN el código (nunca va en una URL)
+00:01 +30: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: payloads aprobados (D9, §11) seguimiento sin código → /tracking
+00:01 +31: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas host desconocido
+00:01 +32: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas esquema distinto del canónico
+00:01 +33: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas sin origen canónico configurado, nada se aprueba
+00:01 +34: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas ruta desconocida o fija que no es payload de QR
+00:01 +35: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas parámetro inválido
+00:01 +36: /home/user/PaxFide_Mv/test/app/deep_link_parser_test.dart: R5: no aprobadas texto que no es URL
+00:01 +37: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta aprobada con la versión actual es válida
+00:01 +38: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: schemaVersion desconocida → inválido
+00:01 +39: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ruta no aprobada (incluida /campaigns) → inválido
+00:01 +40: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: transitorias nunca se restauran
+00:01 +41: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: parámetros que no corresponden a la ruta → inválido
+00:01 +42: /home/user/PaxFide_Mv/test/app/navigation_restore_state_test.dart: ida y vuelta por JSON; JSON corrupto → null
+00:01 +43: /home/user/PaxFide_Mv/test/app/public_links_test.dart: el origen se reduce a esquema + host
+00:01 +44: /home/user/PaxFide_Mv/test/app/public_links_test.dart: activo y convocatoria con las rutas canónicas de la matriz §4b
+00:01 +45: /home/user/PaxFide_Mv/test/app/public_links_test.dart: ida y vuelta: lo que genera la app lo aprueba su propio parser con la misma ruta
+00:01 +46: /home/user/PaxFide_Mv/test/app/public_links_test.dart: sin origen configurado no se genera ningún QR
+00:01 +47: /home/user/PaxFide_Mv/test/app/public_links_test.dart: parámetro inválido → sin QR
+00:01 +48: /home/user/PaxFide_Mv/test/app/public_links_test.dart: no existe generador de QR de seguimiento (el código nunca va en una URL)
+00:02 +49: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: pública → permitir (no espera sesión)
+00:02 +50: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: /login → esperar
+00:02 +51: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: autenticada → esperar
+00:02 +52: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.unknown: no aprobada → esperar (fallback al resolver)
+00:02 +53: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: pública → permitir (no espera sesión)
+00:02 +54: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: /login → esperar
+00:02 +55: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: autenticada → esperar
+00:02 +56: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 SessionStatus.restoring: no aprobada → esperar (fallback al resolver)
+00:02 +57: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: pública y autenticada → permitir
+00:02 +58: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 AUTHENTICATED: /login y no aprobada → /home
+00:02 +59: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: pública y /login → permitir
+00:02 +60: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: tabla de decisión §10 LOGGED_OUT: autenticada → /login (R2, Decisión B); no aprobada → /welcome (Enmienda 3)
+00:02 +61: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes idempotencia: el destino de un redirect siempre se permite (sin bucles)
+00:02 +62: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes negativa: una ruta pública nunca espera ni se redirige
+00:02 +63: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes negativa: /campaigns nunca se permite en ningún estado de sesión
+00:02 +64: /home/user/PaxFide_Mv/test/app/session_guard_test.dart: invariantes /register se comporta como /login (transitoria de auth)
+00:02 +65: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) rutas públicas exactas
+00:02 +66: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) seguimiento: el código nunca forma parte de una ruta aprobada
+00:02 +67: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) transitorias de auth
+00:02 +68: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) autenticadas
+00:02 +69: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) parámetros estructuralmente inválidos → no aprobada
+00:02 +70: /home/user/PaxFide_Mv/test/app/app_routes_test.dart: AppRoutes.categorize (árbol D8 corregido) desconocidas y diferidas → no aprobada
+00:02 +71: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: dibuja las paradas del lote en orden, con línea y la atribución de OSM
+00:03 +72: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: dibuja las paradas del lote en orden, con línea y la atribución de OSM
+00:04 +73: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: dibuja las paradas del lote en orden, con línea y la atribución de OSM
+00:04 +74: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: DELIVERED → solo lectura
+00:04 +75: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: sin teselas configuradas no hay mapa (ADR del mapa, D4)
+00:04 +76: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: 403 (también inexistente u otra organización) → estado de pantalla, sin redirect
+00:04 +77: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: con zonas que no están en la tabla (texto libre antiguo) no hay mapa: la línea de tiempo sigue igual
+00:04 +78: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: despachar: POST con Command-Id, cuerpo exacto y JWT; 200 → confirmada
+00:05 +79: /home/user/PaxFide_Mv/test/flows/tracking_map_flow_test.dart: sin conexión para las teselas: aviso, y las paradas se ven igual
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+Exception: Invalid image data
+00:05 +80: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: timeout → "no pudimos confirmar"; Verificar estado primero; nunca reintenta solo
+00:05 +81: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: verificar con estado distinto → sigue AMBIGUOUS
+00:06 +82: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:06 +83: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:06 +84: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de activo desde Operaciones → /assets/:assetRef
+00:06 +85: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: 409 → rechazada; "Nueva operación" usa un Command-Id nuevo
+00:07 +86: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: R3: escanear un activo nunca envía comandos ni genera Command-Id
+00:07 +87: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: formulario con cambios + deep link: cancelar conserva el formulario y no consume el enlace
+00:07 +88: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de convocatoria sin sesión, desde el login → /c/:publicCode
+00:07 +89: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: formulario con cambios + deep link: salir descarta el formulario y consume el enlace
+00:08 +90: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de seguimiento → /tracking sin el código
+00:08 +91: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: E-11: QR del activo a pantalla completa, con la misma URL que la web y la referencia
+00:08 +92: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR de activo sin sesión → login y PendingIntent (R2)
+00:08 +93: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: sin acceso al activo (403) no se ofrece su QR
+00:08 +94: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR ajeno → aviso y no navega
+00:08 +95: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: QR ajeno → aviso y no navega
+00:08 +96: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Municipio DIVIPOLA obligatorio al recibir y entregar (enmienda 2 de ADR-029) sin municipio no pasa a la revisión
+00:09 +97: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Municipio DIVIPOLA obligatorio al recibir y entregar (enmienda 2 de ADR-029) sin municipio no pasa a la revisión
+00:09 +98: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: escribir la referencia a mano → /assets/:assetRef
+00:09 +99: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Municipio DIVIPOLA obligatorio al recibir y entregar (enmienda 2 de ADR-029) se busca por nombre, se ve en la revisión y viaja en el cuerpo
+00:10 +100: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: sin cámara: pegar el enlace pasa por el mismo DeepLinkParser (aprobado y no aprobado)
+00:10 +101: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) sin foto no pasa a la revisión ni sube nada
+00:10 +102: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) sin foto no pasa a la revisión ni sube nada
+00:10 +103: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: el escáner del donante habla de convocatorias, nunca de activos ni lotes
+00:10 +104: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) sube la foto primero y la entrega lleva su evidenceRef
+00:11 +105: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) sube la foto primero y la entrega lleva su evidenceRef
+00:11 +106: /home/user/PaxFide_Mv/test/flows/qr_scan_flow_test.dart: el donante que escanea el QR de un lote: aviso claro, no se abre la ficha ni se pide nada
+00:11 +107: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) Enmienda 4, S4: sin conexión, la entrega se guarda con su foto cifrada y sale sola al volver la red
+00:11 +108: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) Enmienda 4, S4: sin conexión, la entrega se guarda con su foto cifrada y sale sola al volver la red
+00:11 +109: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) Enmienda 4, S4: sin conexión, la entrega se guarda con su foto cifrada y sale sola al volver la red
+00:12 +110: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) foto demasiado grande (413): pide otra
+00:12 +111: /home/user/PaxFide_Mv/test/flows/asset_flow_test.dart: Entregar con foto (ADR-051) foto demasiado grande (413): pide otra
+00:12 +112: /home/user/PaxFide_Mv/test/flows/home_test.dart: sin nombre: aviso «Completa tu perfil», que se puede ocultar
+00:13 +113: /home/user/PaxFide_Mv/test/flows/home_test.dart: sin nombre: aviso «Completa tu perfil», que se puede ocultar
+00:13 +114: /home/user/PaxFide_Mv/test/flows/home_test.dart: con nombre: el saludo lo lleva y el avatar las iniciales
+00:13 +115: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: «Animación de la ciudad» pausa la ciudad de Inicio y se recuerda
+00:14 +116: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: «Animación de la ciudad» pausa la ciudad de Inicio y se recuerda
+00:14 +117: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: «Animación de la ciudad» pausa la ciudad de Inicio y se recuerda
+00:14 +118: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: «Animación de la ciudad» pausa la ciudad de Inicio y se recuerda
+00:15 +119: /home/user/PaxFide_Mv/test/flows/home_test.dart: «Cierran pronto» cuando alguna cierra en 7 días o menos
+00:15 +120: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: el empleado y el donante tienen la pestaña Cuenta con su rol
+00:15 +121: /home/user/PaxFide_Mv/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:16 +122: /home/user/PaxFide_Mv/test/flows/employee_flow_test.dart: Mi día cuenta por despachar, en tránsito y entregados; tocar una tarjeta filtra
+00:16 +123: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: M-26: Cuenta muestra el correo y permite editar el nombre
+00:16 +124: /home/user/PaxFide_Mv/test/flows/employee_flow_test.dart: sin conexión: aviso y los atajos siguen disponibles
+00:17 +125: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: M-27: cambiar la contraseña valida en el teléfono y sustituye el token
+00:17 +126: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: M-27: cambiar la contraseña valida en el teléfono y sustituye el token
+00:17 +127: /home/user/PaxFide_Mv/test/flows/employee_flow_test.dart: M-03: deslizar cambia de pestaña (sin abrir la cámara) y en la ficha vuelve atrás
+00:18 +128: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: M-30: desactivar pide la contraseña, explica los bloqueos y al final cierra la sesión
+00:18 +129: /home/user/PaxFide_Mv/test/flows/account_flow_test.dart: M-30: desactivar pide la contraseña, explica los bloqueos y al final cierra la sesión
+00:19 +130: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: arranque sin sesión → /welcome (Enmienda 3); «Iniciar sesión» abre Entrar y «volver» regresa
+00:20 +131: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: texto al 200 %: login, Mi día y su barra sin desbordes
+00:20 +132: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: texto al 200 %: login, Mi día y su barra sin desbordes
+00:20 +133: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: ruta pública restaurada con sesión → debajo queda Inicio
+00:20 +134: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: los botones de solo ícono de la barra superior tienen descripción
+00:21 +135: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: ruta autenticada durante RESTORING → UI de espera (no es una ruta)
+00:21 +136: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: M-04: elegir el tamaño del texto en la app lo agranda, se suma al del teléfono y se recuerda
+00:21 +137: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: M-04: elegir el tamaño del texto en la app lo agranda, se suma al del teléfono y se recuerda
+00:21 +138: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login cancelado → la intención desaparece; tras login → /home
+00:21 +139: /home/user/PaxFide_Mv/test/flows/accessibility_test.dart: M-04: el tamaño guardado se aplica al abrir la app
+00:21 +140: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: R2: login fallido → la intención desaparece
+00:22 +141: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: T-1: 401 con JWT → LOGGED_OUT → /login; la pila autenticada desaparece
+00:22 +142: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:22 +143: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +144: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +145: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +146: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +147: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: ADMINISTRATOR: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +148: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: deep link no aprobado → no navega
+00:23 +149: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: REPRESENTATIVE: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +150: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: REPRESENTATIVE: consulta con la organización de /me y muestra la estimación con su etiqueta
+00:23 +151: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: crear cuenta no inicia sesión
+00:24 +152: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: sin estimación (available: false) → el texto del backend, con la etiqueta
+00:24 +153: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: email repetido → 409 con mensaje propio
+00:24 +154: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: email repetido → 409 con mensaje propio
+00:24 +155: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: EMPLOYEE o donante → sin acceso, y no se consulta nada
+00:24 +156: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE
+00:24 +157: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE
+00:25 +158: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: REPRESENTATIVE ve las convocatorias de su organización como tarjetas
+00:25 +159: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: contraseña de menos de 12 caracteres → no se envía (regla del backend, PasswordTooShort)
+00:25 +160: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: backend anterior (403 en el listado de la organización) → sus convocatorias de GET /me/campaigns
+00:25 +161: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: hay que repetir la contraseña; si no coinciden → no se envía
+00:25 +162: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: hay que repetir la contraseña; si no coinciden → no se envía
+00:25 +163: /home/user/PaxFide_Mv/test/flows/prediction_flow_test.dart: sin convocatorias → un mensaje claro, nunca un campo para escribir una referencia interna
+00:25 +164: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: los textos legales no muestran la versión interna (se sigue enviando)
+00:25 +165: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: /register: 400 del backend (PasswordTooShort u email) → mensaje que nombra las dos reglas
+00:26 +166: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: login: el email se envía sin espacios en los extremos (el backend lo pasa a minúsculas, DD-74)
+00:26 +167: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:26 +168: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:26 +169: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:27 +170: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:27 +171: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: seguimiento: el código va SOLO en Authorization (modo tracking), nunca en la ruta
+00:27 +172: /home/user/PaxFide_Mv/test/flows/session_navigation_flow_test.dart: registro: pantalla de teléfono (411 × 891) y texto al 200 % sin desbordes
+00:27 +173: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: M-19: "Pegar" trae el código del portapapeles al campo
+00:27 +174: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: 5c: pegado automático del código al abrir, un código copiado se pone solo y basta con tocar «Ver seguimiento»
+00:28 +175: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:28 +176: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:28 +177: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:29 +178: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:29 +179: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:29 +180: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:29 +181: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: login: pasa a modo oscuro (fondo casi negro), vuelve a claro con la paleta oficial y lo recuerda
+00:29 +182: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: narrativa PENDING → "Actualizar" manual, sin polling
+00:30 +183: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: narrativa PENDING → "Actualizar" manual, sin polling
+00:30 +184: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: registro también tiene el selector
+00:30 +185: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: historial de un bien: GET con el código en la cabecera
+00:30 +186: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: con la sesión iniciada el selector está en la barra y cambia toda la app
+00:30 +187: /home/user/PaxFide_Mv/test/flows/theme_flow_test.dart: con la sesión iniciada el selector está en la barra y cambia toda la app
+00:31 +188: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: M-16: detalle de la donación y "Ver el recorrido" con el código de la cuenta, sin guardarlo
+00:31 +189: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: mis donaciones vacía → estado vacío
+00:31 +190: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: mis donaciones vacía → estado vacío
+00:31 +191: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:31 +192: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:31 +193: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:32 +194: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:32 +195: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:33 +196: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:33 +197: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:33 +198: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: "Donar" solo con convocatoria abierta, dinero, moneda y pasarela
+00:33 +199: /home/user/PaxFide_Mv/test/flows/donor_flow_test.dart: M-18: seguimiento verificable cada paso muestra su sello y su huella; la entrega, si tiene evidencia
+00:33 +200: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: sin sesión: CV-11 sin JWT y con Command-Id; consulta manual con Intent-Token; nada se guarda
+00:34 +201: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: con sesión: la donación va con el JWT (queda ligada a la cuenta)
+00:34 +202: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: la app muere con IN_FLIGHT → al arrancar AMBIGUOUS (T-2), visible en pendientes, sin reenviar
+00:35 +203: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: la app muere con IN_FLIGHT → al arrancar AMBIGUOUS (T-2), visible en pendientes, sin reenviar
+00:35 +204: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: 409 → rechazada; un nuevo intento usa otro Command-Id
+00:35 +205: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: pendientes: AMBIGUOUS → Verificar estado (GET) → confirmada y retirada
+00:35 +206: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: importe inválido (más de 2 decimales) → no se envía nada
+00:35 +207: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: M-04: AMBIGUOUS → «Reintentar con el mismo envío» sale con el MISMO Command-Id
+00:35 +208: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: pesos con decimales → unidades mínimas, con vista previa antes de enviar
+00:36 +209: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: pendientes: FAILED → Descartar pide confirmación; cancelar no borra
+00:36 +210: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: pendientes: FAILED → Descartar pide confirmación; cancelar no borra
+00:36 +211: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: CV-11 sin statusToken ni paymentRedirectUrl (campos opcionales) → aviso, sin consultar ni fallar
+00:36 +212: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: M-03: deslizar una rechazada la descarta con la misma confirmación
+00:36 +213: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: M-14: un importe sugerido escribe la cifra y se puede cambiar
+00:36 +214: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:37 +215: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:37 +216: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:37 +217: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen
+00:37 +218: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: decisión 5: Inicio muestra las convocatorias abiertas y desde una se puede donar
+
+Warning: A call to drag() with finder "Found 1 widget with key [<'home.campaigns'>]: [
+  _HomeCard-[<'home.campaigns'>],
+]" derived an Offset (Offset(205.7, 888.5)) that would not hit test on the specified widget.
+Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
+The finder corresponds to this RenderBox: RenderSemanticsAnnotations#31697 relayoutBoundary=up8 NEEDS-PAINT
+The hit test result at that offset is: HitTestResult(RenderPointerListener#c031f@Offset(68.6, 77.1), RenderSemanticsAnnotations#2b13d@Offset(68.6, 77.1), RenderMouseRegion#b4195@Offset(68.6, 77.1), RenderSemanticsAnnotations#9ab46@Offset(68.6, 77.1), RenderMouseRegion#0fbd2@Offset(68.6, 77.1), RenderSemanticsAnnotations#42a69@Offset(68.6, 77.1), RenderPointerListener#e1970@Offset(68.6, 77.1), _RenderExclusiveMouseRegion#34850@Offset(68.6, 77.1), RenderSemanticsAnnotations#bb01a@Offset(68.6, 77.1), _RenderLayoutSurrogateProxyBox#9835e@Offset(68.6, 77.1), RenderStack#0f3c5@Offset(68.6, 77.1), RenderSemanticsAnnotations#7d9d3@Offset(68.6, 77.1), RenderSemanticsAnnotations#6d065@Offset(68.6, 77.1), RenderMergeSemantics#dfa03@Offset(68.6, 77.1), RenderFlex#c1f6e@Offset(205.7, 77.1), RenderConstrainedBox#544c8@Offset(205.7, 77.1), RenderSemanticsAnnotations#2c6d9@Offset(205.7, 77.1), RenderPadding#c47d1@Offset(205.7, 77.1), _RenderInkFeatures#4ba27@Offset(205.7, 77.1), RenderPhysicalModel#7aa13@Offset(205.7, 77.1), RenderCustomMultiChildLayoutBox#a54b8@Offset(205.7, 888.5), _RenderInkFeatures#244a3@Offset(205.7, 888.5), RenderPhysicalModel#995d2@Offset(205.7, 888.5), _RenderLayoutBuilder#ad027@Offset(205.7, 888.5), RenderSemanticsAnnotations#7671c@Offset(205.7, 888.5), RenderRepaintBoundary#5abcf@Offset(205.7, 888.5), RenderIgnorePointer#70432@Offset(205.7, 888.5), RenderAnimatedOpacity#51968@Offset(205.7, 888.5), RenderDecoratedBox#25275@Offset(205.7, 888.5), RenderRepaintBoundary#dfcc7@Offset(205.7, 888.5), RenderSemanticsAnnotations#c8fe6@Offset(205.7, 888.5), RenderOffstage#51f5f@Offset(205.7, 888.5), RenderSemanticsAnnotations#736b3@Offset(205.7, 888.5), _RenderTheater#64898@Offset(205.7, 888.5), RenderAbsorbPointer#17bdb@Offset(205.7, 888.5), RenderPointerListener#61795@Offset(205.7, 888.5), RenderSemanticsAnnotations#b8063@Offset(205.7, 888.5), RenderSemanticsAnnotations#bbb77@Offset(205.7, 888.5), RenderSemanticsAnnotations#9222a@Offset(205.7, 888.5), RenderTapRegionSurface#26ce5@Offset(205.7, 888.5), RenderSemanticsAnnotations#95083@Offset(205.7, 888.5), RenderSemanticsAnnotations#bdacc@Offset(205.7, 888.5), HitTestEntry<HitTestTarget>#3c6d7(_ReusableRenderView#c6f2b), HitTestEntry<HitTestTarget>#f9e48(<AutomatedTestWidgetsFlutterBinding>))
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2165:25)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///home/user/PaxFide_Mv/test/flows/donate_flow_test.dart:278:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+#6      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+To silence this warning, pass "warnIfMissed: false" to "drag()".
+To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
+
+00:37 +219: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: T-1 con entradas AMBIGUOUS: el logout no las borra
+00:38 +220: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: Inicio: si falla el catálogo, «Reintentar» lo vuelve a pedir y se muestra
+00:38 +221: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: sin conexión al enviar: queda PENDING en el dispositivo y "Enviar" lo manda después
+00:38 +222: /home/user/PaxFide_Mv/test/flows/donate_flow_test.dart: Enmienda 4, S5: sin red la donación se guarda; sale sola al volver la red y luego se paga y consulta
+00:38 +223: /home/user/PaxFide_Mv/test/flows/outbox_flow_test.dart: Enmienda 4, S3: lo guardado sin conexión se envía solo al volver la red, con el mismo Command-Id
+00:39 +224: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +225: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +226: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +227: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +228: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +229: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:39 +230: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:40 +231: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:40 +232: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:41 +233: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: tras crear la cuenta y entrar: bienvenida, «¿Cómo te llamamos?» y saludo con el nombre
+00:41 +234: /home/user/PaxFide_Mv/test/features/auth/biometric_login_test.dart: login: recuadro "Entrar por biometría" con condiciones nuevas: diálogo de aceptación y entra con la huella, sin la contraseña
+00:41 +235: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: «Más tarde» no guarda nada; y la bienvenida no se repite
+00:41 +236: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: «Más tarde» no guarda nada; y la bienvenida no se repite
+00:42 +237: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: «Más tarde» no guarda nada; y la bienvenida no se repite
+00:42 +238: /home/user/PaxFide_Mv/test/features/auth/biometric_login_test.dart: login: recuadro "Entrar por biometría" dejar de usarla desde el login
+00:42 +239: /home/user/PaxFide_Mv/test/flows/first_steps_test.dart: entrar con una cuenta que ya existía no muestra los primeros pasos
+00:42 +240: /home/user/PaxFide_Mv/test/features/auth/biometric_login_test.dart: activarla tras entrar con contraseña pregunta, confirma con huella o rostro y entra; la credencial queda guardada
+00:43 +241: /home/user/PaxFide_Mv/test/features/auth/biometric_login_test.dart: activarla tras entrar con contraseña "Ahora no": entra sin activarla
+00:43 +242: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:43 +243: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: Google y Billetera Web3 no están presentes en el login
+00:44 +244: /home/user/PaxFide_Mv/test/features/auth/biometric_login_test.dart: activarla tras entrar con contraseña cerrar sesión no la desactiva: al volver al login aparece el recuadro
+00:44 +245: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +246: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +247: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +248: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +249: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +250: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: ¿Olvidaste tu contraseña? abre hoja inferior, valida correo vacío y envía a la API
+00:44 +251: /home/user/PaxFide_Mv/test/features/auth/session_controller_test.dart: login con credenciales erróneas: lanza y no guarda nada
+00:44 +252: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +253: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +254: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +255: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +256: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +257: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +258: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:44 +259: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +260: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +261: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +262: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +263: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +264: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +265: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +266: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +267: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +268: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +269: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +270: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +271: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +272: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: las pestañas y «Regístrate gratis» llevan a Crear cuenta, y vuelven
+00:45 +273: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +274: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +275: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +276: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +277: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +278: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +279: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +280: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:45 +281: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» marcado guarda la sesión
+00:46 +282: /home/user/PaxFide_Mv/test/features/physical_assets/asset_command_test.dart: Command-Id UUID v4 válido y distinto en cada llamada
+00:46 +283: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +284: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +285: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +286: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +287: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +288: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +289: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +290: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +291: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +292: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +293: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +294: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +295: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +296: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +297: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +298: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +299: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: «Recordarme en este teléfono» desmarcado no guarda la sesión
+00:46 +300: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 11. Login → 403 → diálogo → marcar → "Aceptar y entrar": la segunda llamada lleva las versiones del 403 y la sesión queda AUTHENTICATED
+00:46 +301: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 11. Login → 403 → diálogo → marcar → "Aceptar y entrar": la segunda llamada lleva las versiones del 403 y la sesión queda AUTHENTICATED
+00:46 +302: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 11. Login → 403 → diálogo → marcar → "Aceptar y entrar": la segunda llamada lleva las versiones del 403 y la sesión queda AUTHENTICATED
+00:46 +303: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 11. Login → 403 → diálogo → marcar → "Aceptar y entrar": la segunda llamada lleva las versiones del 403 y la sesión queda AUTHENTICATED
+00:46 +304: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 11. Login → 403 → diálogo → marcar → "Aceptar y entrar": la segunda llamada lleva las versiones del 403 y la sesión queda AUTHENTICATED
+00:46 +305: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 12. Pulsando "Cancelar": una sola llamada, se ve el error y la sesión sigue LOGGED_OUT
+00:47 +306: /home/user/PaxFide_Mv/test/features/donations/receipt_view_test.dart: M-22: comprobante (no certificado) con importe, convocatoria y número
+00:47 +307: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 13. "Aceptar y entrar" está deshabilitado hasta marcar todas las casillas
+00:47 +308: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 13. "Aceptar y entrar" está deshabilitado hasta marcar todas las casillas
+00:47 +309: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 14. El reintento devuelve otra vez 403: se ve el mensaje de "cambiaron" y no se abre un segundo diálogo
+00:47 +310: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 14. correo sin confirmar (403 EmailNotVerified): lo dice y deja reenviar el correo
+00:48 +311: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 14. correo sin confirmar (403 EmailNotVerified): lo dice y deja reenviar el correo
+00:48 +312: /home/user/PaxFide_Mv/test/features/auth/login_screen_test.dart: 14. correo sin confirmar (403 EmailNotVerified): lo dice y deja reenviar el correo
+00:48 +313: /home/user/PaxFide_Mv/test/features/donations/payment_link_test.dart: S-02: https hacia la web o la API de PaxFide se abre
+00:48 +314: /home/user/PaxFide_Mv/test/features/donations/payment_link_test.dart: S-02: otro host, otro esquema o http hacia fuera no se abren
+00:48 +315: /home/user/PaxFide_Mv/test/features/donations/payment_link_test.dart: demo en la red local: http solo hacia el mismo host configurado en http
+00:48 +316: /home/user/PaxFide_Mv/test/features/donations/achievements_test.dart: sin donaciones confirmadas no hay logros (un pago fallido no cuenta)
+00:48 +317: /home/user/PaxFide_Mv/test/features/donations/achievements_test.dart: primera, constante y varias causas
+00:48 +318: /home/user/PaxFide_Mv/test/features/donations/achievements_test.dart: gran corazón con 10 donaciones confirmadas
+00:48 +319: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: AccountImpactApi lee la respuesta del backend
+00:48 +320: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: AccountImpactApi: sin las listas es una respuesta inesperada
+00:48 +321: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: ApiImpactSource: una cuenta que nunca donó no tiene panel
+00:48 +322: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con datos muestra resumen, total y barras por unidad
+00:48 +323: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con datos muestra resumen, total y barras por unidad
+00:48 +324: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con datos muestra resumen, total y barras por unidad
+00:48 +325: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con datos muestra resumen, total y barras por unidad
+00:48 +326: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con datos muestra resumen, total y barras por unidad
+00:49 +327: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: con más de 100 donaciones lo avisa
+00:49 +328: /home/user/PaxFide_Mv/test/features/donations/impact_card_test.dart: M-21: sin datos o con error no se muestra nada
+00:49 +329: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: sublotes bajo su lote; un padre ausente, propio o en ciclo hace de raíz
+00:49 +330: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: el camión solo si el último evento es un despacho; etiquetas de los eventos
+00:49 +331: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +332: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +333: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +334: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +335: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +336: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:49 +337: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: Donada, lote con su sublote y camión si va en camino
+00:50 +338: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +339: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +340: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +341: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +342: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +343: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +344: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: árbol: un recorrido que falla se puede reintentar
+00:50 +345: /home/user/PaxFide_Mv/test/features/tracking/tracking_story_test.dart: serpiente: una estación por paso más el pago, pestañas por lote y el camión
+00:50 +346: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +347: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +348: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +349: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +350: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +351: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +352: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +353: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +354: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:50 +355: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:51 +356: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:51 +357: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:51 +358: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: qué es PaxFide y el recorrido en cinco pasos, sin datos de ejemplo ni campo de código
+00:51 +359: /home/user/PaxFide_Mv/test/features/campaigns/campaign_search_view_test.dart: M-10: busca, filtra y ordena solo a través de CampaignSearch
+00:52 +360: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:52 +361: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: acciones: Iniciar sesión fijo, Tengo un código y Seguir mi donación
+00:53 +362: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: ¿Eres una organización? lleva a crear la cuenta
+00:53 +363: /home/user/PaxFide_Mv/test/features/campaigns/campaign_summary_card_test.dart: variante 01: monto «X de Y (N %)», barra y «Cierra el …»
+00:53 +364: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:53 +365: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:53 +366: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:53 +367: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:53 +368: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:54 +369: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:54 +370: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:54 +371: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: Donar baja hasta las convocatorias
+00:54 +372: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: la vista previa solo muestra convocatorias abiertas
+00:54 +373: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo real: como mucho tres tarjetas y «Ver detalles» abre /c/:publicCode
+00:54 +373: /home/user/PaxFide_Mv/test/integration/backend_real_test.dart: backend real
+  Skip: Sin PAXFIDE_REAL_API: recorrido contra el backend real no ejecutado
+00:54 +373 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo real: como mucho tres tarjetas y «Ver detalles» abre /c/:publicCode
+00:54 +374 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:54 +375 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:54 +376 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:54 +377 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:54 +378 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:54 +379 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo: cargando (esqueleto) y vacío
+00:55 +380 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +381 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +382 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +383 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +384 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +385 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +386 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +387 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +388 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: catálogo con error: «Reintentar» vuelve a pedirlo
+00:55 +389 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: modo oscuro con el texto «Muy grande»: nada se corta
+00:55 +390 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: modo oscuro con el texto «Muy grande»: nada se corta
+00:55 +391 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: modo oscuro con el texto «Muy grande»: nada se corta
+00:55 +392 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: todas las acciones llevan Key con el prefijo welcome. y miden al menos 40 de alto
+00:55 +393 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el menú de la barra se despliega y lleva a cada sección
+00:56 +394 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el menú de la barra se despliega y lleva a cada sección
+00:56 +395 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el menú de la barra se despliega y lleva a cada sección
+00:56 +396 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +397 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +398 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +399 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +400 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +401 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +402 ~1: /home/user/PaxFide_Mv/test/features/welcome/welcome_screen_test.dart: el fondo modal cubre el landing (sin desenfoque, por rendimiento) y cierra el menú al tocar fuera
+00:56 +403 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: jwt: pone el JWT del TokenStore y une la base con la ruta
+00:56 +404 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: put: cuerpo JSON con el JWT
+00:56 +405 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: postFile: multipart/form-data con un solo archivo en el campo pedido
+00:56 +406 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: none: nunca envía Authorization aunque haya JWT
+00:56 +407 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: tracking: usa la cabecera de la feature y nunca el JWT
+00:56 +408 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: credenciales no intercambiables: Authorization manual con jwt/none, o tracking sin ella → error
+00:56 +409 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: T-1: 401 con JWT limpia el token y cierra la sesión
+00:56 +410 ~1: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:56 +411 ~1: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:56 +412 ~1: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2: IN_FLIGHT persistido pasa a AMBIGUOUS al arrancar
+00:56 +413 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: no se pudo conectar → determinista, y beforeSend NO se invoca
+00:56 +414 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: no se pudo conectar → determinista, y beforeSend NO se invoca
+00:56 +415 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: no se pudo conectar → determinista, y beforeSend NO se invoca
+00:56 +416 ~1: /home/user/PaxFide_Mv/test/core/outbox_recovery_test.dart: T-2 aplica a las entradas de todas las cuentas (sin enviarlas)
+00:56 +417 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:56 +418 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:57 +419 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:57 +420 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:57 +421 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: timeout tras enviar → ambiguo (nunca determinista), y beforeSend se invocó
+00:57 +422 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: conexión cortada tras enviar → ambiguo
+00:57 +423 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +424 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +425 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +426 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +427 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +428 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +429 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +430 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:57 +431 ~1: /home/user/PaxFide_Mv/test/core/http_api_client_test.dart: los mensajes de error no contienen la URL ni el token
+00:58 +432 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: PENDING → IN_FLIGHT (persistido antes de la respuesta) → ACKNOWLEDGED y se retira
+00:58 +433 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: 4xx → FAILED con el código; negativa: FAILED nunca se reintenta con el mismo commandId
+00:58 +434 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: timeout → AMBIGUOUS; negativa: AMBIGUOUS nunca se reintenta automáticamente
+00:58 +435 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: 5xx → AMBIGUOUS (nunca FAILED)
+00:58 +436 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: reintento manual de AMBIGUOUS → mismo Command-Id
+00:58 +437 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: sin conexión: no sale, sigue PENDING y nunca pasó por IN_FLIGHT
+00:58 +438 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: sin JWT: no salió del teléfono → sigue PENDING, nunca FAILED (auditoría 2026-10-29, §3)
+00:58 +439 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: negativa: IN_FLIGHT nunca vuelve a PENDING (fallo ambiguo tras salir)
+00:58 +440 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: H2: frontera por accountId otra cuenta no ve las entradas
+00:58 +441 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: H2: frontera por accountId negativa: una cuenta nunca envía entradas de otra
+00:58 +442 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: H2: frontera por accountId otra cuenta tampoco verifica ni descarta
+00:58 +443 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: verificar: coincide → ACKNOWLEDGED (retirada); no coincide → sigue AMBIGUOUS; nunca envía
+00:58 +444 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: verificar solo AMBIGUOUS
+00:58 +445 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: descartar solo FAILED; no envía nada
+00:58 +446 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: enqueue: solo PENDING y sin commandId repetido
+00:58 +447 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: dos envíos simultáneos de la misma entrada: el segundo se rechaza
+00:58 +448 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: persistencia: otro SyncEngine sobre el mismo almacén ve las entradas (reinicio)
+00:58 +449 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S3: envío automático (sendAll) manda PENDING y AMBIGUOUS de la cuenta, de la más antigua a la más reciente, con su mismo Command-Id
+00:58 +450 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S3: envío automático (sendAll) sin red se detiene en la primera y todo sigue como estaba
+00:58 +451 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S3: envío automático (sendAll) FAILED no se reenvía solo
+00:58 +452 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S4: entrada con foto que se sube antes de enviarse la foto rechazada (4xx) deja la entrada FAILED, sin enviar la entrega, y borra la foto
+00:58 +453 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S4: entrada con foto que se sube antes de enviarse sin red ni para la foto: sigue PENDING con su foto guardada
+00:58 +454 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: Enmienda 4, S4: entrada con foto que se sube antes de enviarse descartar una rechazada borra también su foto
+00:58 +455 ~1: /home/user/PaxFide_Mv/test/core/sync_engine_test.dart: almacén ilegible: no se envía nada
+00:58 +456 ~1: All tests passed!
+
+## sha256 de las dos salidas
+analyze: c5a3a4289727c7b6cc5d3ab0cd33ad131914b7b3293c7a45a9d02a5f832a8f32
+test:    757e2f4b08007ee8a4bede041d8161b259dfe57f58a274e8ca5c950e306996a5
