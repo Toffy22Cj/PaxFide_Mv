@@ -20,6 +20,10 @@ class DeliveryEvidenceApi {
 
   static final evidenceRefPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 
+  /// Ruta de la subida, también para la cola cuando la entrega se hizo sin conexión (Enmienda 4 de ADR-043, S4).
+  static String uploadPath(String organizationId) =>
+      '/organizations/${Uri.encodeComponent(organizationId)}/delivery-evidence';
+
   static const _titled = {
     413: 'ImageTooLarge',
     415: 'UnsupportedImageFormat',
@@ -34,7 +38,7 @@ class DeliveryEvidenceApi {
     required String filename,
   }) async {
     final r = await _api.postFile(
-      '/organizations/${Uri.encodeComponent(organizationId)}/delivery-evidence',
+      uploadPath(organizationId),
       field: 'file',
       filename: filename,
       contentType: contentType,

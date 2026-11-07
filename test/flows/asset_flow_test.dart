@@ -399,15 +399,43 @@ void main() {
       expect(deliver.headers['Command-Id'], isNotNull);
     });
 
-    testWidgets('sin conexión al subir la foto: no se registra nada ni se guarda en el teléfono', (tester) async {
+    testWidgets('Enmienda 4, S4: sin conexión, la entrega se guarda con su foto cifrada y sale sola al volver la red', (
+      tester,
+    ) async {
       await openReceived(tester);
-      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) => const ConnectionNotEstablishedException();
+      var online = false;
+      var uploads = 0;
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) {
+        if (!online) return const ConnectionNotEstablishedException();
+        uploads++;
+        return ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      };
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) => const ApiResponse(statusCode: 200, data: {});
       await fillDeliver(tester);
       await tester.tap(find.byKey(const Key('review.confirm')));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Para entregar necesitas conexión'), findsOneWidget);
+      expect(find.byKey(const Key('result.notSent')), findsOneWidget);
+      expect(find.textContaining('se enviará sola'), findsOneWidget);
       expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
+      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
+      expect(saved.kind, 'DELIVER');
+      expect(saved.payload.containsKey('evidenceRef'), isFalse);
+      expect(h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')), hasLength(1));
+
+      online = true;
+      await h.services.autoSync.run();
+      await tester.pumpAndSettle();
+      expect(uploads, 1);
+      final deliver = posts().singleWhere((c) => c.path == '/physical-assets/A-1/deliver');
+      expect(deliver.body?['evidenceRef'], ref);
+      expect(deliver.body?['municipalityCode'], '08001');
+      expect(deliver.headers['Command-Id'], saved.commandId);
       expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+      expect(
+        h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')),
+        isEmpty,
+        reason: 'la foto se borra del teléfono al subirse',
+      );
     });
 
     testWidgets('foto demasiado grande (413): pide otra', (tester) async {
@@ -421,7 +449,9 @@ void main() {
       expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
     });
 
-    testWidgets('M-05: sin conexión la entrega no se guarda; «Reintentar» no vuelve a subir la foto', (tester) async {
+    testWidgets('foto subida pero la entrega sin red: queda en la cola con su huella y no vuelve a subir la foto', (
+      tester,
+    ) async {
       await openReceived(tester);
       var uploads = 0;
       var online = false;
@@ -432,20 +462,17 @@ void main() {
       h.api.routes['POST /physical-assets/A-1/deliver'] = (_) =>
           online ? const ApiResponse(statusCode: 200, data: {}) : const ConnectionNotEstablishedException();
       await fillDeliver(tester);
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('review.confirm')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('result.notSent')), findsOneWidget);
-      expect(find.byKey(const Key('result.pending')), findsNothing, reason: 'no hay nada en Pendientes');
-      // ADR-051 F5: la entrega no entra en la cola sin conexión.
-      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
+      expect(saved.payload['evidenceRef'], ref);
+      expect(h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')), isEmpty);
       online = true;
-      await tap(tester, find.byKey(const Key('result.retryDeliver')));
+      await h.services.autoSync.run();
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('result.acknowledged')), findsOneWidget);
       expect(uploads, 1, reason: 'la foto ya subida no se vuelve a subir');
-      final delivers = h.api.calls.where((c) => c.path == '/physical-assets/A-1/deliver');
-      expect(delivers.last.body?['evidenceRef'], ref, reason: 'va la huella, nunca la foto');
+      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
     });
   });
 }

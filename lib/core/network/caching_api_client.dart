@@ -19,6 +19,7 @@ class CachingApiClient implements ApiClient {
 
   final ApiClient _inner;
   final SecureKeyValueStore _store;
+
   /// La cuenta de la sesión: lo guardado con JWT es de ella sola (H2).
   final String? Function() accountId;
 

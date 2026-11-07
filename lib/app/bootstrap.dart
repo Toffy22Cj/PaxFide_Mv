@@ -9,6 +9,7 @@ import '../core/network/http_api_client.dart';
 import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
+import '../core/storage/outbox_file_store.dart';
 import '../core/storage/outbox_store.dart';
 import '../features/auth/data/profile_store.dart';
 import '../core/storage/secure_key_value_store.dart';
@@ -58,7 +59,7 @@ AppServices buildServices({
     pendingIntents: PendingIntentHolder(),
     qrScannerBuilder: qrScannerBuilder,
     outboxStore: outboxStore,
-    syncEngine: SyncEngine(store: outboxStore, apiClient: api),
+    syncEngine: SyncEngine(store: outboxStore, apiClient: api, files: OutboxFileStore(secureStore)),
     theme: ThemeController(secureStore),
     textSize: TextSizeController(secureStore),
     cityPause: CityPauseController(secureStore),

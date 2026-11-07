@@ -8,6 +8,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/media/photo_picker.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
+import '../../../core/storage/outbox_file_store.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/location/location_catalog.dart';
 import '../../../shared/location/municipality_picker.dart';
@@ -33,11 +34,8 @@ const fieldLabels = {
   'locationRef': 'Referencia del lugar de entrega',
 };
 
-/// Mensaje para un fallo al subir la foto de entrega. Nada queda guardado en el teléfono.
+/// Mensaje para un rechazo de la foto de entrega. Sin red no llega aquí: la entrega se guarda con su foto (S4).
 String evidenceUploadError(AppException e) => switch (e) {
-  TransportException() =>
-    'Para entregar necesitas conexión: la foto se sube antes de registrar la entrega. No se guardó nada; '
-        'inténtalo cuando tengas señal.',
   EvidenceUploadException(code: 'ImageTooLarge') => 'La foto es demasiado grande. Toma otra.',
   EvidenceUploadException(code: 'UnsupportedImageFormat') => 'La foto tiene que ser JPEG o PNG. Toma otra.',
   EvidenceUploadException(code: 'EvidenceRemoved') => 'Esa foto fue retirada por la plataforma. Toma otra.',
@@ -99,6 +97,10 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
   bool _busy = false;
   bool _registered = false;
   String? _error;
+
+  /// Sin red al confirmar una entrega (S4): la foto y la ruta de subida que se guardan con la entrada de la cola.
+  OutboxFile? _offlinePhoto;
+  String? _offlineUploadPath;
 
   /// Foto de la entrega, solo en memoria, y el `evidenceRef` que devolvió su subida.
   PickedPhoto? _photo;
@@ -226,6 +228,17 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         contentType: photo.contentType,
         filename: photo.filename,
       );
+    } on TransportException {
+      // Enmienda 4, S4: sin red, la entrega se guarda con su foto cifrada y se envía sola al volver la conexión.
+      _offlinePhoto = OutboxFile(bytes: photo.bytes, contentType: photo.contentType, filename: photo.filename);
+      _offlineUploadPath = DeliveryEvidenceApi.uploadPath(organizationId);
+      return AssetCommand.build(
+        widget.action,
+        widget.assetRef,
+        _input,
+        municipalityCode: _municipality?.code,
+        evidencePending: true,
+      );
     } on AppException catch (e) {
       if (mounted) setState(() => _error = evidenceUploadError(e));
       return null;
@@ -248,7 +261,14 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       final command = _isDeliver ? await _deliverCommand() : _command;
       if (command == null) return;
       _command = command;
-      final (item, outcome) = await widget.ops.submit(command, accountId: widget.accountId);
+      final (item, outcome) = await widget.ops.submit(
+        command,
+        accountId: widget.accountId,
+        evidencePhoto: _offlinePhoto,
+        evidenceUploadPath: _offlineUploadPath,
+      );
+      _offlinePhoto = null;
+      _offlineUploadPath = null;
       if (!mounted) return;
       setState(() {
         _item = item;
@@ -511,14 +531,6 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         scheme.primaryContainer,
         scheme.onPrimaryContainer,
       ),
-      // La entrega no se guarda sin conexión (ADR-051 F5): ni el comando ni la foto quedan en el teléfono.
-      CommandOutcome.notSent when _isDeliver => (
-        Icons.wifi_off,
-        'No se envió',
-        'No hay conexión. La entrega no se guarda en el teléfono: vuelve a intentarlo cuando tengas señal.',
-        scheme.secondaryContainer,
-        scheme.onSecondaryContainer,
-      ),
       CommandOutcome.notSent => (
         Icons.save_alt,
         'Guardado en el teléfono',
@@ -572,13 +584,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
           onPressed: _busy ? null : _verify,
           child: const Text('Verificar estado'),
         ),
-      if (_outcome == CommandOutcome.notSent && _isDeliver)
-        FilledButton(
-          key: const Key('result.retryDeliver'),
-          onPressed: _busy ? null : _confirm,
-          child: const Text('Reintentar'),
-        ),
-      if (_outcome == CommandOutcome.ambiguous || (_outcome == CommandOutcome.notSent && !_isDeliver))
+      if (_outcome == CommandOutcome.ambiguous || _outcome == CommandOutcome.notSent)
         TextButton(
           key: const Key('result.pending'),
           onPressed: () {

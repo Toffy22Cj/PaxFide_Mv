@@ -40,13 +40,15 @@ class AssetCommand {
 
   /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido). Para entregar
   /// hace falta [evidenceRef] con la forma `sha256:<64 hex>`; si no, el error es `evidenceRef`. Para recibir y
-  /// entregar, [municipalityCode]; si no, el error es `municipalityCode`.
+  /// entregar, [municipalityCode]; si no, el error es `municipalityCode`. Con [evidencePending] (entregar sin conexión,
+  /// Enmienda 4 de ADR-043, S4) la entrega se construye sin `evidenceRef`: lo añade la cola al subir la foto.
   static AssetCommand? build(
     AssetAction action,
     String assetRef,
     Map<String, String> input, {
     String? evidenceRef,
     String? municipalityCode,
+    bool evidencePending = false,
     List<String>? errors,
   }) {
     final spec = fields[action];
@@ -61,7 +63,7 @@ class AssetCommand {
       }
     }
     var valid = values.length == spec.length;
-    if (action == AssetAction.deliver) {
+    if (action == AssetAction.deliver && !evidencePending) {
       if (evidenceRef == null || !DeliveryEvidenceApi.evidenceRefPattern.hasMatch(evidenceRef)) {
         errors?.add('evidenceRef');
         valid = false;

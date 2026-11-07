@@ -3,6 +3,7 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../core/offline/sync_engine.dart';
+import '../../../core/storage/outbox_file_store.dart';
 import '../data/physical_asset_api.dart';
 import 'asset_action.dart';
 import 'asset_command.dart';
@@ -19,11 +20,18 @@ class AssetOperations {
   final PhysicalAssetApi api;
   final CommandIdGenerator _ids;
 
-  /// Nueva operación: entrada `PENDING` con un `commandId` nuevo, guardada antes de enviarla; luego se envía.
+  /// Nueva operación: entrada `PENDING` con un `commandId` nuevo, guardada antes de enviarla; luego se envía. Si no
+  /// sale (sin red), se queda en la cola y se envía sola cuando vuelve la conexión (Enmienda 4 de ADR-043, S3).
   ///
-  /// La **entrega** no se queda en cola sin conexión (ADR-051 F5): si no salió, la entrada se retira y quien llama
-  /// recibe `notSent` para pedir que se vuelva a intentar con señal.
-  Future<(OutboxItem, CommandOutcome)> submit(AssetCommand command, {required String accountId}) async {
+  /// Entregar sin conexión (S4): con [evidencePhoto] y [evidenceUploadPath], la foto se guarda cifrada con la entrada
+  /// y, al enviarse, se sube primero y su `evidenceRef` va en el cuerpo.
+  Future<(OutboxItem, CommandOutcome)> submit(
+    AssetCommand command, {
+    required String accountId,
+    OutboxFile? evidencePhoto,
+    String? evidenceUploadPath,
+  }) async {
+    final withPhoto = evidencePhoto != null && evidenceUploadPath != null;
     final item = OutboxItem(
       commandId: _ids.next(),
       accountId: accountId,
@@ -33,12 +41,16 @@ class AssetOperations {
       payload: command.body,
       status: OutboxStatus.pending,
       createdAt: DateTime.now().toUtc(),
+      fileUploadPath: withPhoto ? evidenceUploadPath : null,
+      fileResultKey: withPhoto ? 'evidenceRef' : null,
     );
+    if (withPhoto) {
+      final files = engine.files;
+      if (files == null) throw const OutboxOperationNotAllowedException('Sin almacén para la foto');
+      await files.save(item.commandId, evidencePhoto);
+    }
     await engine.enqueue(item);
     final outcome = await engine.send(item.commandId, accountId);
-    if (outcome == CommandOutcome.notSent && command.action == AssetAction.deliver) {
-      await engine.withdrawUnsent(item.commandId, accountId);
-    }
     return (item, outcome);
   }
 
