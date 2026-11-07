@@ -1,13 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/errors/app_exceptions.dart';
+import '../data/profile_store.dart';
 import '../../../core/storage/token_store.dart';
 import '../data/auth_api.dart';
 import 'principal.dart';
 import 'session_state.dart';
 
-/// Estado del perfil (`/me`) dentro de una sesión `AUTHENTICATED`.
-enum ProfileStatus { none, loading, loaded, unavailable }
+/// Estado del perfil (`/me`) dentro de una sesión `AUTHENTICATED`. `offline`: sin red, con el perfil guardado de la
+/// sesión recordada (Enmienda 4 de ADR-043, S1).
+enum ProfileStatus { none, loading, loaded, offline, unavailable }
 
 /// Máquina de sesión (ADR-043 D3, front-fase1.md §3):
 /// `UNKNOWN → RESTORING → AUTHENTICATED | LOGGED_OUT`; `AUTHENTICATED → LOGGED_OUT` por logout o T-1;
@@ -17,10 +19,13 @@ enum ProfileStatus { none, loading, loaded, unavailable }
 /// sigue `AUTHENTICATED` con el perfil `unavailable` y una salida explícita: [reloadProfile] (DDM-08).
 /// Nunca toca el Outbox (H2: las entradas sobreviven al logout).
 class SessionController extends ChangeNotifier {
-  SessionController({required this.tokenStore, required this.authApi});
+  SessionController({required this.tokenStore, required this.authApi, this.profileStore = const NoProfileStore()});
 
   final TokenStore tokenStore;
   final AuthApi authApi;
+
+  /// Perfil de la sesión recordada, para entrar sin conexión (Enmienda 4, S1).
+  final ProfileStore profileStore;
 
   SessionState _state = const SessionState.unknown();
 
@@ -98,12 +103,29 @@ class SessionController extends ChangeNotifier {
   Future<void> _loadProfileAfterToken() async {
     try {
       final me = await authApi.me();
+      if (_remember) await _quietly(() => profileStore.write(me));
       _set(const SessionState.authenticated(), principal: Principal.fromMe(me), profile: ProfileStatus.loaded);
     } on UnauthorizedException {
       // T-1 ya limpió el token (AuthResponseHandler) y llamó a onUnauthorized.
       if (_state.status != SessionStatus.loggedOut) _set(const SessionState.loggedOut());
+    } on TransportException {
+      // Sin red: con el perfil guardado de la sesión recordada, se entra igual (Enmienda 4, S1).
+      final saved = _remember ? await profileStore.read() : null;
+      _set(
+        const SessionState.authenticated(),
+        principal: saved == null ? null : Principal.fromMe(saved),
+        profile: saved == null ? ProfileStatus.unavailable : ProfileStatus.offline,
+      );
     } on AppException {
       _set(const SessionState.authenticated(), profile: ProfileStatus.unavailable);
+    }
+  }
+
+  static Future<void> _quietly(Future<void> Function() body) async {
+    try {
+      await body();
+    } on Object {
+      // el almacén no es imprescindible para seguir con la sesión
     }
   }
 
@@ -121,11 +143,13 @@ class SessionController extends ChangeNotifier {
   /// Logout manual. No decide nada sobre el Outbox (invariante 4 de §10; H2).
   Future<void> logout() async {
     await tokenStore.clearToken();
+    await _quietly(profileStore.clear);
     _set(const SessionState.loggedOut());
   }
 
   /// T-1: lo invoca [AuthResponseHandler] tras limpiar el token.
   void onUnauthorized() {
+    _quietly(profileStore.clear);
     if (_state.status == SessionStatus.loggedOut) return;
     _set(const SessionState.loggedOut());
   }

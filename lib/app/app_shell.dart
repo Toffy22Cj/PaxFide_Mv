@@ -73,12 +73,19 @@ class AppShell extends StatelessWidget {
           title: Text(title),
           actions: [...?actions, const TextSizeButton(), const ThemeModeButton()],
         );
-        final banner = services.session.profileStatus == ProfileStatus.unavailable
-            ? MaterialBanner(
-                content: const Text('No pudimos cargar tu perfil. Algunas opciones no se muestran.'),
-                actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],
-              )
-            : null;
+        final banner = switch (services.session.profileStatus) {
+          ProfileStatus.unavailable => MaterialBanner(
+            content: const Text('No pudimos cargar tu perfil. Algunas opciones no se muestran.'),
+            actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],
+          ),
+          // Enmienda 4, S1: sin red, con el perfil guardado
+          ProfileStatus.offline => MaterialBanner(
+            key: const Key('shell.offline'),
+            content: const Text('Sin conexión: trabajas con los datos guardados. Lo que hagas se enviará solo.'),
+            actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],
+          ),
+          _ => null,
+        };
         // M-03: deslizar a los lados cambia de pestaña (Escanear no, porque abre la cámara); en una pantalla que no
         // es pestaña (la ficha de un activo), deslizar hacia la derecha vuelve atrás.
         final swipeable = [

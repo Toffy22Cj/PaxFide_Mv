@@ -9,6 +9,7 @@ import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
+import '../features/auth/data/profile_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
@@ -44,7 +45,7 @@ AppServices buildServices({
       apiClientFactory?.call(tokenStore, handler) ??
       HttpApiClient(baseUrl: config.apiBaseUrl!, tokenStore: tokenStore, authResponseHandler: handler);
   final authApi = AuthApi(api);
-  session = SessionController(tokenStore: tokenStore, authApi: authApi);
+  session = SessionController(tokenStore: tokenStore, authApi: authApi, profileStore: SecureProfileStore(secureStore));
   final outboxStore = SecureOutboxStore(secureStore);
   final services = AppServices(
     config: config,
