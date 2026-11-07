@@ -53,7 +53,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
     return ListenableBuilder(
-      listenable: services.session,
+      listenable: Listenable.merge([services.session, services.offline]),
       builder: (context, _) {
         final destinations = _destinationsFor(services.session.principal);
         // Pendientes tiene su propia pestaña para el empleado; para el resto cuelga de Operaciones.
@@ -78,8 +78,8 @@ class AppShell extends StatelessWidget {
             content: const Text('No pudimos cargar tu perfil. Algunas opciones no se muestran.'),
             actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],
           ),
-          // Enmienda 4, S1: sin red, con el perfil guardado
-          ProfileStatus.offline => MaterialBanner(
+          // Enmienda 4, S1 y S2: sin red, con el perfil o las lecturas guardadas
+          _ when services.session.profileStatus == ProfileStatus.offline || services.offline.value => MaterialBanner(
             key: const Key('shell.offline'),
             content: const Text('Sin conexión: trabajas con los datos guardados. Lo que hagas se enviará solo.'),
             actions: [TextButton(onPressed: services.session.reloadProfile, child: const Text('Reintentar'))],

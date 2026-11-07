@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart' show TileProvider;
 
@@ -52,7 +53,9 @@ class AppServices {
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
     this.mapTileProvider,
-  }) : deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
+    ValueListenable<bool>? offline,
+  }) : offline = offline ?? ValueNotifier(false),
+       deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
        theme = theme ?? ThemeController(),
        campaignSearch = campaignSearch ?? PublicCampaignSearch(CampaignApi(apiClient)),
        impactSource = impactSource ?? ApiImpactSource(AccountImpactApi(apiClient)),
@@ -110,6 +113,9 @@ class AppServices {
 
   /// Catálogo DIVIPOLA del backend, para elegir el municipio al recibir y entregar (enmienda 2 de ADR-029).
   final LocationCatalogApi locationCatalog;
+
+  /// `true` mientras la app muestra datos guardados porque no hay red (Enmienda 4 de ADR-043, S2).
+  final ValueListenable<bool> offline;
 
   /// De dónde salen las teselas del mapa del recorrido (M-25): `null` = la red; en las pruebas, en memoria.
   final TileProvider? mapTileProvider;

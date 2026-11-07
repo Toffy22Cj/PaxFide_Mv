@@ -4,6 +4,7 @@ import '../core/links/link_opener.dart';
 import '../core/media/photo_picker.dart';
 import '../core/network/api_client.dart';
 import '../core/network/auth_response_handler.dart';
+import '../core/network/caching_api_client.dart';
 import '../core/network/http_api_client.dart';
 import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
@@ -41,9 +42,11 @@ AppServices buildServices({
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
   final handler = AuthResponseHandler(tokenStore: tokenStore, onSessionLoggedOut: () => session.onUnauthorized());
-  final api =
+  final network =
       apiClientFactory?.call(tokenStore, handler) ??
       HttpApiClient(baseUrl: config.apiBaseUrl!, tokenStore: tokenStore, authResponseHandler: handler);
+  // Enmienda 4 de ADR-043, S2: las lecturas se guardan para verlas sin conexión.
+  final api = CachingApiClient(network, secureStore, accountId: () => session.principal?.accountId);
   final authApi = AuthApi(api);
   session = SessionController(tokenStore: tokenStore, authApi: authApi, profileStore: SecureProfileStore(secureStore));
   final outboxStore = SecureOutboxStore(secureStore);
@@ -63,6 +66,7 @@ AppServices buildServices({
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
     mapTileProvider: mapTileProvider,
+    offline: api.offline,
     // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
     biometricAuthenticator:
         biometricAuthenticator ??
