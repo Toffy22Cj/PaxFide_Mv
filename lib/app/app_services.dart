@@ -20,6 +20,7 @@ import '../features/campaigns/domain/public_campaign_search.dart';
 import '../features/campaigns/domain/organization_verification.dart';
 import '../features/donations/data/account_impact_api.dart';
 import '../features/donations/domain/impact.dart';
+import '../features/donations/domain/donation_queue.dart';
 import '../features/donations/domain/receipt.dart';
 import '../shared/city/city_pause_controller.dart';
 import '../shared/location/location_catalog.dart';
@@ -130,9 +131,14 @@ class AppServices {
           await syncEngine.sendAll(account);
         }
       },
+      // S5: las donaciones guardadas sin conexión
+      () => donationQueue.sendAll(),
       ...extraSyncJobs,
     ],
   );
+
+  /// Donaciones guardadas en el teléfono (Enmienda 4 de ADR-043, S5). La crea `buildServices`.
+  late final DonationQueue donationQueue;
 
   /// Trabajos de envío automático que añaden las features (p. ej. las donaciones guardadas, S5).
   final List<Future<void> Function()> extraSyncJobs = [];

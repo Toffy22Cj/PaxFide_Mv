@@ -17,6 +17,8 @@ import '../core/storage/token_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/donations/data/donation_intent_api.dart';
+import '../features/donations/domain/donation_queue.dart';
 import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
 import '../shared/widgets/state_views.dart';
@@ -74,6 +76,11 @@ AppServices buildServices({
         (LocalAuthBiometricAuthenticator.supportedPlatform
             ? LocalAuthBiometricAuthenticator()
             : const UnavailableBiometricAuthenticator()),
+  );
+  services.donationQueue = DonationQueue(
+    secureStore,
+    DonationIntentApi(api),
+    sessionAccountId: () => session.principal?.accountId,
   );
   services.router = AppRouterDelegate(
     session: session,

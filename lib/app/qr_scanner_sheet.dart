@@ -188,7 +188,10 @@ class _ScannerSheetState extends State<_ScannerSheet> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(widget.employee ? 'Lote o convocatoria' : 'Convocatoria', style: theme.textTheme.labelMedium?.copyWith(color: muted)),
+            Text(
+              widget.employee ? 'Lote o convocatoria' : 'Convocatoria',
+              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            ),
             const SizedBox(height: 10),
             SizedBox(
               height: (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 320.0),

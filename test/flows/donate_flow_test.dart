@@ -314,6 +314,42 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200, scrollable: _homeList);
     expect(find.byKey(const Key('home.campaign.PUB1')), findsOneWidget);
   });
+
+  testWidgets('Enmienda 4, S5: sin red la donación se guarda; sale sola al volver la red y luego se paga y consulta', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    var online = false;
+    h.api.routes[createPath] = (_) => online ? created : const ConnectionNotEstablishedException();
+    await donate(tester, '50000');
+    expect(find.byKey(const Key('donate.savedOffline')), findsOneWidget);
+    expect(find.textContaining('se enviará sola'), findsOneWidget);
+    expect(h.secure.values.keys, contains('paxfide.donations.saved'));
+    final firstId = creates(h).single.headers['Command-Id'];
+
+    online = true;
+    await h.services.autoSync.run();
+    await tester.pumpAndSettle();
+    expect(creates(h).map((c) => c.headers['Command-Id']).toSet(), {firstId}, reason: 'mismo Command-Id');
+    expect(h.secure.values['paxfide.donations.saved'], contains('TOKEN-SECRETO'), reason: 'statusToken cifrado (S5)');
+
+    // Sin cuenta: la encuentra en «Seguir una donación»
+    Navigator.of(tester.element(find.byKey(const Key('donate.savedOffline')))).pop();
+    await tester.pumpAndSettle();
+    h.services.router.push('/tracking');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('saved.donations')), findsOneWidget);
+    expect(find.byKey(Key('saved.pay.$firstId')), findsOneWidget);
+
+    h.api.routes['GET /public/donation-intents/int-1'] = (_) =>
+        const ApiResponse(statusCode: 200, data: {'status': 'CONFIRMED', 'trackingCode': 'CODIGO-NUEVO'});
+    await tester.ensureVisible(find.byKey(Key('saved.status.$firstId')));
+    await tester.tap(find.byKey(Key('saved.status.$firstId')));
+    await tester.pumpAndSettle();
+    expect(find.text('CODIGO-NUEVO'), findsOneWidget);
+    expect(h.api.calls.last.headers['Intent-Token'], 'TOKEN-SECRETO');
+    expect(h.secure.values.values.join(), isNot(contains('CODIGO-NUEVO')), reason: 'el código no se guarda (§0)');
+  });
 }
 
 /// La lista de Inicio (la tarjeta de seguimiento tiene su propio campo de texto, que también se desplaza).

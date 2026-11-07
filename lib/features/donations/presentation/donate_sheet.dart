@@ -14,6 +14,7 @@ import '../../auth/domain/session_state.dart';
 import '../../campaigns/data/campaign_api.dart';
 import '../data/donation_intent_api.dart';
 import '../domain/donation_flow.dart';
+import '../domain/donation_queue.dart';
 import '../domain/payment_link.dart';
 import 'my_donations_screen.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
@@ -66,7 +67,7 @@ class _DonateSheetState extends State<DonateSheet> {
   bool _busy = false;
   bool _registered = false;
 
-  bool get _hasState => _attempt?.intent != null || _amount.text.isNotEmpty;
+  bool get _hasState => !_savedOffline && (_attempt?.intent != null || _amount.text.isNotEmpty);
 
   @override
   void didChangeDependencies() {
@@ -117,6 +118,26 @@ class _DonateSheetState extends State<DonateSheet> {
     final withAccount = _services.session.state.status == SessionStatus.authenticated;
     final (outcome, status) = await _flow.create(attempt, withAccount: withAccount);
     if (!mounted) return;
+    // Enmienda 4 de ADR-043, S5: sin red, la donación se guarda en el teléfono y se envía sola (mismo Command-Id).
+    if (outcome == CommandOutcome.notSent) {
+      await _services.donationQueue.save(
+        SavedDonation(
+          commandId: attempt.commandId,
+          publicCode: attempt.publicCode,
+          campaignTitle: widget.campaign?.title ?? '',
+          amount: attempt.amount,
+          currency: attempt.currency,
+          accountId: withAccount ? _services.session.principal?.accountId : null,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _savedOffline = true;
+      });
+      return;
+    }
     setState(() {
       _busy = false;
       _outcome = outcome;
@@ -124,6 +145,9 @@ class _DonateSheetState extends State<DonateSheet> {
       if (outcome == CommandOutcome.failed) _attempt = null; // un rechazo se rehace con otro Command-Id
     });
   }
+
+  /// La donación quedó guardada en el teléfono por falta de red (S5).
+  bool _savedOffline = false;
 
   /// El botón «Consultar estado del pago»: de ahí sale el círculo del agradecimiento.
   final _refreshKey = GlobalKey();
@@ -249,6 +273,7 @@ class _DonateSheetState extends State<DonateSheet> {
                   Text(_titles[step]!, style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 8),
                   ...switch (step) {
+                    _ when _savedOffline => _savedStep(theme),
                     1 => _amountStep(theme),
                     2 => _payStep(theme),
                     3 => _statusStep(theme),
@@ -289,6 +314,22 @@ class _DonateSheetState extends State<DonateSheet> {
       ),
     );
   }
+
+  /// S5: guardada sin conexión.
+  List<Widget> _savedStep(ThemeData theme) => [
+    const NoticeBanner(
+      'Sin conexión: tu donación quedó guardada en el teléfono y se enviará sola cuando vuelva la señal. Después '
+      'podrás pagarla desde «Donaciones guardadas en este teléfono» (en Mis donaciones o en Seguir una donación).',
+      tone: Tone.info,
+      textKey: Key('donate.savedOffline'),
+    ),
+    const SizedBox(height: 14),
+    FilledButton(
+      key: const Key('donate.savedOffline.close'),
+      onPressed: () => Navigator.of(context).pop(),
+      child: const Text('Listo'),
+    ),
+  ];
 
   List<Widget> _amountStep(ThemeData theme) {
     final c = widget.campaign;
@@ -349,10 +390,6 @@ class _DonateSheetState extends State<DonateSheet> {
           'No pudimos confirmar si se creó la donación. Reintentar es seguro: se usa la misma operación.',
           textKey: Key('donate.ambiguous'),
         ),
-      ],
-      if (_outcome == CommandOutcome.notSent) ...[
-        const SizedBox(height: 10),
-        const NoticeBanner('Sin conexión con el servidor. No se envió nada.', tone: Tone.info),
       ],
       if (toMinorUnits(_amount.text, widget.currency) case final minor?) ...[
         const SizedBox(height: 12),

@@ -18,6 +18,7 @@ import '../data/tracking_api.dart';
 import '../domain/tracking_map.dart';
 import '../domain/tracking_story.dart';
 import 'tracking_map_view.dart';
+import '../../donations/presentation/saved_donations_section.dart';
 import 'tracking_story_view.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/motion/pax_route.dart';
@@ -297,6 +298,8 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
           child: Text(_loading ? 'Ver seguimiento…' : 'Ver seguimiento'),
         ),
         const SizedBox(height: 12),
+        // S5: las donaciones guardadas en este teléfono (también las hechas sin cuenta)
+        const Padding(padding: EdgeInsets.only(bottom: 12), child: SavedDonationsSection()),
         Text(
           'El código solo se escribe o se pega aquí. No aparece en un QR.',
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),

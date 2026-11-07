@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
+import 'saved_donations_section.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
@@ -106,6 +107,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         onRefresh: _load,
         child: ListView(
           children: const [
+            Padding(padding: EdgeInsets.all(16), child: SavedDonationsSection()),
             SizedBox(height: 80),
             MessageView(
               icon: Icons.favorite_outline,
@@ -141,6 +143,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          const SavedDonationsSection(),
           _SummaryCard(items),
           const SizedBox(height: 12),
           // M-15: filtros por estado del pago.
