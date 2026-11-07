@@ -32,32 +32,6 @@ class FinancialSnapshot {
   final String? lastClearedAt;
 }
 
-/// ADR-052 D2: el punto de la zona pública (WGS84). Nunca el de un lugar exacto ni el del teléfono.
-class ZonePoint {
-  const ZonePoint(this.latitude, this.longitude);
-  final double latitude;
-  final double longitude;
-
-  /// `null` si falta, no es un objeto con los dos números o se sale de rango: nunca un punto inventado.
-  static ZonePoint? parse(Object? v) {
-    if (v is! Map) return null;
-    final lat = v['latitude'], lon = v['longitude'];
-    if (lat is! num || lon is! num) return null;
-    final la = lat.toDouble(), lo = lon.toDouble();
-    if (!la.isFinite || !lo.isFinite || la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-    return ZonePoint(la, lo);
-  }
-
-  @override
-  bool operator ==(Object other) => other is ZonePoint && other.latitude == latitude && other.longitude == longitude;
-
-  @override
-  int get hashCode => Object.hash(latitude, longitude);
-
-  @override
-  String toString() => 'ZonePoint($latitude, $longitude)';
-}
-
 class LogisticsItem {
   const LogisticsItem({
     required this.assetRef,
@@ -68,7 +42,6 @@ class LogisticsItem {
     required this.locationZone,
     required this.custodianCategory,
     this.parentAssetRef,
-    this.zonePoint,
   });
   final String assetRef;
   final String lifecycleStatus;
@@ -80,9 +53,6 @@ class LogisticsItem {
 
   /// Lote del que salió este sublote (G-4): siempre otro ítem de la misma lista; si no, falta.
   final String? parentAssetRef;
-
-  /// Punto de [locationZone] (ADR-052 D2); falta sin zona o sin coordenadas en el catálogo.
-  final ZonePoint? zonePoint;
 }
 
 /// `GET /donations/tracking` (EF3). Sin `donorRef` ni datos personales: no vienen. `campaignRef` no se expone.
@@ -132,7 +102,6 @@ class HistoryEntry {
     this.anchorProof,
     this.evidenceRegistered,
     this.evidenceRef,
-    this.zonePoint,
   });
   final String eventType;
   final String timestamp;
@@ -152,9 +121,6 @@ class HistoryEntry {
 
   /// Solo en la entrega y solo con la forma `sha256:<64 hex>`.
   final String? evidenceRef;
-
-  /// Punto de [locationZone] (ADR-052 D2); falta en los pasos sin zona (p. ej. el despacho) o sin coordenadas.
-  final ZonePoint? zonePoint;
 }
 
 /// Un lote de anclaje con eventos de esta donación (`GET /donations/tracking/integrity`, P4).
@@ -259,7 +225,6 @@ class TrackingApi {
               locationZone: l['locationZone'] is String ? l['locationZone'] as String : '',
               custodianCategory: l['custodianCategory'] is String ? l['custodianCategory'] as String : '',
               parentAssetRef: _opt(l, 'parentAssetRef'),
-              zonePoint: ZonePoint.parse(l['zonePoint']),
             ),
       ],
       status: j['status'] is String ? j['status'] as String : null,
@@ -297,7 +262,6 @@ class TrackingApi {
             evidenceRef: e['evidenceRef'] is String && _evidence.hasMatch(e['evidenceRef'] as String)
                 ? e['evidenceRef'] as String
                 : null,
-            zonePoint: ZonePoint.parse(e['zonePoint']),
           ),
     ];
   }

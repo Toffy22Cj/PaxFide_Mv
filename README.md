@@ -14,7 +14,7 @@ La app no trae hosts por defecto. Se configura al compilar con un fichero JSON (
 |---|---|
 | `PAXFIDE_API_BASE_URL` | Base de la API, terminada en `/api/v1` |
 | `PAXFIDE_PUBLIC_BASE_URL` | Origen de los enlaces y QR, el mismo que usa la web. Sin él, el escáner no aprueba ningún enlace y no se generan QR |
-| `PAXFIDE_MAP_TILE_URL` | Teselas del mapa del recorrido (M-25, ADR-052), con `{z}`, `{x}` y `{y}`. En desarrollo, `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Sin ella no hay mapa. **Producción necesita un proveedor de teselas**: las públicas de OpenStreetMap no admiten ese tráfico |
+| `PAXFIDE_MAP_TILE_URL` | Teselas del mapa del recorrido (M-25, ADR del mapa), con `{z}`, `{x}` y `{y}`. En desarrollo, `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Sin ella no hay mapa. **Producción necesita un proveedor de teselas**: las públicas de OpenStreetMap no admiten ese tráfico |
 
 ```bash
 cp config/dev.example.json config/dev.json       # escritorio y backend local

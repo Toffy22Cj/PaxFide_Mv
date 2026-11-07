@@ -6,9 +6,10 @@ import 'package:paxfide_mobile/core/network/api_response.dart';
 
 import '../support/app_harness.dart';
 
-/// M-25, mapa del recorrido (ADR-052): el punto de la zona pública de cada paso, bajo el árbol del seguimiento.
-const _ctg = {'latitude': 10.3932, 'longitude': -75.4832};
-const _baq = {'latitude': 10.9639, 'longitude': -74.7964};
+/// M-25, mapa del recorrido (ADR del mapa): la zona sellada de cada paso, como la da el backend (texto DIVIPOLA, sin
+/// coordenadas), se dibuja con la tabla de zonas de la app, bajo el árbol del seguimiento.
+const _ctg = 'CARTAGENA DE INDIAS, BOLÍVAR';
+const _baq = 'BARRANQUILLA, ATLÁNTICO';
 
 ApiResponse _summary({bool withPoint = true}) => ApiResponse(
   statusCode: 200,
@@ -28,33 +29,32 @@ ApiResponse _summary({bool withPoint = true}) => ApiResponse(
         'assetType': 'BLANKET',
         'unitOfMeasure': 'UNITS',
         'quantity': '6',
-        'locationZone': 'Barranquilla, Atlántico',
+        'locationZone': withPoint ? _baq : 'centro-1',
         'custodianCategory': 'LAST_MILE_CARRIER',
-        'zonePoint': ?(withPoint ? _baq : null),
       },
     ],
     'status': 'EN_PROCESO',
   },
 );
 
-Map<String, Object?> _step(String type, String status, String? zone, Map<String, double>? point) => {
+Map<String, Object?> _step(String type, String status, String? zone) => {
   'eventType': type,
-  'timestamp': '2026-10-21T10:00:00Z',
+  'timestamp': '2026-11-03T10:00:00Z',
   'locationZone': ?zone,
   'custodianCategory': 'UNCATEGORIZED',
   'status': status,
   'anchorStatus': 'PENDING',
-  'zonePoint': ?point,
 };
 
 ApiResponse _history({bool withPoints = true}) => ApiResponse(
   statusCode: 200,
   data: {
     'history': [
-      _step('ASSET_REGISTERED', 'REGISTERED', 'Cartagena, Bolívar', withPoints ? _ctg : null),
-      _step('ASSET_DISPATCHED', 'DISPATCHED', null, null),
-      _step('ASSET_RECEIVED', 'RECEIVED', 'Barranquilla, Atlántico', withPoints ? _baq : null),
-      _step('ASSET_DELIVERED', 'DELIVERED', 'Barranquilla, Atlántico', withPoints ? _baq : null),
+      // Como develop: la zona sellada en cada paso; el despacho, con la del paso anterior.
+      _step('ASSET_REGISTERED', 'REGISTERED', withPoints ? _ctg : 'bodega-central'),
+      _step('ASSET_DISPATCHED', 'DISPATCHED', withPoints ? _ctg : null),
+      _step('ASSET_RECEIVED', 'RECEIVED', withPoints ? _baq : 'centro-1'),
+      _step('ASSET_DELIVERED', 'DELIVERED', withPoints ? _baq : 'centro-1'),
     ],
   },
 );
@@ -91,17 +91,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('dibuja las paradas del lote en orden, sin el despacho, con línea y la atribución de OSM', (
-    tester,
-  ) async {
+  testWidgets('dibuja las paradas del lote en orden, con línea y la atribución de OSM', (tester) async {
     final h = await follow(tester);
     await toMap(tester);
     expect(find.byType(FlutterMap), findsOneWidget);
-    // Cartagena (registro) y Barranquilla (recepción y entrega unidas): dos paradas, dos marcadores, una línea
+    // Cartagena (registro y despacho unidos) y Barranquilla (recepción y entrega unidas): dos paradas, una línea
     expect(find.byKey(const Key('tracking.map.stop.0.0')), findsOneWidget);
     expect(find.byKey(const Key('tracking.map.stop.0.1')), findsOneWidget);
     expect(find.byKey(const Key('tracking.map.stop.0.2')), findsNothing);
-    expect(find.textContaining('Cartagena, Bolívar'), findsWidgets);
+    expect(find.textContaining('CARTAGENA DE INDIAS, BOLÍVAR'), findsWidgets);
+    expect(find.textContaining('Registrado · Despachado'), findsOneWidget);
     expect(find.textContaining('Recibido · Entregado · última parada'), findsOneWidget);
     expect(tester.widget<PolylineLayer>(find.byType(PolylineLayer)).polylines.single.points, hasLength(2));
     expect(tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers, hasLength(2));
@@ -112,13 +111,15 @@ void main() {
     expect(h.services.router.stack.join(), isNot(contains('CODIGO-MAPA')));
   });
 
-  testWidgets('sin teselas configuradas no hay mapa (ADR-052 D5)', (tester) async {
+  testWidgets('sin teselas configuradas no hay mapa (ADR del mapa, D4)', (tester) async {
     await follow(tester, map: false);
     expect(find.byKey(const Key('tracking.map'), skipOffstage: false), findsNothing);
     expect(find.byType(FlutterMap, skipOffstage: false), findsNothing);
   });
 
-  testWidgets('sin ningún punto en el recorrido no hay mapa: la línea de tiempo sigue igual', (tester) async {
+  testWidgets('con zonas que no están en la tabla (texto libre antiguo) no hay mapa: la línea de tiempo sigue igual', (
+    tester,
+  ) async {
     await follow(tester, points: false);
     expect(find.byKey(const Key('tracking.map'), skipOffstage: false), findsNothing);
     expect(find.text('Historia de tu donación'), findsOneWidget);

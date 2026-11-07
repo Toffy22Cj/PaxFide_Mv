@@ -65,6 +65,7 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadZones();
     final code = widget.initialCode;
     if (code == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _autoPaste());
@@ -399,7 +400,7 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
         const SizedBox(height: 8),
         rise(columnTag('Recorrido', theme.colorScheme.primary)),
         rise(TrackingTree(items: s.logistics, payment: payment, histories: _histories, onRetry: _loadHistory)),
-        // M-25 (ADR-052 D5): el mapa bajo el árbol, solo con teselas configuradas y algún paso con punto.
+        // M-25 (ADR del mapa, D4): el mapa bajo el árbol, solo con teselas configuradas y algún paso con punto.
         if (_mapRoutes(s) case final routes when routes.isNotEmpty) ...[
           if (AppScope.of(context).config.mapTileUrl case final tiles?) ...[
             const SizedBox(height: 12),
@@ -459,14 +460,33 @@ class _TrackingScreenState extends State<TrackingScreen> with WidgetsBindingObse
     );
   }
 
-  /// Los recorridos del mapa: con el historial ya cargado, sus paradas; si no, el punto actual del lote.
-  List<MapRoute> _mapRoutes(TrackingSummary s) => routesFor(
-    s.logistics,
-    (ref) => switch (_histories[ref]) {
-      HistoryReady(:final entries) => entries,
-      _ => null,
-    },
-  );
+  /// La tabla de zonas de la app, leída una vez por apertura (M-25).
+  static ZonePoints? _zoneTable;
+  ZonePoints? _zones = _zoneTable;
+
+  Future<void> _loadZones() async {
+    if (_zones != null) return;
+    try {
+      final zones = _zoneTable = ZonePoints.parse(await rootBundle.loadString('assets/map/zonas.json'));
+      if (mounted) setState(() => _zones = zones);
+    } on Object {
+      // sin tabla no hay mapa; la línea de tiempo sigue igual
+    }
+  }
+
+  /// Los recorridos del mapa: con el historial ya cargado, sus paradas; si no, la zona actual del lote.
+  List<MapRoute> _mapRoutes(TrackingSummary s) {
+    final zones = _zones;
+    if (zones == null) return const [];
+    return routesFor(
+      s.logistics,
+      (ref) => switch (_histories[ref]) {
+        HistoryReady(:final entries) => entries,
+        _ => null,
+      },
+      zones,
+    );
+  }
 
   Widget _integrityCard(BuildContext context) {
     final i = _integrity;

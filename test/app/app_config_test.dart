@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_config.dart';
 
 void main() {
-  group('PAXFIDE_MAP_TILE_URL (ADR-052 D5): sin una plantilla válida, no hay mapa', () {
+  group('PAXFIDE_MAP_TILE_URL (ADR del mapa, D4): sin una plantilla válida, no hay mapa', () {
     test('https u http con host y las tres variables', () {
       expect(
         AppConfig.tileTemplate(' https://tile.openstreetmap.org/{z}/{x}/{y}.png '),

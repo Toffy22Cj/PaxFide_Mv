@@ -4,7 +4,7 @@
 ///   backend local del `runbook-demo-local.md`).
 /// - `PAXFIDE_PUBLIC_BASE_URL`: origen canónico de los enlaces y QR, igual que la web (DDM-03). Sin él, el escáner
 ///   no aprueba ningún enlace y no se generan QR.
-/// - `PAXFIDE_MAP_TILE_URL`: plantilla de las teselas del mapa del recorrido (ADR-052 D5), con `{z}`, `{x}` y `{y}`,
+/// - `PAXFIDE_MAP_TILE_URL`: plantilla de las teselas del mapa del recorrido (ADR del mapa, D4), con `{z}`, `{x}` y `{y}`,
 ///   p. ej. `https://tile.openstreetmap.org/{z}/{x}/{y}.png` en desarrollo. Sin ella, el mapa no se muestra.
 ///   Producción necesita un proveedor de teselas: las públicas de OpenStreetMap no admiten ese tráfico.
 class AppConfig {

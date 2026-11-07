@@ -43,7 +43,7 @@ dependencies:
   url_launcher: ^6.3.1
   screen_brightness: ^2.1.1
   image_picker: ^1.2.4
-  # ADR-052 D5 (enmienda de ADR-043 A2/D12): mapa del recorrido (M-25) sobre OpenStreetMap, sin geolocalización.
+  # ADR del mapa, D4 (enmienda de ADR-043 A2/D12): mapa del recorrido (M-25) sobre OpenStreetMap, sin geolocalización.
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
 
@@ -73,6 +73,8 @@ flutter:
   # Logo oficial (M-35).
   assets:
     - assets/images/
+    # Punto de cada zona pública DIVIPOLA para el mapa del recorrido (M-25): scripts/generar_zonas_mapa.py.
+    - assets/map/zonas.json
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

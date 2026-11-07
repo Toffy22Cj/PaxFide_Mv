@@ -5,10 +5,10 @@ import 'package:latlong2/latlong.dart';
 import '../domain/tracking_map.dart';
 import '../domain/tracking_story.dart';
 
-/// Identificador de la app en las peticiones de teselas (política de uso de las teselas de OpenStreetMap, ADR-052 D5).
+/// Identificador de la app en las peticiones de teselas (política de uso de las teselas de OpenStreetMap, ADR del mapa, D4).
 const mapUserAgentPackage = 'com.paxfide.mobile';
 
-/// Mapa del recorrido (M-25, ADR-052 D5): las paradas de cada lote sobre la zona pública de cada paso, unidas por una
+/// Mapa del recorrido (M-25, ADR del mapa, D4): las paradas de cada lote sobre la zona pública de cada paso, unidas por una
 /// línea, con la última parada resaltada. Nunca la ubicación del teléfono (D3). No sustituye a la línea de tiempo,
 /// que sigue siendo la fuente de la verdad; sin conexión, las paradas y la línea se ven igual, con un aviso.
 class TrackingMapView extends StatefulWidget {

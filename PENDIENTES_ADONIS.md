@@ -1,14 +1,15 @@
 # Pendientes de Adonis (app móvil)
 
-Rama `chore/landing-bienvenida-movil`, al día 2026-11-02. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
+Rama `chore/landing-bienvenida-movil`, al día 2026-11-07. `flutter analyze` limpio y la suite completa en verde (evidencia en `Documentos/evidencia-mobile/`).
 
 Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que no dependen de un ADR sin aprobar o de un contrato que no existe. El detalle está en la §6 y la §7 de la Enmienda 2 de ADR-043. Lo último (2026-10-28): términos y condiciones, recuperar y cambiar la contraseña, correo y nombre en Cuenta, desactivar la cuenta, Mi impacto, entregar con foto, integridad visible con sello y huella por paso, y el tipo del activo en la ficha. El 2026-10-29: la app sigue a la web en Inicio (con la ciudad), la tarjeta de convocatoria, el seguimiento, los primeros pasos, Mis donaciones, las cargas y las transiciones (§8 de la Enmienda 2).
 
-## Hechas el 2026-11-02 (correcciones del primer bloque y mapa)
+## Hechas el 2026-11-02 y el 2026-11-07 (correcciones del primer bloque, mapa y municipio)
 
 | ID | Qué | Dónde |
 |---|---|---|
-| M25 | Mapa del recorrido: ADR-052 (sustituye al borrador ADR-050, cuyo número es «Cuenta y sesiones»); `zonePoint` en el seguimiento del backend; `flutter_map` + `latlong2` bajo el árbol del seguimiento | `lib/features/tracking/presentation/tracking_map_view.dart`, `domain/tracking_map.dart`; backend: `location_reference` con coordenadas de la zona pública |
+| M25 | Mapa del recorrido (2026-11-07): `ADR-mapa-del-recorrido.md` (número por asignar). La app se adapta al backend: dibuja la zona sellada de cada paso (`locationZone`, enmienda 2 de ADR-029) con su tabla de zonas (`assets/map/zonas.json`, generada con `scripts/generar_zonas_mapa.py` desde el catálogo DIVIPOLA del backend y las coordenadas del DANE). Sin cambios en el backend | `lib/features/tracking/presentation/tracking_map_view.dart`, `domain/tracking_map.dart` |
+| — | Recibir y Entregar piden el municipio (DIVIPOLA): `develop` del backend lo exige desde el 2026-11-02 (enmienda 2 de ADR-029; sin él, 400) | `field_action_flow.dart`, `shared/location/` |
 | M28 | Biometría sobre `develop` del backend (fusionada en la rama de trabajo del backend) y con las reglas del login: `EmailNotVerified` y `AcceptanceRequired` también al entrar con la huella | `lib/features/auth/biometrics/biometric_login.dart`, `login_screen.dart` |
 | — | Correo sin confirmar en el login (403 `EmailNotVerified`, ADR-050 Enmienda 2) con «Reenviar el correo de confirmación»; el registro ya no dice «Ya puedes entrar» | `login_screen.dart`, `register_screen.dart`, `auth_api.dart` |
 | C1 | Cuenta del donante sin la tarjeta de invitación (es de la E-12 del empleado) | `account_screen.dart` |
@@ -25,7 +26,7 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 |---|---|---|
 | C4b | Cuenta del empleado: el nombre (y el logo) de su organización en vez de «Perteneces a una organización» | El backend no da el nombre al `EMPLOYEE` (`GET /organizations/{id}` le da 403; el logo sí lo puede leer). Pedir a Manuel una lectura del nombre de la propia organización para cualquier miembro |
 | — | Escanear el código de seguimiento o sacarlo de un QR/enlace | Necesita una enmienda de ADR-043 §0 (Carlos): hoy el parser descarta el código a propósito |
-| — | ADR-052: falta la firma de quien lo aprueba en nombre del equipo | Escribirla en el `Status` del ADR (backend y copia del móvil) |
+| — | ADR del mapa: falta la firma de quien lo aprueba en nombre del equipo y reservar su número en el catálogo del backend | Escribirla en el `Estado` de `ADR-mapa-del-recorrido.md` |
 | — | Mapa en producción | Contratar o montar un proveedor de teselas y ponerlo en `PAXFIDE_MAP_TILE_URL` |
 
 ## Hechas en la app, esperando backend
