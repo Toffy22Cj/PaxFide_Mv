@@ -24,7 +24,8 @@ class OutboxOperationNotAllowedException extends AppException {
 /// | `ACKNOWLEDGED` | terminal: se retira |
 ///
 /// Invariantes:
-/// - Nunca envía por su cuenta: no hay temporizadores ni reintentos automáticos. Solo [send] lo hace.
+/// - Solo [send] envía. [sendAll] lo llama el envío automático (`AutoSync`, Enmienda 4 de ADR-043, S3) cuando hay
+///   red, con el mismo `commandId` de cada entrada.
 /// - `IN_FLIGHT` nunca vuelve a `PENDING`. Si la conexión no llega a abrirse, la entrada no pasa por `IN_FLIGHT`.
 /// - H2: cada operación recibe el `accountId` de la sesión y solo actúa sobre entradas de esa cuenta; las demás
 ///   ni se ven ni se envían. Un logout no borra nada.
@@ -113,6 +114,35 @@ class SyncEngine extends ChangeNotifier {
       _sending.remove(commandId);
       notifyListeners();
     }
+  }
+
+  /// Envío automático (Enmienda 4 de ADR-043, S3): manda, de la más antigua a la más reciente, las entradas de
+  /// [accountId] en `PENDING` o `AMBIGUOUS`, cada una con su **mismo** `commandId` (el backend responde igual a un
+  /// reenvío y no duplica). Se detiene en cuanto una no sale (sin red). `FAILED` no se toca: espera a la persona.
+  /// Devuelve cuántas quedaron confirmadas.
+  Future<int> sendAll(String accountId) async {
+    final List<OutboxItem> due;
+    try {
+      due = (await entriesFor(accountId))
+          .where((i) => i.status == OutboxStatus.pending || i.status == OutboxStatus.ambiguous)
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } on AppException {
+      return 0; // almacén ilegible: no se toca (lo muestra Pendientes)
+    }
+    var acknowledged = 0;
+    for (final item in due) {
+      if (_sending.contains(item.commandId)) continue;
+      final CommandOutcome outcome;
+      try {
+        outcome = await send(item.commandId, accountId);
+      } on OutboxOperationNotAllowedException {
+        continue; // cambió de estado mientras tanto
+      }
+      if (outcome == CommandOutcome.notSent) break;
+      if (outcome == CommandOutcome.acknowledged) acknowledged++;
+    }
+    return acknowledged;
   }
 
   /// "Verificar estado" de una entrada `AMBIGUOUS`. [observedMatchesExpected] es la comprobación de la feature

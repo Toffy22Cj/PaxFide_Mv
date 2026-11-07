@@ -38,5 +38,6 @@ void main() {
   }
   final services = buildServices(config: config, secureStore: const FlutterSecureKeyValueStore());
   runApp(PaxFideApp(services: services));
-  startServices(services);
+  // Enmienda 4 de ADR-043, S3: lo guardado sin conexión se envía solo cuando vuelve la red.
+  startServices(services).whenComplete(services.autoSync.start);
 }

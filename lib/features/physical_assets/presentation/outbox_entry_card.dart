@@ -50,7 +50,7 @@ class OutboxEntryCard extends StatelessWidget {
       OutboxStatus.pending => (
         Icons.schedule,
         'Pendiente de enviar',
-        'Guardada en este dispositivo. No se ha enviado.',
+        'Guardada en este dispositivo. Se enviará sola cuando haya conexión.',
         [
           FilledButton(
             key: Key('outbox.send.${item.commandId}'),
@@ -63,7 +63,7 @@ class OutboxEntryCard extends StatelessWidget {
       OutboxStatus.ambiguous => (
         Icons.help_outline,
         'No pudimos confirmar la operación',
-        'Puede que haya quedado registrada. Verifica el estado; no se vuelve a enviar sola.',
+        'Puede que haya quedado registrada. Se reenvía sola con el mismo envío (sin duplicarse); también puedes verificar el estado.',
         [
           FilledButton(
             key: Key('outbox.verify.${item.commandId}'),

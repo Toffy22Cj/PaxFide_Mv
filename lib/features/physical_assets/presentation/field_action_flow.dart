@@ -522,7 +522,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       CommandOutcome.notSent => (
         Icons.save_alt,
         'Guardado en el teléfono',
-        'No hay conexión. La operación quedó guardada; envíala desde Pendientes cuando vuelvas a tener señal.',
+        'No hay conexión. La operación quedó guardada en el teléfono y se enviará sola cuando vuelva la señal.',
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
       ),

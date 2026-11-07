@@ -189,7 +189,7 @@ void main() {
     expect(stored.status, OutboxStatus.pending);
     expect(stored.accountId, 'acc-1');
     expect(find.text('Pendiente de enviar'), findsOneWidget);
-    expect(find.text('Guardada en este dispositivo. No se ha enviado.'), findsOneWidget);
+    expect(find.text('Guardada en este dispositivo. Se enviará sola cuando haya conexión.'), findsOneWidget);
     expect(find.byKey(const Key('asset.action')), findsNothing, reason: 'no se apila otra operación');
 
     h.api.enqueue(const ApiResponse(statusCode: 200, data: {}));
@@ -198,5 +198,38 @@ void main() {
     expect(await SecureOutboxStore(h.secure).getAllItems(), isEmpty);
     final sent = h.api.calls.where((c) => c.method == 'POST').last;
     expect(sent.headers['Command-Id'], stored.commandId, reason: 'el envío posterior usa el mismo Command-Id');
+  });
+
+  testWidgets('Enmienda 4, S3: lo guardado sin conexión se envía solo al volver la red, con el mismo Command-Id', (
+    tester,
+  ) async {
+    final h = await start(tester);
+    h.services.router.push('/assets/A-1');
+    await tester.pumpAndSettle();
+    h.api.enqueue(const ConnectionNotEstablishedException());
+    await tester.tap(find.byKey(const Key('asset.action')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
+    await tester.tap(find.byKey(const Key('form.submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('review.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('se enviará sola'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('result.close')));
+    await tester.pumpAndSettle();
+    final stored = (await SecureOutboxStore(h.secure).getAllItems()).single;
+
+    // Sin red, una ronda automática no cambia nada
+    h.api.enqueue(const ConnectionNotEstablishedException());
+    await h.services.autoSync.run();
+    expect((await SecureOutboxStore(h.secure).getAllItems()).single.status, OutboxStatus.pending);
+
+    // Con red, sale sola
+    h.api.enqueue(const ApiResponse(statusCode: 200, data: {}));
+    await h.services.autoSync.run();
+    await tester.pumpAndSettle();
+    expect(await SecureOutboxStore(h.secure).getAllItems(), isEmpty);
+    final sent = h.api.calls.where((c) => c.method == 'POST' && c.path.endsWith('/dispatch')).toList();
+    expect(sent.map((c) => c.headers['Command-Id']).toSet(), {stored.commandId});
   });
 }

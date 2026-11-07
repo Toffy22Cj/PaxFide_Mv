@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart' show TileProvider;
 import '../core/links/link_opener.dart';
 import '../core/media/photo_picker.dart';
 import '../core/network/api_client.dart';
+import '../core/offline/auto_sync.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
@@ -12,6 +13,7 @@ import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/auth/domain/session_state.dart';
 import '../features/campaigns/data/campaign_api.dart';
 import '../features/campaigns/domain/campaign_search.dart';
 import '../features/campaigns/domain/public_campaign_search.dart';
@@ -113,6 +115,27 @@ class AppServices {
 
   /// Catálogo DIVIPOLA del backend, para elegir el municipio al recibir y entregar (enmienda 2 de ADR-029).
   final LocationCatalogApi locationCatalog;
+
+  /// Envío automático de lo guardado sin conexión (Enmienda 4 de ADR-043, S3). Lo arranca `main.dart`.
+  late final AutoSync autoSync = AutoSync(
+    jobs: [
+      // S1: con red otra vez, el perfil guardado se refresca
+      () async {
+        if (session.profileStatus == ProfileStatus.offline) await session.reloadProfile();
+      },
+      // S3: la cola de comandos de la cuenta
+      () async {
+        final account = session.principal?.accountId;
+        if (account != null && session.state.status == SessionStatus.authenticated) {
+          await syncEngine.sendAll(account);
+        }
+      },
+      ...extraSyncJobs,
+    ],
+  );
+
+  /// Trabajos de envío automático que añaden las features (p. ej. las donaciones guardadas, S5).
+  final List<Future<void> Function()> extraSyncJobs = [];
 
   /// `true` mientras la app muestra datos guardados porque no hay red (Enmienda 4 de ADR-043, S2).
   final ValueListenable<bool> offline;
