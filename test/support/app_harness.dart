@@ -58,6 +58,38 @@ class AppHarness {
       },
     );
     api.routeFirst.add('GET /account/impact');
+    // Catálogo DIVIPOLA (GET /public/locations): una muestra con los nombres tal cual el del backend.
+    api.routes['GET /public/locations'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'catalogVersion': 'test-sample',
+        'departments': [
+          {
+            'code': '08',
+            'name': 'ATLÁNTICO',
+            'municipalities': [
+              {'code': '08001', 'name': 'BARRANQUILLA'},
+              {'code': '08758', 'name': 'SOLEDAD'},
+            ],
+          },
+          {
+            'code': '11',
+            'name': 'BOGOTÁ, D.C.',
+            'municipalities': [
+              {'code': '11001', 'name': 'BOGOTÁ, D.C.'},
+            ],
+          },
+          {
+            'code': '13',
+            'name': 'BOLÍVAR',
+            'municipalities': [
+              {'code': '13001', 'name': 'CARTAGENA DE INDIAS'},
+            ],
+          },
+        ],
+      },
+    );
+    api.routeFirst.add('GET /public/locations');
     // Inicio también lee el catálogo de convocatorias.
     api.routes['GET /public/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
     api.routeFirst.add('GET /public/campaigns');

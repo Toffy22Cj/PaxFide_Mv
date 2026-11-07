@@ -10,7 +10,8 @@ class CommandField {
 }
 
 /// Comando de PhysicalAsset (`dispatch`/`receive`/`deliver`) listo para el Outbox: ruta y cuerpo exactos del
-/// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor).
+/// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor). Recibir y entregar
+/// llevan además el `municipalityCode` elegido del catálogo DIVIPOLA.
 ///
 /// Entregar lleva además el `evidenceRef` que devolvió la subida de la foto (ADR-051 F3): no se escribe a mano.
 class AssetCommand {
@@ -31,13 +32,21 @@ class AssetCommand {
     ],
   };
 
+  /// Recibir y entregar llevan el municipio DIVIPOLA de 5 dígitos (enmienda 2 de ADR-029; el backend da 400 sin él).
+  /// Despachar no: el backend sella la zona del paso anterior.
+  static bool needsMunicipality(AssetAction action) => action == AssetAction.receive || action == AssetAction.deliver;
+
+  static final _municipalityCode = RegExp(r'^[0-9]{5}$');
+
   /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido). Para entregar
-  /// hace falta [evidenceRef] con la forma `sha256:<64 hex>`; si no, el error es `evidenceRef`.
+  /// hace falta [evidenceRef] con la forma `sha256:<64 hex>`; si no, el error es `evidenceRef`. Para recibir y
+  /// entregar, [municipalityCode]; si no, el error es `municipalityCode`.
   static AssetCommand? build(
     AssetAction action,
     String assetRef,
     Map<String, String> input, {
     String? evidenceRef,
+    String? municipalityCode,
     List<String>? errors,
   }) {
     final spec = fields[action];
@@ -58,6 +67,14 @@ class AssetCommand {
         valid = false;
       } else {
         values['evidenceRef'] = evidenceRef;
+      }
+    }
+    if (needsMunicipality(action)) {
+      if (municipalityCode == null || !_municipalityCode.hasMatch(municipalityCode)) {
+        errors?.add('municipalityCode');
+        valid = false;
+      } else {
+        values['municipalityCode'] = municipalityCode;
       }
     }
     if (!valid) return null;

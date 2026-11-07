@@ -9,6 +9,8 @@ import '../../../core/media/photo_picker.dart';
 import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/location/location_catalog.dart';
+import '../../../shared/location/municipality_picker.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/loaders.dart';
@@ -110,7 +112,14 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
 
   bool get _isDeliver => widget.action == AssetAction.deliver;
 
-  bool get _dirty => _step == _Step.form && (_controllers.values.any((c) => c.text.isNotEmpty) || _photo != null);
+  /// Municipio DIVIPOLA del paso (recibir y entregar; enmienda 2 de ADR-029).
+  Municipality? _municipality;
+  bool _municipalityMissing = false;
+  bool get _needsMunicipality => AssetCommand.needsMunicipality(widget.action);
+
+  bool get _dirty =>
+      _step == _Step.form &&
+      (_controllers.values.any((c) => c.text.isNotEmpty) || _photo != null || _municipality != null);
 
   @override
   void didChangeDependencies() {
@@ -152,15 +161,24 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
 
   void _toReview() {
     final errors = <String>[];
-    final cmd = AssetCommand.build(widget.action, widget.assetRef, _input, evidenceRef: _evidenceRef, errors: errors);
+    final cmd = AssetCommand.build(
+      widget.action,
+      widget.assetRef,
+      _input,
+      evidenceRef: _evidenceRef,
+      municipalityCode: _municipality?.code,
+      errors: errors,
+    );
     // Entregar: el evidenceRef llega al confirmar, al subir la foto; aquí basta con que haya foto.
-    final fieldErrors = errors.where((e) => e != 'evidenceRef').toList();
-    final ready = cmd != null || (_isDeliver && fieldErrors.isEmpty && _photo != null);
+    final fieldErrors = errors.where((e) => e != 'evidenceRef' && e != 'municipalityCode').toList();
+    final municipalityOk = !errors.contains('municipalityCode');
+    final ready = cmd != null || (_isDeliver && fieldErrors.isEmpty && municipalityOk && _photo != null);
     setState(() {
       _invalid
         ..clear()
         ..addAll(fieldErrors);
       _photoMissing = _isDeliver && _photo == null;
+      _municipalityMissing = !municipalityOk;
       if (ready) {
         _command = cmd;
         _step = _Step.review;
@@ -212,7 +230,13 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       if (mounted) setState(() => _error = evidenceUploadError(e));
       return null;
     }
-    return AssetCommand.build(widget.action, widget.assetRef, _input, evidenceRef: _evidenceRef);
+    return AssetCommand.build(
+      widget.action,
+      widget.assetRef,
+      _input,
+      evidenceRef: _evidenceRef,
+      municipalityCode: _municipality?.code,
+    );
   }
 
   Future<void> _confirm() async {
@@ -336,10 +360,43 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       ),
       const SizedBox(height: 14),
     ],
+    if (_needsMunicipality) ..._municipalitySection(context),
     if (_isDeliver) ..._photoSection(context),
     const SizedBox(height: 4),
     FilledButton(key: const Key('form.submit'), onPressed: _toReview, child: const Text('Revisar operación')),
   ];
+
+  Future<void> _chooseMunicipality() async {
+    final m = await pickMunicipality(context, _services.locationCatalog);
+    if (m == null || !mounted) return;
+    setState(() {
+      _municipality = m;
+      _municipalityMissing = false;
+    });
+  }
+
+  /// Municipio del paso (enmienda 2 de ADR-029): obligatorio al recibir y entregar; se sella en el registro y es la zona
+  /// pública que ve el donante.
+  List<Widget> _municipalitySection(BuildContext context) {
+    final m = _municipality;
+    return [
+      LabeledField(
+        label: 'Municipio',
+        child: OutlinedButton.icon(
+          key: const Key('form.municipality'),
+          onPressed: _chooseMunicipality,
+          icon: const Icon(Icons.place_outlined),
+          style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft, minimumSize: const Size.fromHeight(48)),
+          label: Text(m?.zoneName ?? 'Elige el municipio', overflow: TextOverflow.ellipsis),
+        ),
+      ),
+      if (_municipalityMissing) ...[
+        const SizedBox(height: 6),
+        const ErrorMessage('Elige el municipio donde ocurre este paso.', textKey: Key('form.municipality.error')),
+      ],
+      const SizedBox(height: 14),
+    ];
+  }
 
   /// Foto de la entrega (E-04): obligatoria, de la ayuda entregada y no de las personas (ADR de fotos, punto 6).
   List<Widget> _photoSection(BuildContext context) {
@@ -405,6 +462,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
           children: [
             LabeledValue('Acción', actionLabel(widget.action)),
             for (final e in values.entries) LabeledValue(fieldLabels[e.key] ?? e.key, e.value, mono: true),
+            if (_municipality case final m?) LabeledValue('Municipio', m.zoneName),
             if (photo != null) ...[
               const SizedBox(height: 8),
               ClipRRect(

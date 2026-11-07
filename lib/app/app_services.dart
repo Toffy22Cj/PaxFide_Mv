@@ -19,6 +19,7 @@ import '../features/donations/data/account_impact_api.dart';
 import '../features/donations/domain/impact.dart';
 import '../features/donations/domain/receipt.dart';
 import '../shared/city/city_pause_controller.dart';
+import '../shared/location/location_catalog.dart';
 import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
 import 'app_config.dart';
@@ -58,6 +59,7 @@ class AppServices {
        photoPicker = photoPicker ?? ImagePickerPhotoPicker(),
        textSize = textSize ?? TextSizeController(),
        cityPause = cityPause ?? CityPauseController(),
+       locationCatalog = LocationCatalogApi(apiClient),
        biometricLogin = BiometricLogin(
          api: authApi,
          store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
@@ -105,6 +107,9 @@ class AppServices {
 
   /// Entrar con huella o rostro, solo desde el login (M-28).
   final BiometricLogin biometricLogin;
+
+  /// Catálogo DIVIPOLA del backend, para elegir el municipio al recibir y entregar (enmienda 2 de ADR-029).
+  final LocationCatalogApi locationCatalog;
 
   /// De dónde salen las teselas del mapa del recorrido (M-25): `null` = la red; en las pruebas, en memoria.
   final TileProvider? mapTileProvider;

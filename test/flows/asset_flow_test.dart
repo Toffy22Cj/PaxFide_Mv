@@ -20,6 +20,18 @@ ApiResponse asset(String status) => ApiResponse(
   },
 );
 
+/// Elige un municipio en el formulario (busca por [query] y toca el de [code]).
+Future<void> pickMunicipality(WidgetTester tester, String query, String code) async {
+  await tester.ensureVisible(find.byKey(const Key('form.municipality')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('form.municipality')));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const Key('municipality.search')), query);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(Key('municipality.$code')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late AppHarness h;
   late String status;
@@ -276,6 +288,50 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
   });
 
+  group('Municipio DIVIPOLA obligatorio al recibir y entregar (enmienda 2 de ADR-029)', () {
+    Future<void> openDispatched(WidgetTester tester) async {
+      await openAsset(tester);
+      status = 'DISPATCHED';
+      h.services.router.go('/operator');
+      await tester.pumpAndSettle();
+      h.services.router.push('/assets/A-1');
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(const Key('asset.action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('form.facilityLocation')), 'bodega-norte');
+      await tester.enterText(find.byKey(const Key('form.receiverRef')), 'coordinador-1');
+    }
+
+    testWidgets('sin municipio no pasa a la revisión', (tester) async {
+      await openDispatched(tester);
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('form.municipality.error'), skipOffstage: false), findsOneWidget);
+      expect(find.byKey(const Key('review.confirm')), findsNothing);
+    });
+
+    testWidgets('se busca por nombre, se ve en la revisión y viaja en el cuerpo', (tester) async {
+      await openDispatched(tester);
+      h.api.routes['POST /physical-assets/A-1/receive'] = (_) {
+        status = 'RECEIVED';
+        return const ApiResponse(statusCode: 200, data: {'assetRef': 'A-1', 'status': 'RECEIVED'});
+      };
+      await pickMunicipality(tester, 'cartag', '13001');
+      expect(find.text('CARTAGENA DE INDIAS, BOLÍVAR'), findsOneWidget);
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('CARTAGENA DE INDIAS, BOLÍVAR'), findsOneWidget, reason: 'en la revisión');
+      expect(await confirmAndClose(tester), 'acknowledged');
+      final receive = posts().singleWhere((c) => c.path == '/physical-assets/A-1/receive');
+      expect(receive.body, {
+        'facilityLocation': 'bodega-norte',
+        'receiverRef': 'coordinador-1',
+        'municipalityCode': '13001',
+      });
+      expect(h.api.calls.where((c) => c.path == '/public/locations').single.credentialMode, CredentialMode.none);
+    });
+  });
+
   group('Entregar con foto (ADR-051)', () {
     final ref = 'sha256:${'c' * 64}';
 
@@ -287,6 +343,7 @@ void main() {
       await tester.enterText(find.byKey(const Key('form.finalCustodianRef')), 'custodio-final');
       await tester.enterText(find.byKey(const Key('form.beneficiaryRef')), 'beneficiario-1');
       await tester.enterText(find.byKey(const Key('form.locationRef')), 'centro-1');
+      await pickMunicipality(tester, 'barran', '08001');
       if (photo) {
         await tap(tester, find.byKey(const Key('form.photo.take')));
         await tester.pumpAndSettle();
@@ -337,6 +394,7 @@ void main() {
         'beneficiaryRef': 'beneficiario-1',
         'locationRef': 'centro-1',
         'evidenceRef': ref,
+        'municipalityCode': '08001',
       });
       expect(deliver.headers['Command-Id'], isNotNull);
     });

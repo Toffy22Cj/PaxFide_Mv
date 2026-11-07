@@ -31,21 +31,59 @@ void main() {
       expect(c.body, {'carrierRef': 'transportista-1'});
     });
 
-    test('receive', () {
-      final c = AssetCommand.build(AssetAction.receive, 'A-1', {'facilityLocation': 'centro-1', 'receiverRef': 'r'})!;
+    test('receive: con el municipio DIVIPOLA (enmienda 2 de ADR-029)', () {
+      final c = AssetCommand.build(AssetAction.receive, 'A-1', {
+        'facilityLocation': 'centro-1',
+        'receiverRef': 'r',
+      }, municipalityCode: '08001')!;
       expect(c.path, '/physical-assets/A-1/receive');
-      expect(c.body, {'facilityLocation': 'centro-1', 'receiverRef': 'r'});
+      expect(c.body, {'facilityLocation': 'centro-1', 'receiverRef': 'r', 'municipalityCode': '08001'});
+    });
+
+    test('recibir y entregar sin municipio, o con uno que no son 5 dígitos → inválido; despachar no lo lleva', () {
+      for (final code in [null, '', '8001', '080011', 'ABCDE']) {
+        final errors = <String>[];
+        expect(
+          AssetCommand.build(
+            AssetAction.receive,
+            'A-1',
+            {'facilityLocation': 'centro-1', 'receiverRef': 'r'},
+            municipalityCode: code,
+            errors: errors,
+          ),
+          isNull,
+          reason: '$code',
+        );
+        expect(errors, ['municipalityCode']);
+      }
+      final errors = <String>[];
+      expect(
+        AssetCommand.build(
+          AssetAction.deliver,
+          'A-1',
+          {'finalCustodianRef': 'f', 'beneficiaryRef': 'b', 'locationRef': 'l'},
+          evidenceRef: 'sha256:${'a' * 64}',
+          errors: errors,
+        ),
+        isNull,
+      );
+      expect(errors, ['municipalityCode']);
+      final dispatch = AssetCommand.build(AssetAction.dispatch, 'A-1', {'carrierRef': 'c'}, municipalityCode: '08001')!;
+      expect(dispatch.body, {'carrierRef': 'c'});
     });
 
     test('deliver: sin deliveredAt (lo pone el servidor) y con el evidenceRef de la foto subida', () {
       final ref = 'sha256:${'a' * 64}';
-      final c = AssetCommand.build(AssetAction.deliver, 'A-1', {
-        'finalCustodianRef': 'f',
-        'beneficiaryRef': 'b',
-        'locationRef': 'l',
-      }, evidenceRef: ref)!;
+      final c = AssetCommand.build(
+        AssetAction.deliver,
+        'A-1',
+        {'finalCustodianRef': 'f', 'beneficiaryRef': 'b', 'locationRef': 'l'},
+        evidenceRef: ref,
+        municipalityCode: '08001',
+      )!;
       expect(c.path, '/physical-assets/A-1/deliver');
-      expect(c.body.keys, ['finalCustodianRef', 'beneficiaryRef', 'locationRef', 'evidenceRef']);
+      expect(c.body.keys, ['finalCustodianRef', 'beneficiaryRef', 'locationRef', 'evidenceRef', 'municipalityCode']);
+      expect(c.body['municipalityCode'], '08001');
       expect(c.body['evidenceRef'], ref);
     });
 
@@ -53,7 +91,17 @@ void main() {
       const fields = {'finalCustodianRef': 'f', 'beneficiaryRef': 'b', 'locationRef': 'l'};
       for (final ref in [null, 'acta-1', 'sha256:ABC']) {
         final errors = <String>[];
-        expect(AssetCommand.build(AssetAction.deliver, 'A-1', fields, evidenceRef: ref, errors: errors), isNull);
+        expect(
+          AssetCommand.build(
+            AssetAction.deliver,
+            'A-1',
+            fields,
+            evidenceRef: ref,
+            municipalityCode: '08001',
+            errors: errors,
+          ),
+          isNull,
+        );
         expect(errors, ['evidenceRef']);
       }
       final errors = <String>[];
@@ -63,6 +111,7 @@ void main() {
           'A-1',
           {...fields, 'locationRef': ''},
           evidenceRef: 'sha256:${'b' * 64}',
+          municipalityCode: '08001',
           errors: errors,
         ),
         isNull,
@@ -73,10 +122,13 @@ void main() {
     test('campos vacíos o de más de 256 → inválido, con su nombre', () {
       final errors = <String>[];
       expect(
-        AssetCommand.build(AssetAction.receive, 'A-1', {
-          'facilityLocation': '  ',
-          'receiverRef': 'x' * 257,
-        }, errors: errors),
+        AssetCommand.build(
+          AssetAction.receive,
+          'A-1',
+          {'facilityLocation': '  ', 'receiverRef': 'x' * 257},
+          municipalityCode: '08001',
+          errors: errors,
+        ),
         isNull,
       );
       expect(errors, ['facilityLocation', 'receiverRef']);
