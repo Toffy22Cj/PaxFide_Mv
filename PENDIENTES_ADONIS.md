@@ -20,6 +20,18 @@ Hechas: todas las funciones de la lista del 16 de octubre a nombre de Adonis que
 | C5c | «Seguir una donación» pega solo el código copiado y abre los enlaces de PaxFide pegados | `tracking_screen.dart` |
 | C7 | QR de la convocatoria en la misma pantalla | `campaign_public_screen.dart`, `shared/widgets/qr_sheet.dart` (`QrPanel`) |
 
+## Modo sin conexión (2026-11-07, Enmienda 4 de ADR-043; revisa Carlos)
+
+| # | Qué | Dónde |
+|---|---|---|
+| S1 | Entrar sin conexión con la sesión recordada (perfil guardado cifrado) | `session_controller.dart`, `auth/data/profile_store.dart` |
+| S2 | Ver los datos sin conexión (última respuesta de cada lectura, cifrada y por cuenta; nunca códigos ni tokens) | `core/network/caching_api_client.dart` |
+| S3 | La cola se envía sola al volver la red, con el mismo `Command-Id` | `core/offline/auto_sync.dart`, `sync_engine.dart` (`sendAll`) |
+| S4 | Entregar sin conexión: la foto se guarda cifrada y se sube antes de la entrega | `core/storage/outbox_file_store.dart`, `field_action_flow.dart` |
+| S5 | Donar sin conexión: se guarda, se envía sola y se paga después | `donations/domain/donation_queue.dart`, `saved_donations_section.dart` |
+
+Límites: la primera entrada en un teléfono, el pago, seguir una donación por código, cambiar la contraseña y la integridad necesitan red. Las lecturas que nunca se abrieron con red no tienen nada guardado.
+
 ## Pendientes de este bloque
 
 | ID | Falta | Siguiente paso exacto |
