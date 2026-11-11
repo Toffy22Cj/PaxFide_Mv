@@ -15,12 +15,18 @@ class AppConfig {
     apiBaseUrl: _parse(const String.fromEnvironment('PAXFIDE_API_BASE_URL')),
     publicOrigin: _origin(_parse(const String.fromEnvironment('PAXFIDE_PUBLIC_BASE_URL'))),
     mapTileUrl: tileTemplate(const String.fromEnvironment('PAXFIDE_MAP_TILE_URL')),
-    googleServerClientId: googleClientId(const String.fromEnvironment('PAXFIDE_GOOGLE_SERVER_CLIENT_ID')),
+    googleServerClientId: googleClientId(
+      const String.fromEnvironment('PAXFIDE_GOOGLE_SERVER_CLIENT_ID', defaultValue: defaultGoogleServerClientId),
+    ),
   );
 
   /// ID de cliente OAuth **web** de Google Cloud (ADR-050 D9): el `serverClientId` con que la app pide el `idToken`.
   /// Sin él, «Entrar con Google» no aparece. No es un secreto, pero no va en el repositorio.
   final String? googleServerClientId;
+
+  /// ID de cliente web de PaxFide en Google Cloud: no es un secreto (va dentro del APK). Se cambia con
+  /// `PAXFIDE_GOOGLE_SERVER_CLIENT_ID`.
+  static const defaultGoogleServerClientId = '333718585935-533ra859o9kio4vc8huvbmi1rnk4b5gf.apps.googleusercontent.com';
 
   /// Forma de un ID de cliente de Google (`…​.apps.googleusercontent.com`); si no, ninguno.
   static String? googleClientId(String raw) {
