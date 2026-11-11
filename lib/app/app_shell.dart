@@ -22,9 +22,10 @@ const _scan = '#scan';
 
 /// Destinos según `/me`. Es **representación**: el guard no lee roles y el backend autoriza cada petición.
 List<_Destination> _destinationsFor(Principal? p) => (p?.showsOperatorActions ?? false)
-    // Empleado (M-03, E-07): Mi día · Escanear (centro) · Pendientes · Cuenta.
+    // Empleado (M-03, E-07): Mi día · Escanear (centro) · Pendientes · Cuenta. Mi día es su pantalla principal: la
+    // raíz de la app (`/home`) le muestra Mi día, así que la pestaña vuelve a la raíz y nunca apila otra pantalla.
     ? [
-        const _Destination(AppRoutes.operator, 'Mi día', Icons.today_outlined),
+        const _Destination(AppRoutes.home, 'Mi día', Icons.today_outlined),
         const _Destination(_scan, 'Escanear', Icons.qr_code_scanner),
         const _Destination(AppRoutes.operatorPending, 'Pendientes', Icons.pending_actions),
         if (p?.showsPrediction ?? false)
@@ -58,10 +59,12 @@ class AppShell extends StatelessWidget {
         final destinations = _destinationsFor(services.session.principal);
         // Pendientes tiene su propia pestaña para el empleado; para el resto cuelga de Operaciones.
         final ownPending = destinations.any((d) => d.route == AppRoutes.operatorPending);
-        final top =
-            location.startsWith('/assets/') ||
-                location == AppRoutes.myCampaigns ||
-                (location == AppRoutes.operatorPending && !ownPending)
+        final employee = services.session.principal?.showsOperatorActions ?? false;
+        // La pestaña que se marca: la de la pantalla actual. Una pantalla que no es pestaña (la ficha de un activo,
+        // el seguimiento) no marca ninguna: marcar otra hace creer que se está en ella.
+        final top = employee && location == AppRoutes.operator
+            ? AppRoutes.home
+            : (location == AppRoutes.operatorPending && !ownPending)
             ? AppRoutes.operator
             : location;
         final index = destinations.indexWhere((d) => d.route == top);
@@ -95,7 +98,7 @@ class AppShell extends StatelessWidget {
         void swipe(DragEndDetails d) {
           final v = d.primaryVelocity ?? 0;
           if (v.abs() < 300) return;
-          final i = swipeable.indexOf(location);
+          final i = swipeable.indexOf(top);
           if (i < 0) {
             if (v > 0 && services.router.stack.length > 1) services.router.back();
             return;
@@ -143,10 +146,24 @@ class AppShell extends StatelessWidget {
               bottomNavigationBar: destinations.length >= 2
                   ? NavigationBar(
                       selectedIndex: index < 0 ? 0 : index,
+                      // Sin pestaña actual: ninguna se ve marcada.
+                      indicatorColor: index < 0 ? Colors.transparent : null,
+                      labelTextStyle: index < 0 ? _unselected(Theme.of(context).textTheme.labelMedium) : null,
                       onDestinationSelected: select,
                       destinations: [
-                        for (final d in destinations)
-                          NavigationDestination(key: Key('nav.${d.label}'), icon: icon(d), label: d.label),
+                        for (final (i, d) in destinations.indexed)
+                          NavigationDestination(
+                            key: Key('nav.${d.label}'),
+                            icon: icon(d),
+                            // Sin pestaña actual, la primera se dibuja igual que las demás.
+                            selectedIcon: index < 0 && i == 0
+                                ? IconTheme.merge(
+                                    data: IconThemeData(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                    child: icon(d),
+                                  )
+                                : null,
+                            label: d.label,
+                          ),
                       ],
                     )
                   : null,
@@ -157,6 +174,8 @@ class AppShell extends StatelessWidget {
     );
   }
 }
+
+WidgetStateProperty<TextStyle?> _unselected(TextStyle? base) => WidgetStatePropertyAll(base);
 
 /// Ícono de Pendientes con el número de operaciones guardadas en el teléfono por esta cuenta (sin las confirmadas).
 class _PendingBadge extends StatelessWidget {

@@ -19,7 +19,7 @@ void main() {
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
     h.nextScan = '$testOrigin/assets/A-55';
-    await tester.tap(find.byKey(const Key('operator.scan')));
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
     await tester.pumpAndSettle();
     expect(h.location, '/assets/A-55');
   });
@@ -30,7 +30,7 @@ void main() {
     await tester.pumpAndSettle();
     final before = h.api.calls.length;
     h.nextScan = '$testOrigin/assets/A-55';
-    await tester.tap(find.byKey(const Key('operator.scan')));
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
     await tester.pumpAndSettle();
     final after = h.api.calls.skip(before);
     expect(after.where((c) => c.method == 'POST'), isEmpty);
@@ -75,7 +75,7 @@ void main() {
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
     h.nextScan = 'https://otra-web.example/assets/A-1';
-    await tester.tap(find.byKey(const Key('operator.scan')));
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.operator);
     expect(find.text('Este código QR no es un enlace de PaxFide reconocido.'), findsOneWidget);
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.operator);
     expect(find.text('Tu cuenta no tiene acceso operativo.'), findsOneWidget);
-    expect(find.byKey(const Key('operator.scan')), findsNothing);
+    expect(find.byKey(const Key('nav.Escanear')), findsNothing);
   });
 
   testWidgets('escribir la referencia a mano → /assets/:assetRef', (tester) async {
@@ -187,7 +187,7 @@ void main() {
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
     h.nextScan = null;
-    await tester.tap(find.byKey(const Key('operator.scan')));
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
     await tester.pumpAndSettle();
     expect(find.text('Lote o convocatoria'), findsOneWidget);
     expect(find.text('Pegar o escribir la referencia'), findsOneWidget);

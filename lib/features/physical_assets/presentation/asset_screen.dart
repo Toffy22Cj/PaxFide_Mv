@@ -9,12 +9,13 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/quantity.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
 import '../domain/asset_action.dart';
+import '../domain/asset_labels.dart';
+import '../../prediction/data/prediction_api.dart';
 import '../domain/asset_operations.dart';
 import '../domain/lifecycle_status.dart';
 import 'command_form_sheet.dart';
@@ -48,6 +49,7 @@ class _AssetScreenState extends State<AssetScreen> {
   late final AssetOperations _ops = AssetOperations(engine: _services.syncEngine, api: _api);
 
   PhysicalAssetDto? _asset;
+  String? _campaignTitle;
   Object? _error;
   bool _loading = true;
   bool _busy = false;
@@ -85,12 +87,25 @@ class _AssetScreenState extends State<AssetScreen> {
         _asset = a;
         _loading = false;
       });
+      _loadCampaignTitle(a.campaignRef);
     } on AppException catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e;
         _loading = false;
       });
+    }
+  }
+
+  /// El nombre de la convocatoria, de las de la organización (`GET /me/campaigns`); si no se puede, un texto genérico.
+  Future<void> _loadCampaignTitle(String? campaignRef) async {
+    if (campaignRef == null || _campaignTitle != null) return;
+    try {
+      final all = await PredictionApi(_services.apiClient).myCampaigns();
+      final title = all.where((c) => c.campaignRef == campaignRef).map((c) => c.title).firstOrNull;
+      if (mounted && title != null) setState(() => _campaignTitle = title);
+    } on Object {
+      // sin nombre: se queda el texto genérico
     }
   }
 
@@ -200,11 +215,15 @@ class _AssetScreenState extends State<AssetScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Activo', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            assetTypeLabel(a.assetType),
+            key: const Key('asset.title'),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 2),
           Text(
-            a.assetRef,
-            style: theme.textTheme.headlineSmall?.copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w600),
+            quantityLabel(a.quantity, a.unitOfMeasure),
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           Align(
@@ -212,7 +231,7 @@ class _AssetScreenState extends State<AssetScreen> {
             child: StatusChip(
               lifecycleLabel(a.lifecycleStatus),
               key: const Key('asset.status'),
-              icon: Icons.inventory_2_outlined,
+              icon: lifecycleIcon(a.lifecycleStatus),
               tone: action == AssetAction.readOnly ? Tone.neutral : Tone.success,
             ),
           ),
@@ -246,17 +265,35 @@ class _AssetScreenState extends State<AssetScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (a.assetType != null)
-                  KeyedSubtree(key: const Key('asset.type'), child: LabeledValue('Tipo', a.assetType!)),
-                LabeledValue('Cantidad', formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
-                LabeledValue('Custodio actual', a.currentCustodianRef ?? '—', mono: true),
-                KeyedSubtree(
-                  key: const Key('asset.location'),
-                  child: LabeledValue('Ubicación actual', a.currentLocation ?? 'Sin ubicación registrada'),
-                ),
                 KeyedSubtree(
                   key: const Key('asset.campaign'),
-                  child: LabeledValue('Convocatoria', a.campaignRef ?? 'Sin convocatoria', mono: a.campaignRef != null),
+                  child: LabeledValue(
+                    'Convocatoria',
+                    a.campaignRef == null ? 'Sin convocatoria' : (_campaignTitle ?? 'Convocatoria de tu organización'),
+                  ),
+                ),
+                KeyedSubtree(
+                  key: const Key('asset.zone'),
+                  child: LabeledValue('Municipio', a.zoneName ?? 'Sin municipio registrado'),
+                ),
+                if (a.currentLocation case final l? when l.trim().isNotEmpty)
+                  KeyedSubtree(key: const Key('asset.location'), child: LabeledValue('Lugar', humanize(l))),
+                if (a.currentCustodianRef case final c? when c.trim().isNotEmpty) LabeledValue('Lo tiene', humanize(c)),
+                KeyedSubtree(
+                  key: const Key('asset.type'),
+                  child: LabeledValue(
+                    'Tipo',
+                    '${assetTypeLabel(a.assetType)} · ${quantityLabel(a.quantity, a.unitOfMeasure)}',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  'Código del activo: ${a.assetRef}',
+                  key: const Key('asset.ref'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ],
             ),

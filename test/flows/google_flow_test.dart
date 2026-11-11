@@ -34,8 +34,7 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse()));
     h.services.router.go(AppRoutes.account);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('account.google.link')), findsNothing);
-    expect(find.byKey(const Key('account.google.unlink')), findsNothing);
+    expect(find.byKey(const Key('account.google')), findsNothing);
   });
 
   testWidgets('entrar con Google cambia el idToken por la sesión', (tester) async {
@@ -120,7 +119,9 @@ void main() {
   }
 
   Future<void> open(WidgetTester tester, String key) async {
-    await tester.scrollUntilVisible(find.byKey(Key(key)), 200, scrollable: _accountList);
+    await tester.scrollUntilVisible(find.byKey(const Key('account.google')), 200, scrollable: _accountList);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('account.google')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(Key(key)));
     await tester.pumpAndSettle();

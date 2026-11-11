@@ -58,8 +58,13 @@ void main() {
     h.api.routes['GET /organizations/org-1/physical-assets'] = (_) => const ConnectionNotEstablishedException();
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('myday.offline')), findsOneWidget);
-    expect(find.byKey(const Key('operator.scan')), findsOneWidget);
+    // Sin red: o el aviso de Mi día o, si ya había una lectura guardada (Enmienda 4, S2), el aviso general.
+    expect(
+      find.byKey(const Key('myday.offline')).evaluate().isNotEmpty ||
+          find.byKey(const Key('shell.offline')).evaluate().isNotEmpty,
+      isTrue,
+    );
+    expect(find.byKey(const Key('operator.type')), findsOneWidget);
   });
 
   testWidgets('barra del empleado: Mi día, Escanear y Pendientes con su contador', (tester) async {
@@ -101,13 +106,13 @@ void main() {
     expect(h.location, AppRoutes.operatorPending, reason: 'Escanear se salta al deslizar');
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.operator);
+    expect(h.location, AppRoutes.home, reason: 'Mi día es la raíz del empleado');
 
     h.services.router.push(AppRoutes.assetPath('A-1'));
     await tester.pumpAndSettle();
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.operator);
+    expect(h.location, AppRoutes.home, reason: 'Mi día es la raíz del empleado');
   });
 
   testWidgets('E-08: Mis convocatorias con sus activos por estado; tocar uno abre la ficha', (tester) async {
@@ -142,5 +147,16 @@ void main() {
     await tester.tap(find.byKey(const Key('mycampaigns.asset.A-1')));
     await tester.pumpAndSettle();
     expect(h.location, '/assets/A-1');
+  });
+
+  testWidgets('en la ficha de un activo ninguna pestaña se ve marcada; en Mi día, Mi día', (tester) async {
+    final h = await start(tester);
+    await tester.pumpAndSettle();
+    NavigationBar bar() => tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(h.location, AppRoutes.home);
+    expect(bar().indicatorColor, isNot(Colors.transparent));
+    h.services.router.push(AppRoutes.assetPath('A-1'));
+    await tester.pumpAndSettle();
+    expect(bar().indicatorColor, Colors.transparent);
   });
 }

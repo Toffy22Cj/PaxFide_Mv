@@ -104,7 +104,8 @@ class _PendingOperationsScreenState extends State<PendingOperationsScreen> {
             );
           }
           final entries = _entries;
-          if (entries == null) return const LoadingView();
+          // Leer el almacén del teléfono tarda milisegundos: sin «Cargando…» que parpadee al cambiar de pestaña.
+          if (entries == null) return const SizedBox.shrink();
           if (entries.isEmpty) {
             return const MessageView(icon: Icons.inbox_outlined, title: 'No hay operaciones pendientes de tu cuenta.');
           }

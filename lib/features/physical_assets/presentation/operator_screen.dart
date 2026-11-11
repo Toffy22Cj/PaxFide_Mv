@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
-import '../../../app/qr_scanner_sheet.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/quantity.dart';
-import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/physical_asset_api.dart';
+import '../domain/asset_labels.dart';
 import 'asset_screen.dart';
-import '../../../app/pending_count.dart';
 
 /// `/operator` → **Mi día** (E-01): cuántos activos de la organización hay por despachar, en tránsito y entregados
-/// (`GET /organizations/{id}/physical-assets`, máx. 200); tocar una tarjeta muestra la lista filtrada. Atajos a
-/// Escanear, escribir la referencia y Pendientes. Sin `EMPLOYEE` en `/me`: "sin acceso operativo" (nunca un redirect).
+/// (`GET /organizations/{id}/physical-assets`, máx. 200); tocar una tarjeta muestra la lista filtrada. Escanear y
+/// Pendientes son pestañas: aquí solo se escribe el código y se abren Mis convocatorias. Sin `EMPLOYEE` en `/me`: "sin acceso operativo" (nunca un redirect).
 class OperatorScreen extends StatelessWidget {
-  const OperatorScreen({super.key});
+  const OperatorScreen({super.key, this.location = AppRoutes.operator});
+
+  /// `/operator`, o la raíz cuando es la pantalla principal del empleado.
+  final String location;
 
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
     return AppShell(
-      location: AppRoutes.operator,
+      location: location,
       title: 'Mi día',
       body: ListenableBuilder(
         listenable: services.session,
@@ -124,36 +124,16 @@ class _MyDayState extends State<_MyDay> {
               child: ListTile(
                 leading: Icon(Icons.cloud_off),
                 title: Text('Sin conexión'),
-                subtitle: Text('Puedes escanear y guardar operaciones; se envían desde Pendientes.'),
+                subtitle: Text('Puedes escanear y guardar operaciones; se envían solas al volver la señal.'),
               ),
             ),
-          HighlightCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.qr_code_scanner, size: 32, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 8),
-                Text('Escanear el QR de un activo', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: const Key('operator.scan'),
-                    onPressed: () => scanQr(context),
-                    child: const Text('Escanear activo'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
+          // Escanear y Pendientes tienen su pestaña abajo: aquí no se repiten.
+          OutlinedButton.icon(
             key: const Key('operator.type'),
             onPressed: _typeRef,
-            child: const Text('Escribir el código del activo'),
+            icon: const Icon(Icons.keyboard_outlined),
+            label: const Text('Escribir el código del activo'),
           ),
-          const SizedBox(height: 10),
-          _PendingCard(onOpen: () => _services.router.push(AppRoutes.operatorPending)),
           const SizedBox(height: 10),
           OutlinedButton.icon(
             key: const Key('operator.campaigns'),
@@ -188,13 +168,10 @@ class _MyDayState extends State<_MyDay> {
               for (final a in assets.where((a) => _filter!.statuses.contains(a.lifecycleStatus)))
                 ListTile(
                   key: Key('myday.asset.${a.assetRef}'),
-                  title: Text(a.assetRef),
+                  leading: Icon(lifecycleIcon(a.lifecycleStatus)),
+                  title: Text(assetTitle(a)),
                   subtitle: Text(
-                    [
-                      ?a.assetType,
-                      lifecycleLabel(a.lifecycleStatus),
-                      formatQuantityWithUnit(a.quantity, a.unitOfMeasure),
-                    ].join(' · '),
+                    [lifecycleLabel(a.lifecycleStatus), ?a.zoneName, 'Cód. ${shortRef(a.assetRef)}'].join(' · '),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _services.router.push(AppRoutes.assetPath(a.assetRef)),
@@ -202,39 +179,6 @@ class _MyDayState extends State<_MyDay> {
             ],
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// "Operaciones pendientes" con su número (las de esta cuenta guardadas en el teléfono, sin las confirmadas).
-class _PendingCard extends StatelessWidget {
-  const _PendingCard({required this.onOpen});
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SectionCard(
-      child: PendingCountBuilder(
-        builder: (context, pending) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text('Operaciones pendientes', style: Theme.of(context).textTheme.titleSmall)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                  decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(99)),
-                  child: Text('$pending', style: TextStyle(color: scheme.onPrimaryContainer)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('Guardadas en este dispositivo por tu cuenta', style: TextStyle(color: scheme.onSurfaceVariant)),
-            TextButton(key: const Key('operator.pending'), onPressed: onOpen, child: const Text('Ver pendientes')),
-          ],
-        ),
       ),
     );
   }
@@ -259,12 +203,12 @@ class _AssetRefDialogState extends State<_AssetRefDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Referencia del activo'),
+    title: const Text('Código del activo'),
     content: TextField(
       key: const Key('operator.assetRef'),
       controller: _controller,
       autofocus: true,
-      decoration: const InputDecoration(labelText: 'assetRef'),
+      decoration: const InputDecoration(labelText: 'Código del activo'),
       onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
     ),
     actions: [

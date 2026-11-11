@@ -122,24 +122,15 @@ class AccountScreen extends StatelessWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _changePassword(context, services),
                     ),
-                    if (services.google.isAvailable) ...[
+                    if (services.google.isAvailable)
                       ListTile(
-                        key: const Key('account.google.link'),
+                        key: const Key('account.google'),
                         leading: const Icon(Icons.link),
-                        title: const Text('Vincular mi cuenta de Google'),
-                        subtitle: const Text('Para entrar también con Google'),
+                        title: const Text('Cuenta de Google'),
+                        subtitle: const Text('Vincúlala para entrar también con Google'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _google(context, services, link: true),
+                        onTap: () => _googleOptions(context, services),
                       ),
-                      ListTile(
-                        key: const Key('account.google.unlink'),
-                        leading: const Icon(Icons.link_off),
-                        title: const Text('Desvincular Google'),
-                        subtitle: const Text('Seguirás entrando con tu correo y tu contraseña'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _google(context, services, link: false),
-                      ),
-                    ],
                     ListTile(
                       key: const Key('account.deactivate'),
                       leading: Icon(Icons.person_off_outlined, color: Theme.of(context).colorScheme.error),
@@ -537,6 +528,37 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
 /// M-30: desactivar la propia cuenta (ADR-050 D6). Pide la contraseña; al confirmarse se cierra la sesión y se
 /// olvida la biometría de este teléfono. No se puede deshacer desde la app.
+/// Una sola entrada para Google: el backend no dice si ya hay una vinculada, así que se elige qué hacer.
+Future<void> _googleOptions(BuildContext context, AppServices services) async {
+  final link = await showModalBottomSheet<bool>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            key: const Key('account.google.link'),
+            leading: const Icon(Icons.link),
+            title: const Text('Vincular mi cuenta de Google'),
+            subtitle: const Text('Para entrar también con Google'),
+            onTap: () => Navigator.of(sheet).pop(true),
+          ),
+          ListTile(
+            key: const Key('account.google.unlink'),
+            leading: const Icon(Icons.link_off),
+            title: const Text('Desvincular Google'),
+            subtitle: const Text('Si la vinculaste antes. Seguirás entrando con tu correo y tu contraseña'),
+            onTap: () => Navigator.of(sheet).pop(false),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (link == null || !context.mounted) return;
+  await _google(context, services, link: link);
+}
+
 /// Vincular o desvincular Google (ADR-050 D9), siempre con la contraseña actual. El backend no dice si ya hay una
 /// vinculada; repetir cualquiera de las dos no cambia nada.
 Future<void> _google(BuildContext context, AppServices services, {required bool link}) async {

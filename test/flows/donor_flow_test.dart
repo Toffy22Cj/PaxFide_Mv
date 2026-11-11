@@ -76,7 +76,7 @@ void main() {
     String figure(String label) => tester.widget<Text>(find.byKey(Key('tracking.figure.$label'))).data!;
     expect(figure('Donado'), '60 000,00 COP');
     expect(figure('Asignación confirmada'), '50 000,00 COP');
-    expect(find.text('BLANKET · 6 UNITS'), findsOneWidget);
+    expect(find.text('Cobijas · 6 unidades'), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const Key('tracking.narrative')), 300);
     expect(find.text('Relato.'), findsOneWidget);
     expect(find.textContaining('generado con IA'), findsOneWidget);

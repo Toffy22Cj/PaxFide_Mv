@@ -5,10 +5,10 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/quantity.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/session_controller.dart';
 import '../../physical_assets/data/physical_asset_api.dart';
+import '../../physical_assets/domain/asset_labels.dart';
 import '../../physical_assets/presentation/asset_screen.dart';
 import '../../prediction/data/prediction_api.dart';
 import 'campaign_public_screen.dart';
@@ -130,8 +130,9 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen> {
             for (final a in g.value)
               ListTile(
                 key: Key('mycampaigns.asset.${a.assetRef}'),
-                title: Text(a.assetRef),
-                subtitle: Text([?a.assetType, formatQuantityWithUnit(a.quantity, a.unitOfMeasure)].join(' · ')),
+                leading: Icon(lifecycleIcon(a.lifecycleStatus)),
+                title: Text(assetTitle(a)),
+                subtitle: Text([?a.zoneName, 'Cód. ${shortRef(a.assetRef)}'].join(' · ')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _services.router.push(AppRoutes.assetPath(a.assetRef)),
               ),

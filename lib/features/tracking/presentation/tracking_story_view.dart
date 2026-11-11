@@ -1,3 +1,5 @@
+import '../../physical_assets/domain/asset_labels.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -6,7 +8,6 @@ import 'package:flutter/services.dart';
 import '../../../shared/dates.dart';
 import '../../../shared/money.dart';
 import '../../../shared/motion/pax_motion.dart';
-import '../../../shared/quantity.dart';
 import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/loaders.dart';
 import '../../../shared/widgets/pax_ui.dart';
@@ -65,7 +66,7 @@ IconData eventIcon(String wire) => switch (TrackingEvent.fromWire(wire)) {
 
 /// Nombre del lote: su tipo y su cantidad. Nunca un nombre de lote inventado.
 String lotTitle(LogisticsItem l) =>
-    [l.assetType, formatQuantityWithUnit(l.quantity, l.unitOfMeasure)].where((x) => x.isNotEmpty).join(' · ');
+    '${assetTypeLabel(l.assetType.isEmpty ? null : l.assetType)} · ${quantityLabel(l.quantity, l.unitOfMeasure)}';
 
 /// Recorrido de un lote: cargando, listo o con error.
 sealed class HistoryState {

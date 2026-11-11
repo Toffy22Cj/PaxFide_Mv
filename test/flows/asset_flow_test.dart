@@ -89,7 +89,7 @@ void main() {
     expect(find.text('Registrado'), findsOneWidget);
     expect(find.text('10 kg'), findsOneWidget);
     // E-03: el tipo registrado (R-6, G-4b).
-    expect(find.descendant(of: find.byKey(const Key('asset.type')), matching: find.text('BLANKET')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('asset.type')), matching: find.textContaining('Cobijas')), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Despachar'), findsOneWidget);
   });
 
@@ -283,8 +283,8 @@ void main() {
     h.services.router.push('/assets/A-1');
     await tester.pumpAndSettle();
     expect(find.text('Despachado'), findsOneWidget);
-    expect(find.text('Sin ubicación registrada'), findsOneWidget);
-    expect(find.text('1 UNITS'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
+    expect(find.text('Sin municipio registrado'), findsOneWidget);
+    expect(find.text('1 unidad'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
     expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
   });
 

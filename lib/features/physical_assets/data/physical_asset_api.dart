@@ -17,6 +17,7 @@ class PhysicalAssetDto {
     this.quantity,
     this.unitOfMeasure,
     this.campaignRef,
+    this.zoneName,
   });
 
   final String assetRef;
@@ -29,6 +30,9 @@ class PhysicalAssetDto {
   final String? quantity;
   final String? unitOfMeasure;
   final String? campaignRef;
+
+  /// Municipio sellado del último paso (enmienda 2 de ADR-029), «MUNICIPIO, DEPARTAMENTO»; falta en pasos antiguos.
+  final String? zoneName;
 
   static PhysicalAssetDto fromJson(Map<String, dynamic> j) {
     String req(String k) {
@@ -48,6 +52,7 @@ class PhysicalAssetDto {
       quantity: opt('quantity'),
       unitOfMeasure: opt('unitOfMeasure'),
       campaignRef: opt('campaignRef'),
+      zoneName: opt('zoneName'),
     );
   }
 }
