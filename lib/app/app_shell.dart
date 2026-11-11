@@ -5,7 +5,6 @@ import '../features/auth/domain/session_controller.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 import 'pending_count.dart';
-import 'qr_scanner_sheet.dart';
 import 'text_size_button.dart';
 import 'theme_mode_button.dart';
 import '../shared/widgets/pax_app_bar.dart';
@@ -17,16 +16,14 @@ class _Destination {
   final IconData icon;
 }
 
-/// Pestaña "Escanear" del empleado: abre el escáner, no es una ruta.
-const _scan = '#scan';
-
 /// Destinos según `/me`. Es **representación**: el guard no lee roles y el backend autoriza cada petición.
 List<_Destination> _destinationsFor(Principal? p) => (p?.showsOperatorActions ?? false)
-    // Empleado (M-03, E-07): Mi día · Escanear (centro) · Pendientes · Cuenta. Mi día es su pantalla principal: la
-    // raíz de la app (`/home`) le muestra Mi día, así que la pestaña vuelve a la raíz y nunca apila otra pantalla.
+    // Empleado (M-03, E-07): Inicio · Mi día · Escanear (centro) · Pendientes · Cuenta. Cada pestaña es una
+    // pantalla: la marcada es siempre en la que se está.
     ? [
-        const _Destination(AppRoutes.home, 'Mi día', Icons.today_outlined),
-        const _Destination(_scan, 'Escanear', Icons.qr_code_scanner),
+        const _Destination(AppRoutes.home, 'Inicio', Icons.home_outlined),
+        const _Destination(AppRoutes.operator, 'Mi día', Icons.today_outlined),
+        const _Destination(AppRoutes.scan, 'Escanear', Icons.qr_code_scanner),
         const _Destination(AppRoutes.operatorPending, 'Pendientes', Icons.pending_actions),
         if (p?.showsPrediction ?? false)
           const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
@@ -59,20 +56,16 @@ class AppShell extends StatelessWidget {
         final destinations = _destinationsFor(services.session.principal);
         // Pendientes tiene su propia pestaña para el empleado; para el resto cuelga de Operaciones.
         final ownPending = destinations.any((d) => d.route == AppRoutes.operatorPending);
-        final employee = services.session.principal?.showsOperatorActions ?? false;
         // La pestaña que se marca: la de la pantalla actual. Una pantalla que no es pestaña (la ficha de un activo,
         // el seguimiento) no marca ninguna: marcar otra hace creer que se está en ella.
-        final top = employee && location == AppRoutes.operator
-            ? AppRoutes.home
-            : (location == AppRoutes.operatorPending && !ownPending)
-            ? AppRoutes.operator
-            : location;
+        final top = (location == AppRoutes.operatorPending && !ownPending) ? AppRoutes.operator : location;
         final index = destinations.indexWhere((d) => d.route == top);
-        void select(int i) =>
-            destinations[i].route == _scan ? scanQr(context) : services.router.go(destinations[i].route);
+        void select(int i) => services.router.go(destinations[i].route);
         Widget icon(_Destination d) =>
             d.route == AppRoutes.operatorPending ? _PendingBadge(icon: d.icon) : Icon(d.icon);
         final appBar = PaxAppBar(
+          // En una pestaña no hay flecha de volver: se cambia con la barra.
+          automaticallyImplyLeading: index < 0,
           title: Text(title),
           actions: [...?actions, const TextSizeButton(), const ThemeModeButton()],
         );
@@ -89,12 +82,9 @@ class AppShell extends StatelessWidget {
           ),
           _ => null,
         };
-        // M-03: deslizar a los lados cambia de pestaña (Escanear no, porque abre la cámara); en una pantalla que no
-        // es pestaña (la ficha de un activo), deslizar hacia la derecha vuelve atrás.
-        final swipeable = [
-          for (final d in destinations)
-            if (d.route != _scan) d.route,
-        ];
+        // M-03: deslizar a los lados cambia de pestaña, Escanear incluida; en una pantalla que no es pestaña (la
+        // ficha de un activo), deslizar hacia la derecha vuelve atrás.
+        final swipeable = [for (final d in destinations) d.route];
         void swipe(DragEndDetails d) {
           final v = d.primaryVelocity ?? 0;
           if (v.abs() < 300) return;

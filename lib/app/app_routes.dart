@@ -37,13 +37,25 @@ class AppRoutes {
   static const String myCampaigns = '/employee/campaigns';
   static const String assetQr = '/assets/:assetRef/qr';
 
+  /// Pestaña Escanear del empleado (M-03): el escáner como pantalla de la barra, no como hoja aparte.
+  static const String scan = '/scan';
+
   // Fuera de v1 (diferida por secuenciación contractual, §9)
   static const String campaignsDiferido = '/campaigns';
 
   /// Longitud máxima defensiva de un parámetro (§10: no se inventa formato).
   static const int maxParamLength = 256;
 
-  static const _fixedAuthenticated = {home, donations, operator, operatorPending, prediction, account, myCampaigns};
+  static const _fixedAuthenticated = {
+    home,
+    donations,
+    operator,
+    operatorPending,
+    prediction,
+    account,
+    myCampaigns,
+    scan,
+  };
 
   static String campaignPath(String publicCode) => '/c/$publicCode';
   static String assetPath(String assetRef) => '/assets/$assetRef';

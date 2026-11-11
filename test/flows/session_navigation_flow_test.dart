@@ -283,10 +283,8 @@ void main() {
     expect(find.text('Predicción'), findsWidgets);
     await h.services.session.logout();
     await tester.pumpAndSettle();
-    // El empleado empieza en Mi día (su pantalla principal), con la pestaña marcada.
     await h.login(tester, roles: const ['EMPLOYEE']);
-    expect(find.byKey(const Key('operator.type')), findsOneWidget);
-    expect(find.text('Mi día'), findsWidgets);
+    expect(find.text('Operaciones'), findsWidgets);
   });
 
   testWidgets('/register: contraseña de menos de 12 caracteres → no se envía (regla del backend, PasswordTooShort)', (

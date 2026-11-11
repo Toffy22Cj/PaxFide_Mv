@@ -77,7 +77,7 @@ void main() {
     h.nextScan = 'https://otra-web.example/assets/A-1';
     await tester.tap(find.byKey(const Key('nav.Escanear')));
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.operator);
+    expect(h.location, AppRoutes.scan, reason: 'se queda en la pestaña Escanear, sin abrir nada');
     expect(find.text('Este código QR no es un enlace de PaxFide reconocido.'), findsOneWidget);
   });
 
@@ -193,7 +193,9 @@ void main() {
     expect(find.text('Pegar o escribir la referencia'), findsOneWidget);
   });
 
-  testWidgets('el donante que escanea el QR de un lote: aviso claro, no se abre la ficha ni se pide nada', (tester) async {
+  testWidgets('el donante que escanea el QR de un lote: aviso claro, no se abre la ficha ni se pide nada', (
+    tester,
+  ) async {
     final h = await asDonor(tester);
     final before = h.api.calls.length;
     h.nextScan = '$testOrigin/assets/A-55';

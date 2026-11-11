@@ -52,6 +52,8 @@ Límites: la primera entrada en un teléfono, el pago, seguir una donación por 
 
 ## Otros
 
+- Barra del empleado (2026-11-11, por la prueba en el teléfono): **Inicio · Mi día · Escanear (centro) · Pendientes · Cuenta**. Escanear es una pantalla (`/scan`) y no una hoja aparte, así que se llega también deslizando; la pestaña marcada es siempre la pantalla actual, y en la ficha de un activo no se marca ninguna. La §1 de la Enmienda 2 decía «Mi día · Escanear · Pendientes · Cuenta»: falta reflejarlo allí.
+
 - Paradas 04 y 05 de la bienvenida: los textos sobre la cadena pública y el anclaje siguen pendientes de confirmación con el equipo (no tocar hasta acordar redacción).
 - M-26 «ayuda»: no está en la §1 aprobada de la Enmienda 2 y sus textos son los de M-20 (Carlos). Se añade cuando lleguen.
 - Textos legales: enlazarlos en el registro y en el diálogo de re-aceptación cuando se publiquen.

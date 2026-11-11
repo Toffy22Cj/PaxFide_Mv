@@ -15,16 +15,13 @@ import 'asset_screen.dart';
 /// (`GET /organizations/{id}/physical-assets`, máx. 200); tocar una tarjeta muestra la lista filtrada. Escanear y
 /// Pendientes son pestañas: aquí solo se escribe el código y se abren Mis convocatorias. Sin `EMPLOYEE` en `/me`: "sin acceso operativo" (nunca un redirect).
 class OperatorScreen extends StatelessWidget {
-  const OperatorScreen({super.key, this.location = AppRoutes.operator});
-
-  /// `/operator`, o la raíz cuando es la pantalla principal del empleado.
-  final String location;
+  const OperatorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
     return AppShell(
-      location: location,
+      location: AppRoutes.operator,
       title: 'Mi día',
       body: ListenableBuilder(
         listenable: services.session,

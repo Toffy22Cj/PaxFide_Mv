@@ -97,22 +97,27 @@ void main() {
     expect(h.location, AppRoutes.operatorPending);
   });
 
-  testWidgets('M-03: deslizar cambia de pestaña (sin abrir la cámara) y en la ficha vuelve atrás', (tester) async {
+  testWidgets('M-03: deslizar recorre las pestañas, Escanear incluida, y en la ficha vuelve atrás', (tester) async {
     final h = await start(tester);
     h.services.router.go(AppRoutes.operator);
     await tester.pumpAndSettle();
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(-400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.operatorPending, reason: 'Escanear se salta al deslizar');
+    expect(h.location, AppRoutes.scan, reason: 'Escanear es una pestaña más');
+    await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(-400, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operatorPending);
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.home, reason: 'Mi día es la raíz del empleado');
+    await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operator);
 
     h.services.router.push(AppRoutes.assetPath('A-1'));
     await tester.pumpAndSettle();
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.home, reason: 'Mi día es la raíz del empleado');
+    expect(h.location, AppRoutes.operator);
   });
 
   testWidgets('E-08: Mis convocatorias con sus activos por estado; tocar uno abre la ficha', (tester) async {
@@ -149,14 +154,38 @@ void main() {
     expect(h.location, '/assets/A-1');
   });
 
-  testWidgets('en la ficha de un activo ninguna pestaña se ve marcada; en Mi día, Mi día', (tester) async {
+  testWidgets('la pestaña marcada es la pantalla actual; en la ficha de un activo, ninguna', (tester) async {
     final h = await start(tester);
     await tester.pumpAndSettle();
     NavigationBar bar() => tester.widget<NavigationBar>(find.byType(NavigationBar));
     expect(h.location, AppRoutes.home);
-    expect(bar().indicatorColor, isNot(Colors.transparent));
+    expect(bar().selectedIndex, 0, reason: 'Inicio');
+    await tester.tap(find.byKey(const Key('nav.Mi día')));
+    await tester.pumpAndSettle();
+    expect(bar().selectedIndex, 1, reason: 'Mi día');
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.scan);
+    expect(bar().selectedIndex, 2, reason: 'Escanear');
+    expect(find.byKey(const Key('scanner.paste')), findsOneWidget, reason: 'el escáner está en la pestaña');
     h.services.router.push(AppRoutes.assetPath('A-1'));
     await tester.pumpAndSettle();
     expect(bar().indicatorColor, Colors.transparent);
+  });
+
+  testWidgets('desde la pestaña Escanear: un lote abre su ficha y al volver se puede escanear otro', (tester) async {
+    final h = await start(tester);
+    h.nextScan = '$testOrigin/assets/A-1';
+    await tester.tap(find.byKey(const Key('nav.Escanear')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-1');
+    h.nextScan = null; // la cámara ya no apunta al mismo QR
+    h.services.router.back();
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.scan);
+    await tester.enterText(find.byKey(const Key('scanner.paste')), 'A-2');
+    await tester.tap(find.byKey(const Key('scanner.paste.open')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-2');
   });
 }

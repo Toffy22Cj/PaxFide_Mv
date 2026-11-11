@@ -917,8 +917,10 @@ class _OperationsCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
+        // Lleva a la pestaña Escanear (la misma de la barra), no a una hoja aparte.
         FilledButton.icon(
-          onPressed: () => scanQr(context),
+          key: const Key('home.operations.scan'),
+          onPressed: () => services.router.go(AppRoutes.scan),
           icon: const Icon(Icons.qr_code_scanner),
           label: const Text('Escanear activo'),
         ),

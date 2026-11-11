@@ -16,9 +16,9 @@ import '../features/physical_assets/presentation/operator_screen.dart';
 import '../features/physical_assets/presentation/pending_operations_screen.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_routes.dart';
-import 'app_services.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
+import 'scan_screen.dart';
 import 'text_size_button.dart';
 import 'theme_mode_button.dart';
 import '../shared/widgets/pax_app_bar.dart';
@@ -33,8 +33,9 @@ Widget buildPage(BuildContext context, String location) {
     case AppRoutes.register:
       return const RegisterScreen();
     case AppRoutes.home:
-      // El empleado empieza en Mi día (M-03): su raíz es esa pantalla, no un Inicio aparte.
-      return const _HomeForProfile();
+      return const HomeScreen();
+    case AppRoutes.scan:
+      return const ScanScreen();
     case AppRoutes.operator:
       return const OperatorScreen();
     case AppRoutes.operatorPending:
@@ -73,20 +74,4 @@ Widget buildPage(BuildContext context, String location) {
     appBar: PaxAppBar(title: const Text('PaxFide'), actions: const [TextSizeButton(), ThemeModeButton()]),
     body: notYet,
   );
-}
-
-/// La raíz según `/me`: Mi día para el empleado, Inicio para el resto. Mientras carga el perfil, Inicio.
-class _HomeForProfile extends StatelessWidget {
-  const _HomeForProfile();
-
-  @override
-  Widget build(BuildContext context) {
-    final session = AppScope.of(context).session;
-    return ListenableBuilder(
-      listenable: session,
-      builder: (context, _) => (session.principal?.showsOperatorActions ?? false)
-          ? const OperatorScreen(location: AppRoutes.home)
-          : const HomeScreen(),
-    );
-  }
 }

@@ -267,6 +267,7 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
 
   static const _tabs = {
     AppRoutes.donations,
+    AppRoutes.scan,
     AppRoutes.operator,
     AppRoutes.operatorPending,
     AppRoutes.prediction,
