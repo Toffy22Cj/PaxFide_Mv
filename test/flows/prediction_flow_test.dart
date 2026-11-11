@@ -53,11 +53,12 @@ void main() {
       final call = h.api.calls.last;
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
-      expect(find.text(predictionLabel), findsOneWidget);
+      expect(find.byKey(const Key('prediction.label')), findsNothing);
       // Solo la predicción con su porcentaje y una línea de advertencia: sin modelo, fecha, ni otras cifras.
       expect(find.byKey(const Key('prediction.percent')), findsOneWidget);
       expect(find.text('85,2 %'), findsOneWidget);
-      expect(find.text('de probabilidad de alcanzar la meta'), findsOneWidget);
+      expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
+      expect(find.textContaining('datos de prueba'), findsNothing);
       expect(find.textContaining('Porcentaje final'), findsNothing);
       expect(find.textContaining('Tiempo transcurrido'), findsNothing);
       expect(find.textContaining('p3-v1'), findsNothing);
@@ -84,7 +85,7 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.text(predictionLabel), findsOneWidget);
+    expect(find.byKey(const Key('prediction.label')), findsNothing);
     expect(find.textContaining('La política STRICT'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
   });
@@ -142,6 +143,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
     expect(find.text('50,0 %'), findsOneWidget);
+    expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
   });
 
@@ -194,7 +196,7 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.text(predictionLabel), findsOneWidget);
+    expect(find.byKey(const Key('prediction.label')), findsNothing);
     expect(find.textContaining('Fuera del rango del modelo'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
     expect(find.textContaining('Tiempo transcurrido'), findsNothing);
@@ -213,5 +215,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prediction.noCampaigns')), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
+  });
+
+  test('el texto dice si es probable o no alcanzar la meta (corte en el 50 %)', () {
+    expect(likelihoodText(0.85), 'Es probable alcanzar la meta');
+    expect(likelihoodText(0.5), 'Es probable alcanzar la meta');
+    expect(likelihoodText(0.002), 'No es probable alcanzar la meta');
   });
 }

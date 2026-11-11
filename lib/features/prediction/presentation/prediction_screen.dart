@@ -15,8 +15,9 @@ import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
 
 /// Etiqueta obligatoria (encargo §4.7). Siempre visible encima de cualquier cifra de la predicción.
-/// La única advertencia de la tarjeta (ADR-044, enmienda 1): es una estimación con datos de prueba.
-const predictionLabel = 'Estimación de un modelo entrenado con datos de prueba; no es un dato registrado.';
+/// El único texto de la predicción (decisión de Adonis, 2026-11-11): si es probable o no alcanzar la meta.
+String likelihoodText(double probability) =>
+    probability >= 0.5 ? 'Es probable alcanzar la meta' : 'No es probable alcanzar la meta';
 
 String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
 
@@ -234,19 +235,12 @@ class _PredictionCard extends StatelessWidget {
               ),
               Center(
                 child: Text(
-                  'de probabilidad de alcanzar la meta',
-                  style: theme.textTheme.titleSmall?.copyWith(color: ink),
+                  likelihoodText(p.probabilityReachTarget!),
+                  key: const Key('prediction.likelihood'),
+                  style: theme.textTheme.titleMedium?.copyWith(color: ink, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            // ADR-044, enmienda 1: la advertencia es obligatoria y la cifra se separa de los hechos. Una sola línea.
-            Text(
-              predictionLabel,
-              key: const Key('prediction.label'),
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(color: ink.withValues(alpha: 0.8)),
-            ),
           ],
         ),
       ),
