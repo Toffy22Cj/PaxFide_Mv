@@ -12,6 +12,7 @@ import '../core/storage/outbox_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
+import '../features/auth/google/google_id_token_provider.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/auth/domain/session_state.dart';
 import '../features/campaigns/data/campaign_api.dart';
@@ -56,6 +57,7 @@ class AppServices {
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
     this.mapTileProvider,
+    this.google = const UnavailableGoogleIdTokenProvider(),
     ValueListenable<bool>? offline,
   }) : offline = offline ?? ValueNotifier(false),
        deepLinkParser = DeepLinkParser(canonicalOrigin: config.publicOrigin),
@@ -110,6 +112,9 @@ class AppServices {
   /// Pausa de la ciudad de Inicio, recordada entre aperturas.
   final CityPauseController cityPause;
   late final AppRouterDelegate router;
+
+  /// Entrar con Google y vincularlo en Cuenta (ADR-050 D9). Sin ID de cliente configurado, no está.
+  final GoogleIdTokenProvider google;
 
   /// Entrar con huella o rostro, solo desde el login (M-28).
   final BiometricLogin biometricLogin;

@@ -1,3 +1,4 @@
+import 'package:paxfide_mobile/features/auth/google/google_id_token_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_config.dart';
@@ -21,7 +22,8 @@ ApiResponse meResponse({List<String> roles = const ['EMPLOYEE'], String? org = '
 class AppHarness {
   /// [biometric]: biometría del teléfono simulada; sin ella, el equipo no tiene (como Linux).
   /// [map]: con teselas configuradas (en memoria) para el mapa del recorrido (M-25); [failingTiles]: sin conexión.
-  AppHarness({FakeBiometricAuthenticator? biometric, bool map = false, bool failingTiles = false})
+  /// [google]: «Entrar con Google» simulado; sin él, no aparece (como sin ID de cliente).
+  AppHarness({FakeBiometricAuthenticator? biometric, this.google, bool map = false, bool failingTiles = false})
     : biometric = biometric ?? FakeBiometricAuthenticator(available: false) {
     // El mundo de la bienvenida se mueve sin parar: en las pruebas, solo la cámara al deslizar (pumpAndSettle termina).
     WelcomeWorld.ambientMotion = false;
@@ -37,6 +39,7 @@ class AppHarness {
       apiClientFactory: (tokens, handler) => api..authHandler = handler,
       qrScannerBuilder: (context, onCode) => _FakeScanner(code: nextScan, onCode: onCode),
       biometricAuthenticator: this.biometric,
+      google: google ?? const UnavailableGoogleIdTokenProvider(),
       linkOpener: links,
       photoPicker: photos,
     );
@@ -147,6 +150,7 @@ class AppHarness {
 
   final secure = InMemorySecureKeyValueStore();
   final FakeBiometricAuthenticator biometric;
+  final FakeGoogleIdTokenProvider? google;
 
   /// Navegador simulado (M-12).
   final links = FakeLinkOpener();
@@ -233,4 +237,19 @@ class _FakeScannerState extends State<_FakeScanner> {
 
   @override
   Widget build(BuildContext context) => const ColoredBox(color: Colors.black);
+}
+
+/// «Entrar con Google» simulado: devuelve [next] y cuenta las veces.
+class FakeGoogleIdTokenProvider implements GoogleIdTokenProvider {
+  GoogleIdTokenResult next = const GoogleIdTokenObtained('google-id-token');
+  int calls = 0;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  Future<GoogleIdTokenResult> obtain() async {
+    calls++;
+    return next;
+  }
 }

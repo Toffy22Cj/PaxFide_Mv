@@ -148,6 +148,23 @@ class AuthApi {
     return _token(r);
   }
 
+  /// `POST /auth/google` (ADR-050 D9): el JWT, con las mismas reglas que [login]: el mismo 401 si el `idToken` no vale
+  /// o la cuenta de Google no está vinculada; [EmailNotVerifiedException]; [AcceptanceRequiredException] (se repite
+  /// con el mismo `idToken` y las versiones); [GoogleSignInUnavailableException] si Google no responde (503).
+  Future<String> googleLogin(String idToken, {String? acceptedTermsVersion, String? acceptedDataPolicyVersion}) async {
+    final r = await _api.post(
+      '/auth/google',
+      body: {
+        'idToken': idToken,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
+      credentialMode: CredentialMode.none,
+    );
+    if (r.statusCode == 503) throw const GoogleSignInUnavailableException();
+    return _token(r);
+  }
+
   /// `POST /auth/email-verification` (ADR-050 Enmienda 2): reenvía el correo de confirmación. Siempre el mismo 202,
   /// exista o no la cuenta; una segunda petición antes de 5 minutos no envía nada.
   Future<void> requestEmailVerification(String email) async {

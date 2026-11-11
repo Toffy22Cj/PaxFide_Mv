@@ -91,6 +91,12 @@ class EmailNotVerifiedException extends ApiHttpException {
   const EmailNotVerifiedException() : super(403, 'El correo de la cuenta no está confirmado');
 }
 
+/// 503 `GoogleSignInUnavailable` (ADR-050 D9): el backend no pudo obtener las llaves de Google. Se ofrece la
+/// contraseña.
+class GoogleSignInUnavailableException extends ApiHttpException {
+  const GoogleSignInUnavailableException() : super(503, 'Google no responde ahora');
+}
+
 /// 404.
 class NotFoundException extends ApiHttpException {
   const NotFoundException() : super(404, 'Recurso no encontrado');

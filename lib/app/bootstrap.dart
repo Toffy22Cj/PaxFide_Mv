@@ -11,6 +11,7 @@ import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_file_store.dart';
 import '../core/storage/outbox_store.dart';
+import '../features/auth/google/google_id_token_provider.dart';
 import '../features/auth/data/profile_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
@@ -41,6 +42,7 @@ AppServices buildServices({
   LinkOpener linkOpener = const UrlLauncherLinkOpener(),
   PhotoPicker? photoPicker,
   TileProvider? mapTileProvider,
+  GoogleIdTokenProvider? google,
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
@@ -69,6 +71,11 @@ AppServices buildServices({
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
     mapTileProvider: mapTileProvider,
+    google:
+        google ??
+        (config.googleServerClientId != null && GoogleSignInIdTokenProvider.supportedPlatform
+            ? GoogleSignInIdTokenProvider(config.googleServerClientId!)
+            : const UnavailableGoogleIdTokenProvider()),
     offline: api.offline,
     // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
     biometricAuthenticator:

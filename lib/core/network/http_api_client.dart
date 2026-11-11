@@ -62,6 +62,14 @@ class HttpApiClient implements ApiClient {
   }) => _send('PUT', path, null, headers, body, credentialMode, null);
 
   @override
+  Future<ApiResponse> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  }) => _send('DELETE', path, null, headers, body, credentialMode, null);
+
+  @override
   Future<ApiResponse> postFile(
     String path, {
     required String field,

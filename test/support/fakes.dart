@@ -116,6 +116,14 @@ class FakeApiClient implements ApiClient {
   }) => _next(RecordedCall('POST', path, headers ?? const {}, body, credentialMode, beforeSend));
 
   @override
+  Future<ApiResponse> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  }) => _next(RecordedCall('DELETE', path, headers ?? const {}, body, credentialMode, null));
+
+  @override
   Future<ApiResponse> put(
     String path, {
     Map<String, dynamic>? body,
@@ -227,7 +235,6 @@ class FakePhotoPicker implements PhotoPicker {
   @override
   Future<PickedPhoto?> choosePhoto() => _pick();
 }
-
 
 /// Teselas del mapa en memoria (M-25): una imagen transparente de 1×1, o un error si [fail] (sin conexión).
 class MemoryTileProvider extends TileProvider {

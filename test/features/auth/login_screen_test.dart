@@ -6,8 +6,8 @@ import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 
 import '../../support/app_harness.dart';
 
-/// Login del landing adaptado al móvil: lo que el backend todavía no tiene (Google, Billetera Web3, recuperar la
-/// contraseña) avisa sin simular nada; «Recordarme» decide si la sesión se guarda en el teléfono.
+/// Login del landing adaptado al móvil: lo que no está (Billetera Web3; Google sin ID de cliente configurado, ver
+/// `google_flow_test.dart`) no se simula; «Recordarme» decide si la sesión se guarda en el teléfono.
 void main() {
   Future<void> tap(WidgetTester tester, String key) async {
     await tester.ensureVisible(find.byKey(Key(key)));
@@ -24,7 +24,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('Google y Billetera Web3 no están presentes en el login', (tester) async {
+  testWidgets('sin ID de cliente de Google, ni Google ni Billetera Web3 en el login', (tester) async {
     final h = AppHarness();
     await h.start(tester);
     expect(find.byKey(const Key('login.google')), findsNothing);

@@ -22,6 +22,18 @@ class DeactivationBlockedException extends ApiHttpException {
   final String reason;
 }
 
+/// 400 `GoogleIdTokenInvalid` al vincular Google (ADR-050 D9).
+class GoogleIdTokenInvalidException extends ApiHttpException {
+  const GoogleIdTokenInvalidException() : super(400, 'Google no confirmó la cuenta');
+}
+
+/// 409 al vincular Google: esa cuenta de Google ya está en otra cuenta de PaxFide (`GoogleAccountAlreadyLinked`) o esta
+/// cuenta ya tiene otra de Google (`AccountAlreadyLinkedToGoogle`).
+class GoogleLinkConflictException extends ApiHttpException {
+  const GoogleLinkConflictException(this.reason) : super(409, 'No se puede vincular esa cuenta de Google');
+  final String reason;
+}
+
 /// `GET /account/profile`: el correo y el nombre de la propia cuenta. El nombre es privado (ADR-050 D1).
 class AccountProfile {
   const AccountProfile({required this.email, this.givenName, this.familyName});
@@ -90,6 +102,38 @@ class AccountApi {
     final token = r.requireData()['token'];
     if (token is! String || token.isEmpty) throw const MalformedResponseException();
     return token;
+  }
+
+  /// `POST /account/google/link` (ADR-050 D9) → 204, con la contraseña actual. Repetir la misma vinculación no cambia
+  /// nada. Si el correo de Google es el de la cuenta, la cuenta queda verificada.
+  Future<void> linkGoogle({required String idToken, required String currentPassword}) async {
+    final r = await _api.post(
+      '/account/google/link',
+      body: {'idToken': idToken, 'currentPassword': currentPassword},
+      credentialMode: CredentialMode.jwt,
+    );
+    if (r.isSuccess) return;
+    _googleErrors(r);
+  }
+
+  /// `DELETE /account/google/link` (ADR-050 D9) → 204, con la contraseña actual; sin vínculo, 204 igual.
+  Future<void> unlinkGoogle({required String currentPassword}) async {
+    final r = await _api.delete(
+      '/account/google/link',
+      body: {'currentPassword': currentPassword},
+      credentialMode: CredentialMode.jwt,
+    );
+    if (r.isSuccess) return;
+    _googleErrors(r);
+  }
+
+  static Never _googleErrors(ApiResponse r) {
+    final title = _title(r);
+    if (r.statusCode == 400 && title == 'CurrentPasswordIncorrect') throw const CurrentPasswordIncorrectException();
+    if (r.statusCode == 400 && title == 'GoogleIdTokenInvalid') throw const GoogleIdTokenInvalidException();
+    if (r.statusCode == 409) throw GoogleLinkConflictException(title ?? '');
+    if (r.statusCode == 503) throw const GoogleSignInUnavailableException();
+    throw r.error ?? BadRequestException(r.statusCode);
   }
 
   /// `POST /account/deactivate` → 204. La cuenta pasa a `INACTIVE` y **todos** sus tokens quedan revocados, también

@@ -11,6 +11,7 @@ import '../../../shared/error_messages.dart';
 import '../../../shared/theme/text_size_controller.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../auth/google/google_id_token_provider.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../../auth/presentation/register_screen.dart' show minPasswordLength;
@@ -121,6 +122,24 @@ class AccountScreen extends StatelessWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _changePassword(context, services),
                     ),
+                    if (services.google.isAvailable) ...[
+                      ListTile(
+                        key: const Key('account.google.link'),
+                        leading: const Icon(Icons.link),
+                        title: const Text('Vincular mi cuenta de Google'),
+                        subtitle: const Text('Para entrar también con Google'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _google(context, services, link: true),
+                      ),
+                      ListTile(
+                        key: const Key('account.google.unlink'),
+                        leading: const Icon(Icons.link_off),
+                        title: const Text('Desvincular Google'),
+                        subtitle: const Text('Seguirás entrando con tu correo y tu contraseña'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _google(context, services, link: false),
+                      ),
+                    ],
                     ListTile(
                       key: const Key('account.deactivate'),
                       leading: Icon(Icons.person_off_outlined, color: Theme.of(context).colorScheme.error),
@@ -518,6 +537,136 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
 /// M-30: desactivar la propia cuenta (ADR-050 D6). Pide la contraseña; al confirmarse se cierra la sesión y se
 /// olvida la biometría de este teléfono. No se puede deshacer desde la app.
+/// Vincular o desvincular Google (ADR-050 D9), siempre con la contraseña actual. El backend no dice si ya hay una
+/// vinculada; repetir cualquiera de las dos no cambia nada.
+Future<void> _google(BuildContext context, AppServices services, {required bool link}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final done = await showDialog<bool>(
+    context: context,
+    builder: (_) => _GoogleDialog(services: services, link: link),
+  );
+  if (done != true) return;
+  messenger.showSnackBar(
+    SnackBar(
+      key: const Key('account.google.done'),
+      content: Text(
+        link
+            ? 'Listo. Ya puedes entrar con Google. Te enviamos un correo de aviso.'
+            : 'Google quedó desvinculado. Entra con tu correo y tu contraseña.',
+      ),
+    ),
+  );
+}
+
+class _GoogleDialog extends StatefulWidget {
+  const _GoogleDialog({required this.services, required this.link});
+  final AppServices services;
+  final bool link;
+
+  @override
+  State<_GoogleDialog> createState() => _GoogleDialogState();
+}
+
+class _GoogleDialogState extends State<_GoogleDialog> {
+  final _password = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_password.text.isEmpty) {
+      setState(() => _error = 'Escribe tu contraseña para confirmar.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final api = AccountApi(widget.services.apiClient);
+    try {
+      if (widget.link) {
+        final result = await widget.services.google.obtain();
+        if (!mounted) return;
+        switch (result) {
+          case GoogleIdTokenObtained(:final idToken):
+            await api.linkGoogle(idToken: idToken, currentPassword: _password.text);
+          case GoogleIdTokenCanceled():
+            setState(() => _busy = false);
+            return;
+          case GoogleIdTokenFailed():
+            setState(() {
+              _busy = false;
+              _error = 'No se pudo usar Google en este teléfono.';
+            });
+            return;
+        }
+      } else {
+        await api.unlinkGoogle(currentPassword: _password.text);
+      }
+      if (mounted) Navigator.of(context).pop(true);
+    } on AppException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = switch (e) {
+          CurrentPasswordIncorrectException() => 'La contraseña no es correcta.',
+          GoogleIdTokenInvalidException() => 'Google no confirmó la cuenta. Inténtalo de nuevo.',
+          GoogleLinkConflictException(reason: 'GoogleAccountAlreadyLinked') =>
+            'Esa cuenta de Google ya está vinculada a otra cuenta de PaxFide.',
+          GoogleLinkConflictException(reason: 'AccountAlreadyLinkedToGoogle') =>
+            'Tu cuenta ya tiene otra cuenta de Google vinculada. Desvincúlala primero.',
+          GoogleLinkConflictException() => 'No se puede vincular esa cuenta de Google.',
+          GoogleSignInUnavailableException() => 'Google no responde ahora. Inténtalo en un momento.',
+          _ => describeError(e),
+        };
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    key: const Key('account.google.dialog'),
+    title: Text(widget.link ? 'Vincular tu cuenta de Google' : '¿Desvincular Google?'),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.link
+                ? 'Confirma tu contraseña y elige tu cuenta de Google. Después podrás entrar con ella.'
+                : 'Ya no podrás entrar con Google. Tu cuenta y tus donaciones no cambian.',
+          ),
+          const SizedBox(height: 12),
+          _SecretField(
+            fieldKey: const Key('account.google.password'),
+            controller: _password,
+            label: 'Contraseña actual',
+            enabled: !_busy,
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            ErrorMessage(_error!, textKey: const Key('account.google.error')),
+          ],
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+      FilledButton(
+        key: const Key('account.google.confirm'),
+        onPressed: _busy ? null : _submit,
+        child: Text(widget.link ? 'Elegir cuenta de Google' : 'Desvincular'),
+      ),
+    ],
+  );
+}
+
 Future<void> _deactivate(BuildContext context, AppServices services, String accountId) async {
   var pending = 0;
   try {

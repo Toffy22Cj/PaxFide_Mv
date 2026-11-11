@@ -7,6 +7,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../biometrics/biometric_login.dart';
+import '../google/google_id_token_provider.dart';
 import 'auth_layout.dart';
 import 'biometric_login_dialog.dart';
 import 'forgot_password_sheet.dart';
@@ -269,12 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
       }
-      final enroll = await _askToEnableBiometric();
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final biometric = _biometric;
-      await services.session.loginWithToken(token, remember: _remember);
-      if (enroll) _registerBiometric(biometric, messenger);
+      await _finishLogin(token);
     } on AppException catch (e) {
       services.pendingIntents.discard(); // R2: el login fracasó → la intención desaparece
       if (!mounted) return;
@@ -285,6 +281,91 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = switch (e) {
           UnauthorizedException() => 'Email o contraseña incorrectos.',
           EmailNotVerifiedException() => _emailNotVerifiedText,
+          _ => describeError(e),
+        };
+      });
+    }
+  }
+
+  /// Con el JWT en la mano y antes de salir del login: ofrecer la biometría si el teléfono la tiene (M-28).
+  Future<void> _finishLogin(String token) async {
+    final services = AppScope.of(context);
+    final enroll = await _askToEnableBiometric();
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final biometric = _biometric;
+    await services.session.loginWithToken(token, remember: _remember);
+    if (enroll) _registerBiometric(biometric, messenger);
+  }
+
+  /// «Entrar con Google» (ADR-050 D9): Google da un `idToken` y el backend lo cambia por el JWT de la cuenta
+  /// vinculada, con las mismas reglas que la contraseña (correo sin confirmar, condiciones pendientes).
+  Future<void> _googleLogin() async {
+    final services = AppScope.of(context);
+    setState(() {
+      _sending = true;
+      _error = null;
+      _emailNotVerified = false;
+      _resendNotice = null;
+    });
+    final result = await services.google.obtain();
+    if (!mounted) return;
+    final String idToken;
+    switch (result) {
+      case GoogleIdTokenObtained(idToken: final t):
+        idToken = t;
+      case GoogleIdTokenCanceled():
+        setState(() => _sending = false);
+        return;
+      case GoogleIdTokenFailed():
+        setState(() {
+          _sending = false;
+          _error = 'No se pudo usar Google en este teléfono. Entra con tu correo y tu contraseña.';
+        });
+        return;
+    }
+    try {
+      String token;
+      try {
+        token = await services.authApi.googleLogin(idToken);
+      } on AcceptanceRequiredException catch (pending) {
+        if (!mounted) return;
+        final accepted = await showLegalAcceptanceDialog(context, pending);
+        if (!accepted) {
+          services.pendingIntents.discard();
+          if (mounted) {
+            setState(() {
+              _sending = false;
+              _error = 'Para entrar debes aceptar las condiciones vigentes.';
+            });
+          }
+          return;
+        }
+        // El mismo idToken sirve mientras no caduque (una hora).
+        token = await services.authApi.googleLogin(
+          idToken,
+          acceptedTermsVersion: pending.pendingTermsVersion,
+          acceptedDataPolicyVersion: pending.pendingDataPolicyVersion,
+        );
+      }
+      if (!mounted) return;
+      await _finishLogin(token);
+    } on AppException catch (e) {
+      services.pendingIntents.discard();
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _emailNotVerified = false;
+        _error = switch (e) {
+          // El backend no dice si el idToken no valía o si la cuenta de Google no está vinculada (mismo 401).
+          UnauthorizedException() =>
+            'Esa cuenta de Google no está vinculada a PaxFide. Entra con tu correo y tu contraseña y vincúlala en '
+                'Cuenta.',
+          // Solo puede faltar confirmar el correo si la cuenta de Google es otro correo.
+          EmailNotVerifiedException() => _emailNotVerifiedText,
+          AcceptanceRequiredException() => 'Las condiciones cambiaron mientras entrabas. Inténtalo de nuevo.',
+          GoogleSignInUnavailableException() =>
+            'Google no responde ahora. Entra con tu correo y tu contraseña o inténtalo en un momento.',
           _ => describeError(e),
         };
       });
@@ -442,6 +523,19 @@ class _LoginScreenState extends State<LoginScreen> {
               busy: _sending,
               onPressed: _sending ? null : _submit,
             ),
+            if (services.google.isAvailable) ...[
+              const SizedBox(height: 10),
+              AuthOutlineButton(
+                key: const Key('login.google'),
+                ink: ink,
+                label: 'Entrar con Google',
+                leading: Text(
+                  'G',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: ink.title),
+                ),
+                onPressed: _sending ? null : _googleLogin,
+              ),
+            ],
             if (_biometricOffered) ...[
               const SizedBox(height: 10),
               AuthOutlineButton(

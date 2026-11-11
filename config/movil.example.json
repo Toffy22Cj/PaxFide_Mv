@@ -1,5 +1,6 @@
 {
   "PAXFIDE_API_BASE_URL": "https://SUBDOMINIO-DEL-TUNEL-API.trycloudflare.com/api/v1",
   "PAXFIDE_PUBLIC_BASE_URL": "https://SUBDOMINIO-DEL-TUNEL-WEB.trycloudflare.com",
-  "PAXFIDE_MAP_TILE_URL": "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  "PAXFIDE_MAP_TILE_URL": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "PAXFIDE_GOOGLE_SERVER_CLIENT_ID": ""
 }

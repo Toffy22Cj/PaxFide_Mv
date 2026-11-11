@@ -4,17 +4,29 @@
 ///   backend local del `runbook-demo-local.md`).
 /// - `PAXFIDE_PUBLIC_BASE_URL`: origen canónico de los enlaces y QR, igual que la web (DDM-03). Sin él, el escáner
 ///   no aprueba ningún enlace y no se generan QR.
+/// - `PAXFIDE_GOOGLE_SERVER_CLIENT_ID`: ID de cliente web de Google para «Entrar con Google» (ADR-050 D9).
 /// - `PAXFIDE_MAP_TILE_URL`: plantilla de las teselas del mapa del recorrido (ADR del mapa, D4), con `{z}`, `{x}` y `{y}`,
 ///   p. ej. `https://tile.openstreetmap.org/{z}/{x}/{y}.png` en desarrollo. Sin ella, el mapa no se muestra.
 ///   Producción necesita un proveedor de teselas: las públicas de OpenStreetMap no admiten ese tráfico.
 class AppConfig {
-  const AppConfig({required this.apiBaseUrl, required this.publicOrigin, this.mapTileUrl});
+  const AppConfig({required this.apiBaseUrl, required this.publicOrigin, this.mapTileUrl, this.googleServerClientId});
 
   factory AppConfig.fromEnvironment() => AppConfig(
     apiBaseUrl: _parse(const String.fromEnvironment('PAXFIDE_API_BASE_URL')),
     publicOrigin: _origin(_parse(const String.fromEnvironment('PAXFIDE_PUBLIC_BASE_URL'))),
     mapTileUrl: tileTemplate(const String.fromEnvironment('PAXFIDE_MAP_TILE_URL')),
+    googleServerClientId: googleClientId(const String.fromEnvironment('PAXFIDE_GOOGLE_SERVER_CLIENT_ID')),
   );
+
+  /// ID de cliente OAuth **web** de Google Cloud (ADR-050 D9): el `serverClientId` con que la app pide el `idToken`.
+  /// Sin él, «Entrar con Google» no aparece. No es un secreto, pero no va en el repositorio.
+  final String? googleServerClientId;
+
+  /// Forma de un ID de cliente de Google (`…​.apps.googleusercontent.com`); si no, ninguno.
+  static String? googleClientId(String raw) {
+    final t = raw.trim();
+    return RegExp(r'^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$').hasMatch(t) ? t : null;
+  }
 
   final Uri? apiBaseUrl;
   final Uri? publicOrigin;

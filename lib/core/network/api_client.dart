@@ -34,6 +34,14 @@ abstract class ApiClient {
     required CredentialMode credentialMode,
   });
 
+  /// `DELETE` con cuerpo opcional (p. ej. `DELETE /account/google/link`, ADR-050 D9).
+  Future<ApiResponse> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  });
+
   /// `multipart/form-data` con un único archivo en el campo [field]. Sin reintentos ni Outbox: quien llama decide.
   Future<ApiResponse> postFile(
     String path, {

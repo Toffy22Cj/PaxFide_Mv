@@ -113,6 +113,14 @@ class CachingApiClient implements ApiClient {
   }) => _inner.put(path, body: body, headers: headers, credentialMode: credentialMode);
 
   @override
+  Future<ApiResponse> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    required CredentialMode credentialMode,
+  }) => _inner.delete(path, body: body, headers: headers, credentialMode: credentialMode);
+
+  @override
   Future<ApiResponse> postFile(
     String path, {
     required String field,
