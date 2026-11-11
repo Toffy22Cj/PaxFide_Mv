@@ -190,4 +190,45 @@ void main() {
     expect(await h.services.session.tokenStore.readToken(), isNull);
     expect(h.api.calls.lastWhere((c) => c.path == '/account/deactivate').body, {'currentPassword': 'actual-12345'});
   });
+
+  testWidgets('C4b: el empleado ve el nombre de su organización (de la ficha pública de su convocatoria)', (
+    tester,
+  ) async {
+    final h = await start(tester);
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'campaignRef': 'CAMP-1', 'publicCode': 'PUB1', 'title': 'Abrigo', 'status': 'OPEN'},
+        ],
+      },
+    );
+    h.api.routes['GET /public/campaigns/PUB1'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {'title': 'Abrigo', 'status': 'OPEN', 'organizationName': 'Fundación Demo PaxFide'},
+    );
+    await tester.tap(find.byKey(const Key('nav.Cuenta')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fundación Demo PaxFide'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/organizations/org-1'), isEmpty, reason: 'al empleado le da 403');
+  });
+
+  testWidgets('C4b: el administrador lo lee de su organización', (tester) async {
+    final h = await start(tester, roles: const ['ADMINISTRATOR', 'EMPLOYEE']);
+    h.api.routes['GET /organizations/org-1'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {'organizationId': 'org-1', 'name': 'Fundación Demo PaxFide', 'type': 'FOUNDATION'},
+    );
+    await tester.tap(find.byKey(const Key('nav.Cuenta')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fundación Demo PaxFide'), findsOneWidget);
+  });
+
+  testWidgets('C4b: sin convocatorias que lo digan, un texto neutro (nunca un error)', (tester) async {
+    final h = await start(tester);
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': <Object>[]});
+    await tester.tap(find.byKey(const Key('nav.Cuenta')));
+    await tester.pumpAndSettle();
+    expect(find.text('Perteneces a una organización'), findsOneWidget);
+  });
 }

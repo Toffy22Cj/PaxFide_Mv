@@ -36,7 +36,7 @@ Límites: la primera entrada en un teléfono, el pago, seguir una donación por 
 
 | ID | Falta | Siguiente paso exacto |
 |---|---|---|
-| C4b | Cuenta del empleado: el nombre (y el logo) de su organización en vez de «Perteneces a una organización» | El backend no da el nombre al `EMPLOYEE` (`GET /organizations/{id}` le da 403; el logo sí lo puede leer). Pedir a Manuel una lectura del nombre de la propia organización para cualquier miembro |
+| C4b | Cuenta del empleado: el nombre de su organización | **Hecho el 2026-11-11 sin tocar el backend:** administrador o representante, de `GET /organizations/{id}`; empleado (a quien esa ruta da 403), de la ficha pública de una de sus convocatorias (`GET /me/campaigns` → `GET /public/campaigns/{publicCode}`, `organizationName`). Un empleado sin convocatorias asignadas sigue viendo «Perteneces a una organización»: para cubrirlo, pedir a Manuel que la ruta deje leer el nombre a cualquier miembro. El logo, pendiente |
 | — | Escanear el código de seguimiento o sacarlo de un QR/enlace | Necesita una enmienda de ADR-043 §0 (Carlos): hoy el parser descarta el código a propósito |
 | — | ADR del mapa: falta la firma de quien lo aprueba en nombre del equipo y reservar su número en el catálogo del backend | Escribirla en el `Estado` de `ADR-mapa-del-recorrido.md` |
 | — | Mapa en producción | Contratar o montar un proveedor de teselas y ponerlo en `PAXFIDE_MAP_TILE_URL` |

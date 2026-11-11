@@ -15,6 +15,7 @@ import '../../auth/google/google_id_token_provider.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../../auth/presentation/register_screen.dart' show minPasswordLength;
+import '../data/organization_name.dart';
 import '../data/account_api.dart';
 
 String roleLabel(String role) => switch (role) {
@@ -61,13 +62,7 @@ class AccountScreen extends StatelessWidget {
                       subtitle: Text(p.roles.isEmpty ? 'Donante' : p.roles.map(roleLabel).join(', ')),
                     ),
                     // El donante nunca pertenece a una organización (ADR-026): la fila solo es para quien la tiene.
-                    if (p.organizationId != null)
-                      const ListTile(
-                        key: Key('account.organization'),
-                        leading: Icon(Icons.apartment_outlined),
-                        title: Text('Organización'),
-                        subtitle: Text('Perteneces a una organización'),
-                      ),
+                    if (p.organizationId != null) _OrganizationTile(principal: p),
                   ],
                 ),
               ),
@@ -813,5 +808,36 @@ class _DeactivateDialogState extends State<_DeactivateDialog> {
         child: const Text('Desactivar'),
       ),
     ],
+  );
+}
+
+/// «Organización» con su nombre (C4b). Mientras se lee, «Cargando…»; si no se puede saber, un texto neutro.
+class _OrganizationTile extends StatefulWidget {
+  const _OrganizationTile({required this.principal});
+  final Principal principal;
+
+  @override
+  State<_OrganizationTile> createState() => _OrganizationTileState();
+}
+
+class _OrganizationTileState extends State<_OrganizationTile> {
+  late final Future<String?> _name = loadOrganizationName(
+    AppScope.of(context).apiClient,
+    organizationId: widget.principal.organizationId,
+    roles: widget.principal.roles,
+  );
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<String?>(
+    future: _name,
+    builder: (context, snap) => ListTile(
+      key: const Key('account.organization'),
+      leading: const Icon(Icons.apartment_outlined),
+      title: const Text('Organización'),
+      subtitle: Text(
+        snap.connectionState != ConnectionState.done ? 'Cargando…' : (snap.data ?? 'Perteneces a una organización'),
+        key: const Key('account.organization.name'),
+      ),
+    ),
   );
 }
