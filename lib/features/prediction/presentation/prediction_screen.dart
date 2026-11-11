@@ -15,7 +15,8 @@ import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
 
 /// Etiqueta obligatoria (encargo §4.7). Siempre visible encima de cualquier cifra de la predicción.
-const predictionLabel = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
+/// La única advertencia de la tarjeta (ADR-044, enmienda 1): es una estimación con datos de prueba.
+const predictionLabel = 'Estimación de un modelo entrenado con datos de prueba; no es un dato registrado.';
 
 String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
 
@@ -161,18 +162,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
               const SizedBox(height: 16),
               if (_loading) const LoadingView(label: 'Cargando predicción…'),
               if (_error != null) _errorView(_error!),
-              if (_prediction != null) ...[
-                _PredictionCard(prediction: _prediction!),
-                // Gráfico de las estimaciones históricas: el backend aún no las expone (S-08). Nunca se inventan cortes.
-                const Card(
-                  key: Key('prediction.history'),
-                  child: ListTile(
-                    leading: Icon(Icons.show_chart),
-                    title: Text('Evolución de las estimaciones'),
-                    subtitle: Text('No disponible'),
-                  ),
-                ),
-              ],
+              if (_prediction != null) ...[_PredictionCard(prediction: _prediction!)],
             ],
           );
         },
@@ -198,6 +188,7 @@ class _PredictionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = prediction;
     final theme = Theme.of(context);
+    final ink = theme.colorScheme.onSecondaryContainer;
     return Card(
       key: const Key('prediction.card'),
       color: theme.colorScheme.secondaryContainer,
@@ -210,55 +201,52 @@ class _PredictionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              predictionLabel,
-              key: const Key('prediction.label'),
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer),
-            ),
-            const SizedBox(height: 4),
-            Text('No es un hecho registrado. Modelo ${p.modelVersion} · calculado el ${p.asOf}'),
-            const Divider(),
             // Sin estimación (incluido OUTSIDE_TRAINED_RANGE): solo el motivo, nunca una cifra.
-            if (!p.available || p.unavailableReason != null)
+            if (!p.available || p.unavailableReason != null || p.probabilityReachTarget == null)
               Text(
                 p.unavailableText ?? 'Sin estimación para esta convocatoria.',
                 key: const Key('prediction.unavailable'),
+                style: theme.textTheme.bodyLarge?.copyWith(color: ink),
               )
             else ...[
-              if (p.probabilityReachTarget != null) ...[
-                // Decorativo: la probabilidad se lee en el texto de debajo (M-04).
-                ExcludeSemantics(
-                  child: Center(
-                    child: SizedBox(
-                      width: 180,
-                      height: 100,
-                      child: CustomPaint(
-                        painter: _ArcPainter(
-                          fraction: p.probabilityReachTarget!.clamp(0, 1),
-                          color: theme.colorScheme.secondary,
-                          track: theme.colorScheme.surfaceContainerHighest,
-                        ),
+              // Decorativo: la probabilidad se lee en el texto de debajo (M-04).
+              ExcludeSemantics(
+                child: Center(
+                  child: SizedBox(
+                    width: 180,
+                    height: 100,
+                    child: CustomPaint(
+                      painter: _ArcPainter(
+                        fraction: p.probabilityReachTarget!.clamp(0, 1),
+                        color: theme.colorScheme.primary,
+                        track: theme.colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ),
                 ),
-                Center(
-                  child: Text(
-                    percent(p.probabilityReachTarget!),
-                    key: const Key('prediction.percent'),
-                    style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.secondary),
-                  ),
+              ),
+              Center(
+                child: Text(
+                  percent(p.probabilityReachTarget!),
+                  key: const Key('prediction.percent'),
+                  style: theme.textTheme.displaySmall?.copyWith(color: ink, fontWeight: FontWeight.w700),
                 ),
-                Center(child: Text('Probabilidad estimada de alcanzar la meta: ${percent(p.probabilityReachTarget!)}')),
-              ],
-              if (p.estimatedFinalPctOfTarget != null)
-                Text('Porcentaje final estimado de la meta: ${percent(p.estimatedFinalPctOfTarget!)}'),
-              if (p.pctTimeElapsed != null)
-                Text('Tiempo transcurrido de la convocatoria: ${percent(p.pctTimeElapsed!)}'),
+              ),
+              Center(
+                child: Text(
+                  'de probabilidad de alcanzar la meta',
+                  style: theme.textTheme.titleSmall?.copyWith(color: ink),
+                ),
+              ),
             ],
-            const SizedBox(height: 8),
-            for (final w in {p.warning, ...p.warnings}.where((w) => w.isNotEmpty))
-              Text('⚠ $w', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 12),
+            // ADR-044, enmienda 1: la advertencia es obligatoria y la cifra se separa de los hechos. Una sola línea.
+            Text(
+              predictionLabel,
+              key: const Key('prediction.label'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(color: ink.withValues(alpha: 0.8)),
+            ),
           ],
         ),
       ),

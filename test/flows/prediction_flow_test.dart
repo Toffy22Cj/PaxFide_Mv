@@ -54,24 +54,17 @@ void main() {
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
       expect(find.text(predictionLabel), findsOneWidget);
-      expect(find.text('Probabilidad estimada de alcanzar la meta: 85,2 %'), findsOneWidget);
-      expect(find.text('Porcentaje final estimado de la meta: 104,1 %'), findsOneWidget);
-      expect(find.text('Tiempo transcurrido de la convocatoria: 25,0 %'), findsOneWidget);
-      // Solo lo que devuelve el backend: nada de bandas de confianza.
+      // Solo la predicción con su porcentaje y una línea de advertencia: sin modelo, fecha, ni otras cifras.
+      expect(find.byKey(const Key('prediction.percent')), findsOneWidget);
+      expect(find.text('85,2 %'), findsOneWidget);
+      expect(find.text('de probabilidad de alcanzar la meta'), findsOneWidget);
+      expect(find.textContaining('Porcentaje final'), findsNothing);
+      expect(find.textContaining('Tiempo transcurrido'), findsNothing);
+      expect(find.textContaining('p3-v1'), findsNothing);
+      expect(find.textContaining('calculado'), findsNothing);
+      expect(find.textContaining('⚠'), findsNothing);
+      expect(find.byKey(const Key('prediction.history'), skipOffstage: false), findsNothing);
       expect(find.textContaining('confianza'), findsNothing);
-      // Gráfico histórico: el backend no lo expone todavía → "No disponible", sin cortes inventados.
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('prediction.history'), skipOffstage: false),
-          matching: find.text('No disponible', skipOffstage: false),
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('95'), findsNothing);
-      // La etiqueta va antes que cualquier cifra.
-      final labelY = tester.getTopLeft(find.byKey(const Key('prediction.label'))).dy;
-      final figureY = tester.getTopLeft(find.textContaining('Probabilidad estimada')).dy;
-      expect(labelY, lessThan(figureY));
     });
   }
 
@@ -148,7 +141,7 @@ void main() {
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
-    expect(find.text('Probabilidad estimada de alcanzar la meta: 50,0 %'), findsOneWidget);
+    expect(find.text('50,0 %'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
   });
 
