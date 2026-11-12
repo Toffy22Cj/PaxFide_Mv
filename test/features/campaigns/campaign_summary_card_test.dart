@@ -34,7 +34,7 @@ void main() {
         onTap: () => opened++,
       ),
     );
-    expect(find.text('620,00 COP de 1 000,00 COP (62 %)'), findsOneWidget);
+    expect(find.text('620 COP de 1 000 COP\u00A0(62\u00A0%)'), findsOneWidget);
     expect(find.byType(SlimProgress), findsOneWidget);
     expect(find.text('Cierra el 31 de diciembre de 2099'), findsOneWidget);
     expect(find.text('F'), findsOneWidget); // la inicial de «Fundación Demo»

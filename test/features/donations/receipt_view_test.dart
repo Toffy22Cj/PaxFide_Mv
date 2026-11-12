@@ -22,7 +22,7 @@ void main() {
       ),
     );
     expect(find.text('Comprobante de donación'), findsOneWidget);
-    expect(find.text('40 000,00 COP'), findsOneWidget);
+    expect(find.text('40 000 COP'), findsOneWidget);
     expect(find.text('Comprobante n.º R-001'), findsOneWidget);
     expect(find.textContaining('no es un certificado tributario'), findsOneWidget);
   });

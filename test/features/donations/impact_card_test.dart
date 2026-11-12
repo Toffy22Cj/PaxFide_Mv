@@ -67,7 +67,7 @@ void main() {
     await tester.pumpWidget(_app(ApiImpactSource(AccountImpactApi(api))));
     await tester.pumpAndSettle();
     expect(find.text('3 donaciones confirmadas · 2 convocatorias apoyadas'), findsOneWidget);
-    expect(find.text('Donado: 250 000,00 COP'), findsOneWidget);
+    expect(find.text('Donado: 250 000 COP'), findsOneWidget);
     expect(find.text('Entregado en las convocatorias que apoyaste'), findsOneWidget);
     expect(find.text('kg: 120,5'), findsOneWidget);
     expect(find.text('UNITS: 40'), findsOneWidget);

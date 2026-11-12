@@ -22,7 +22,7 @@ void main() {
       ApiResponse(
         statusCode: 200,
         data: {
-          'items': [c('A', 'Útiles escolares', 'OPEN', '2026-12-01'), c('B', 'Cerrada vieja', 'CLOSED', '2026-01-01')],
+          'items': [c('A', 'Útiles escolares', 'OPEN', '2030-12-01'), c('B', 'Cerrada vieja', 'CLOSED', '2026-01-01')],
           'nextCursor': 'K1',
         },
       ),
@@ -31,7 +31,7 @@ void main() {
       ApiResponse(
         statusCode: 200,
         data: {
-          'items': [c('C', 'Abrigo Invierno', 'OPEN', '2026-11-01')],
+          'items': [c('C', 'Abrigo Invierno', 'OPEN', '2030-11-01')],
         },
       ),
     );
@@ -43,7 +43,7 @@ void main() {
     api.routes['GET /public/campaigns'] = (_) => ApiResponse(
       statusCode: 200,
       data: {
-        'items': [c('A', 'Útiles escolares', 'OPEN', '2026-12-01')],
+        'items': [c('A', 'Útiles escolares', 'OPEN', '2030-12-01')],
       },
     );
     expect((await search.search(const CampaignQuery(text: 'utiles'))).single.publicCode, 'A');

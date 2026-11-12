@@ -89,7 +89,8 @@ void main() {
     expect(find.text('Registrado'), findsOneWidget);
     expect(find.text('10 kg'), findsOneWidget);
     // E-03: el tipo registrado (R-6, G-4b).
-    expect(find.descendant(of: find.byKey(const Key('asset.type')), matching: find.textContaining('Cobijas')), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('asset.title'))).data, 'Cobijas');
+    expect(find.byKey(const Key('asset.type')), findsNothing, reason: 'el tipo ya está en el título: no se repite');
     expect(find.widgetWithText(FilledButton, 'Despachar'), findsOneWidget);
   });
 

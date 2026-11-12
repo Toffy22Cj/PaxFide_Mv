@@ -279,13 +279,6 @@ class _AssetScreenState extends State<AssetScreen> {
                 if (a.currentLocation case final l? when l.trim().isNotEmpty)
                   KeyedSubtree(key: const Key('asset.location'), child: LabeledValue('Lugar', humanize(l))),
                 if (a.currentCustodianRef case final c? when c.trim().isNotEmpty) LabeledValue('Lo tiene', humanize(c)),
-                KeyedSubtree(
-                  key: const Key('asset.type'),
-                  child: LabeledValue(
-                    'Tipo',
-                    '${assetTypeLabel(a.assetType)} · ${quantityLabel(a.quantity, a.unitOfMeasure)}',
-                  ),
-                ),
                 const SizedBox(height: 4),
                 SelectableText(
                   'Código del activo: ${a.assetRef}',

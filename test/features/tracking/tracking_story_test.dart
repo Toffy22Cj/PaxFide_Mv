@@ -90,7 +90,7 @@ void main() {
     await tester.tap(find.byKey(const Key('tracking.root')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('tracking.detail.payment')), findsOneWidget);
-    expect(find.text('60 000,00 COP'), findsWidgets);
+    expect(find.text('60 000 COP'), findsWidgets);
   });
 
   testWidgets('árbol: un recorrido que falla se puede reintentar', (tester) async {

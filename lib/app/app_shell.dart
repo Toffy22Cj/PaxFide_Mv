@@ -18,13 +18,12 @@ class _Destination {
 
 /// Destinos según `/me`. Es **representación**: el guard no lee roles y el backend autoriza cada petición.
 List<_Destination> _destinationsFor(Principal? p) => (p?.showsOperatorActions ?? false)
-    // Empleado (M-03, E-07): Inicio · Mi día · Escanear (centro) · Pendientes · Cuenta. Cada pestaña es una
-    // pantalla: la marcada es siempre en la que se está.
+    // Empleado (M-03, E-07): Inicio · Mi día · Escanear (centro) · Cuenta. Cada pestaña es una pantalla: la marcada
+    // es siempre en la que se está. Pendientes vive dentro de Mi día (decisión de Adonis, 2026-11-12).
     ? [
         const _Destination(AppRoutes.home, 'Inicio', Icons.home_outlined),
         const _Destination(AppRoutes.operator, 'Mi día', Icons.today_outlined),
         const _Destination(AppRoutes.scan, 'Escanear', Icons.qr_code_scanner),
-        const _Destination(AppRoutes.operatorPending, 'Pendientes', Icons.pending_actions),
         if (p?.showsPrediction ?? false)
           const _Destination(AppRoutes.prediction, 'Predicción', Icons.insights_outlined),
         const _Destination(AppRoutes.account, 'Cuenta', Icons.person_outline),
@@ -62,10 +61,13 @@ class AppShell extends StatelessWidget {
         final index = destinations.indexWhere((d) => d.route == top);
         void select(int i) => services.router.go(destinations[i].route);
         Widget icon(_Destination d) =>
-            d.route == AppRoutes.operatorPending ? _PendingBadge(icon: d.icon) : Icon(d.icon);
+            // El número de pendientes va en Mi día, que es donde están.
+            d.route == AppRoutes.operatorPending || d.route == AppRoutes.operator
+            ? _PendingBadge(icon: d.icon)
+            : Icon(d.icon);
         final appBar = PaxAppBar(
           // En una pestaña no hay flecha de volver: se cambia con la barra.
-          automaticallyImplyLeading: index < 0,
+          automaticallyImplyLeading: !destinations.any((d) => d.route == location),
           title: Text(title),
           actions: [...?actions, const TextSizeButton(), const ThemeModeButton()],
         );

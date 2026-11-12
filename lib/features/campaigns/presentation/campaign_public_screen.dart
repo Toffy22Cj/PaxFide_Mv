@@ -14,10 +14,12 @@ import '../data/campaign_api.dart';
 import '../domain/campaign_progress.dart';
 import 'campaign_summary_card.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
+import '../domain/campaign_status.dart';
 
 String campaignStatusLabel(String s) => switch (s) {
   'OPEN' => 'Abierta',
   'CLOSED' => 'Cerrada',
+  'ENDED' => 'Terminada',
   _ => s,
 };
 
@@ -85,13 +87,7 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
     final c = _campaign;
     final action = c == null || widget.actionsBuilder == null ? null : widget.actionsBuilder!(context, c);
     return Scaffold(
-      appBar: PaxAppBar(
-        title: const Text('Convocatoria'),
-        actions: [
-          const TextSizeButton(),
-          const ThemeModeButton(),
-        ],
-      ),
+      appBar: PaxAppBar(title: const Text('Convocatoria'), actions: [const TextSizeButton(), const ThemeModeButton()]),
       body: _body(context),
       // "Donar" fijo abajo, al alcance del pulgar (Figma 02).
       bottomNavigationBar: action == null || c?.status != 'OPEN'
@@ -164,10 +160,10 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
           runSpacing: 8,
           children: [
             StatusChip(
-              campaignStatusLabel(c.status),
+              campaignStatusLabel(effectiveCampaignStatus(c.status, c.endDate)),
               key: const Key('campaign.status'),
               icon: Icons.inventory_2_outlined,
-              tone: c.status == 'OPEN' ? Tone.info : Tone.neutral,
+              tone: campaignOpen(c.status, c.endDate) ? Tone.info : Tone.neutral,
             ),
             if (progress.reached)
               const StatusChip('Meta alcanzada', key: Key('campaign.reached'), icon: Icons.emoji_events_outlined),
@@ -261,28 +257,23 @@ class _CampaignPublicScreenState extends State<CampaignPublicScreen> {
             if (f.clearedAmount != null) LabeledValue('Acreditado', formatMinorUnits(f.clearedAmount!, f.currency)),
           ] else if (!_narrativeLoading)
             const Text('Todavía no hay hechos para mostrar.'),
-          const Divider(height: 24),
-          Text('Relato', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          if (_narrativeLoading)
-            const LinearProgressIndicator()
-          else if (n == null || n.status == 'PENDING') ...[
-            Text(n == null ? 'No pudimos cargar el relato.' : 'El relato todavía se está preparando.'),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(onPressed: _loadNarrative, child: const Text('Actualizar')),
-            ),
-          ] else if (n.status == 'UNAVAILABLE')
-            Text(n.content ?? 'Relato no disponible.')
-          else ...[
-            Text(
-              n.source == 'LLM_GENERATED'
-                  ? 'Generado con IA a partir de los hechos registrados.'
-                  : 'Texto de plantilla a partir de los hechos registrados.',
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 6),
-            Text(n.content ?? ''),
+          // El relato solo aparece cuando hay uno: sin él (aún no generado, sin IA o sin red) no se promete nada.
+          if (!_narrativeLoading && n != null && n.status != 'PENDING') ...[
+            const Divider(height: 24),
+            Text('Relato', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            if (n.status == 'UNAVAILABLE')
+              Text(n.content ?? 'Relato no disponible.')
+            else ...[
+              Text(
+                n.source == 'LLM_GENERATED'
+                    ? 'Generado con IA a partir de los hechos registrados.'
+                    : 'Texto de plantilla a partir de los hechos registrados.',
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 6),
+              Text(n.content ?? ''),
+            ],
           ],
         ],
       ),

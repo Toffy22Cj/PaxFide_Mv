@@ -67,7 +67,9 @@ void main() {
     expect(find.byKey(const Key('operator.type')), findsOneWidget);
   });
 
-  testWidgets('barra del empleado: Mi día, Escanear y Pendientes con su contador', (tester) async {
+  testWidgets('barra del empleado: Inicio, Mi día, Escanear y Cuenta; Pendientes vive en Mi día con su contador', (
+    tester,
+  ) async {
     final h = await start(
       tester,
       stored: [
@@ -87,14 +89,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('nav.Mi día')), findsOneWidget);
     expect(find.byKey(const Key('nav.Escanear')), findsOneWidget);
-    expect(find.byKey(const Key('nav.Pendientes')), findsOneWidget);
+    expect(find.byKey(const Key('nav.Pendientes')), findsNothing, reason: 'ya no es una pestaña');
+    // El número de pendientes sigue a la vista: en el ícono de Mi día y en su tarjeta.
     final badge = tester.widget<Badge>(find.byKey(const Key('nav.pending.count')));
     expect(badge.isLabelVisible, isTrue);
     expect((badge.label! as Text).data, '1');
+    expect(find.text('1 operación guardada en este teléfono'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('nav.Pendientes')));
+    await tester.tap(find.byKey(const Key('operator.pending')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.operatorPending);
+    // Dentro de Mi día: la pestaña marcada sigue siendo Mi día y hay flecha para volver.
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
+    expect(find.byType(BackButton), findsOneWidget);
+    h.services.router.back();
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.operator);
   });
 
   testWidgets('M-03: deslizar recorre las pestañas, Escanear incluida, y en la ficha vuelve atrás', (tester) async {
@@ -106,7 +116,7 @@ void main() {
     expect(h.location, AppRoutes.scan, reason: 'Escanear es una pestaña más');
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(-400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(h.location, AppRoutes.operatorPending);
+    expect(h.location, AppRoutes.account);
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
     await tester.fling(find.byKey(const Key('shell.swipe')), const Offset(400, 0), 1500);

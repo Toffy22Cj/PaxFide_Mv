@@ -2,6 +2,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../data/campaign_api.dart';
 import 'campaign_progress.dart';
 import 'campaign_search.dart';
+import 'campaign_status.dart';
 
 /// [CampaignSearch] sobre el listado público que ya existe (`GET /public/campaigns`, sin filtros): trae hasta
 /// [maxPages] páginas y busca, filtra y ordena en el teléfono. No cambia ningún contrato.
@@ -32,7 +33,7 @@ class PublicCampaignSearch implements CampaignSearch {
     }
     final text = _fold(query.text);
     final out = all.where((c) {
-      if (query.openOnly && c.status != 'OPEN') return false;
+      if (query.openOnly && !campaignOpen(c.status, c.endDate)) return false;
       if (text.isEmpty) return true;
       return _fold(c.title).contains(text) || _fold(c.organizationName).contains(text);
     }).toList();

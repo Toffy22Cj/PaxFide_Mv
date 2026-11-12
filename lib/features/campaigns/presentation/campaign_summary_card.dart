@@ -8,6 +8,7 @@ import '../../../shared/theme/pax_tokens.dart';
 import '../../../shared/widgets/loaders.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../data/campaign_api.dart';
+import '../domain/campaign_status.dart';
 
 /// «✓ Verificada» (web: `CampaignCard`), solo si la organización está verificada.
 class OrganizationVerifiedBadge extends StatelessWidget {
@@ -221,14 +222,15 @@ class CampaignSummaryCardBody extends StatelessWidget {
           if (pct != null) ...[SlimProgress((pct / 100).clamp(0.0, 1.0)), const SizedBox(height: 8)],
           Text(
             '${formatMinorUnits(cleared, c.currency)} de ${formatMinorUnits(target, c.currency)}'
-            '${pct == null ? '' : ' ($pct %)'}',
+            // Espacios de no separación: «(25 %)» nunca se parte en dos líneas.
+            '${pct == null ? '' : '\u00A0($pct\u00A0%)'}',
             key: const Key('campaign.amounts'),
             style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: s.onSurface),
           ),
         ],
         const SizedBox(height: 12),
         Text(
-          'Cierra el ${longDate(c.endDate)}',
+          '${campaignEnded(c.endDate) ? 'Cerró' : 'Cierra'} el ${longDate(c.endDate)}',
           key: const Key('campaign.closes'),
           style: theme.textTheme.bodySmall?.copyWith(color: s.onSurfaceVariant),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_routes.dart';
 import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
+import '../../../app/pending_count.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -124,13 +125,15 @@ class _MyDayState extends State<_MyDay> {
                 subtitle: Text('Puedes escanear y guardar operaciones; se envían solas al volver la señal.'),
               ),
             ),
-          // Escanear y Pendientes tienen su pestaña abajo: aquí no se repiten.
+          // Escanear tiene su pestaña abajo; Pendientes vive aquí, en Mi día.
           OutlinedButton.icon(
             key: const Key('operator.type'),
             onPressed: _typeRef,
             icon: const Icon(Icons.keyboard_outlined),
             label: const Text('Escribir el código del activo'),
           ),
+          const SizedBox(height: 10),
+          const _PendingTile(),
           const SizedBox(height: 10),
           OutlinedButton.icon(
             key: const Key('operator.campaigns'),
@@ -176,6 +179,45 @@ class _MyDayState extends State<_MyDay> {
             ],
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// «Operaciones pendientes» con su número (las de esta cuenta guardadas en el teléfono, sin las confirmadas). Abre
+/// la lista, que vuelve a Mi día con la flecha.
+class _PendingTile extends StatelessWidget {
+  const _PendingTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: PendingCountBuilder(
+        builder: (context, n) => ListTile(
+          key: const Key('operator.pending'),
+          leading: const Icon(Icons.pending_actions),
+          title: const Text('Operaciones pendientes'),
+          subtitle: Text(
+            n == 0
+                ? 'Nada por enviar en este teléfono'
+                : (n == 1 ? '1 operación guardada en este teléfono' : '$n operaciones guardadas en este teléfono'),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (n > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(99)),
+                  child: Text('$n', style: TextStyle(color: scheme.onPrimaryContainer)),
+                ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          onTap: () => AppScope.of(context).router.push(AppRoutes.operatorPending),
+        ),
       ),
     );
   }

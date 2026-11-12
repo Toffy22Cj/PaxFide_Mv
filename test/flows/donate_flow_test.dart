@@ -7,20 +7,24 @@ import 'package:paxfide_mobile/features/donations/domain/donation_flow.dart';
 
 import '../support/app_harness.dart';
 
-ApiResponse campaign({String status = 'OPEN', List<String> methods = const ['GATEWAY'], String? currency = 'COP'}) =>
-    ApiResponse(
-      statusCode: 200,
-      data: {
-        'organizationName': 'Fundación Demo',
-        'title': 'Abrigo',
-        'status': status,
-        'startDate': '2026-10-01T00:00:00Z',
-        'endDate': '2026-12-01T00:00:00Z',
-        'acceptedDonationTypes': ['MONETARY'],
-        'acceptedPaymentMethods': methods,
-        'currency': ?currency,
-      },
-    );
+ApiResponse campaign({
+  String status = 'OPEN',
+  List<String> methods = const ['GATEWAY'],
+  String? currency = 'COP',
+  String endDate = '2030-12-01T00:00:00Z',
+}) => ApiResponse(
+  statusCode: 200,
+  data: {
+    'organizationName': 'Fundación Demo',
+    'title': 'Abrigo',
+    'status': status,
+    'startDate': '2026-10-01T00:00:00Z',
+    'endDate': endDate,
+    'acceptedDonationTypes': ['MONETARY'],
+    'acceptedPaymentMethods': methods,
+    'currency': ?currency,
+  },
+);
 
 const createPath = 'POST /public/campaigns/PUB1/donation-intents';
 const created = ApiResponse(
@@ -67,6 +71,18 @@ void main() {
     }
     await openCampaign(tester);
     expect(find.byKey(const Key('donate.open')), findsOneWidget);
+  });
+
+  testWidgets('convocatoria con la fecha de cierre ya pasada (el backend aún dice OPEN): «Terminada» y sin Donar', (
+    tester,
+  ) async {
+    await openCampaign(tester, c: campaign(endDate: '2026-11-01T00:00:00Z'));
+    expect(
+      find.descendant(of: find.byKey(const Key('campaign.status')), matching: find.text('Terminada')),
+      findsOneWidget,
+    );
+    expect(find.text('Abierta'), findsNothing);
+    expect(find.byKey(const Key('donate.open')), findsNothing);
   });
 
   testWidgets('sin sesión: CV-11 sin JWT y con Command-Id; consulta manual con Intent-Token; nada se guarda', (
@@ -207,10 +223,10 @@ void main() {
     expect(find.text('20 000 COP'), findsOneWidget);
     await tester.tap(find.byKey(const Key('donate.suggested.20000')));
     await tester.pumpAndSettle();
-    expect(find.text('Se donarán 20 000,00 COP.'), findsOneWidget);
+    expect(find.text('Se donarán 20 000 COP.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('donate.amount')), '15000');
     await tester.pumpAndSettle();
-    expect(find.text('Se donarán 15 000,00 COP.'), findsOneWidget);
+    expect(find.text('Se donarán 15 000 COP.'), findsOneWidget);
   });
 
   testWidgets('M-11: sin cuenta se puede donar o iniciar sesión antes de pagar y volver a la convocatoria', (

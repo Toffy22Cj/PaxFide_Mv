@@ -72,10 +72,10 @@ void main() {
     expect(find.text('Historia de tu donación'), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const Key('tracking.figure.Asignación confirmada')), 300);
     expect(find.text('Hechos registrados'), findsOneWidget);
-    // Unidades mínimas ISO 4217 (COP, exponente 2): 6000000 → 60 000,00 COP.
+    // Unidades mínimas ISO 4217 (COP, exponente 2): 6000000 → 60 000 COP.
     String figure(String label) => tester.widget<Text>(find.byKey(Key('tracking.figure.$label'))).data!;
-    expect(figure('Donado'), '60 000,00 COP');
-    expect(figure('Asignación confirmada'), '50 000,00 COP');
+    expect(figure('Donado'), '60 000 COP');
+    expect(figure('Asignación confirmada'), '50 000 COP');
     expect(find.text('Cobijas · 6 unidades'), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const Key('tracking.narrative')), 300);
     expect(find.text('Relato.'), findsOneWidget);
@@ -173,8 +173,10 @@ void main() {
       await tester.enterText(find.byKey(const Key('tracking.code')), '$testOrigin/tracking/OTRO-CODIGO');
       await tester.tap(find.byKey(const Key('tracking.submit')));
       await tester.pumpAndSettle();
-      expect(find.text('Ese enlace no trae el código. Pega el código de seguimiento que recibiste al donar.'),
-          findsOneWidget);
+      expect(
+        find.text('Ese enlace no trae el código. Pega el código de seguimiento que recibiste al donar.'),
+        findsOneWidget,
+      );
       expect(h.api.calls.where((c) => c.path.startsWith('/donations/tracking')), isEmpty);
     });
   });
@@ -296,7 +298,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
     expect(find.byKey(const Key('donation.amount.0')), findsOneWidget);
-    expect(tester.widget<Text>(find.byKey(const Key('donation.amount.0'))).data, '40 000,00 COP');
+    expect(tester.widget<Text>(find.byKey(const Key('donation.amount.0'))).data, '40 000 COP');
     expect(find.text('Pago confirmado'), findsOneWidget);
     expect(find.textContaining('intent-interno'), findsNothing);
     expect(find.textContaining('CODIGO-DE-LA-CUENTA'), findsNothing);
@@ -415,9 +417,9 @@ void main() {
     await h.services.router.openDeepLink(h.services.deepLinkParser.parse(Uri.parse('$testOrigin/c/PUB1')));
     await tester.pumpAndSettle();
     expect(find.text('Abrigo para el invierno'), findsOneWidget);
-    expect(find.text('de 500 000,00 COP'), findsOneWidget);
+    expect(find.text('de 500 000 COP'), findsOneWidget);
     expect(find.text('Recaudado y acreditado'), findsOneWidget);
-    expect(find.text('100 000,00 COP'), findsNWidgets(2), reason: 'recaudado y el hecho «Acreditado»');
+    expect(find.text('100 000 COP'), findsNWidgets(2), reason: 'recaudado y el hecho «Acreditado»');
     expect(find.text('Meta 20 %'), findsOneWidget);
     expect(find.text('Unidades entregadas'), findsOneWidget);
     expect(find.text('6'), findsOneWidget);
@@ -428,7 +430,11 @@ void main() {
     );
     // Corrección 7: el QR está en la misma pantalla (sin icono ni hoja aparte), con su URL debajo (DDM-24)
     expect(find.byKey(const Key('campaign.qr')), findsNothing);
-    await tester.scrollUntilVisible(find.byKey(const Key('campaign.qr.panel')), 300, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('campaign.qr.panel')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.byKey(const Key('qr.image')), findsOneWidget);
     expect(find.text('$testOrigin/c/PUB1'), findsOneWidget);
     expect(find.byType(BottomSheet), findsNothing);
@@ -461,7 +467,7 @@ void main() {
     h.services.router.go(AppRoutes.donations);
     await tester.pumpAndSettle();
     expect(find.text('Convocatoria no disponible'), findsOneWidget);
-    expect(find.text('1 000,00 COP'), findsOneWidget);
+    expect(find.text('1 000 COP'), findsOneWidget);
   });
 
   testWidgets('M-07: insignia de organización verificada solo con organizationVerified == true', (tester) async {

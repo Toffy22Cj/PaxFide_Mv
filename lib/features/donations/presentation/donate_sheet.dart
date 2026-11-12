@@ -20,10 +20,11 @@ import 'my_donations_screen.dart';
 import '../../../shared/widgets/pax_app_bar.dart';
 import '../../../shared/motion/circular_reveal.dart';
 import '../../../shared/motion/pax_route.dart';
+import '../../campaigns/domain/campaign_status.dart';
 
 /// "Donar" solo si la convocatoria está abierta, acepta dinero, tiene moneda y admite la pasarela.
 bool canDonate(PublicCampaign c) =>
-    c.status == 'OPEN' &&
+    campaignOpen(c.status, c.endDate) &&
     c.acceptedDonationTypes.contains('MONETARY') &&
     isKnownCurrency(c.currency) &&
     c.acceptedPaymentMethods.contains('GATEWAY');

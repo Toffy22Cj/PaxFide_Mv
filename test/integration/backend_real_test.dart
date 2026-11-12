@@ -191,9 +191,9 @@ void main() {
     final c = await CampaignApi(donor.api).get(publicCode);
     expect(c.status, 'OPEN');
     expect(c.currency, 'COP');
-    // Unidades mínimas ISO 4217: la meta creada como "50000000" son 500 000,00 COP.
+    // Unidades mínimas ISO 4217: la meta creada como "50000000" son 500 000 COP.
     expect(c.targetAmount, '50000000');
-    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000 COP');
     final n = await CampaignApi(donor.api).narrative(publicCode);
     expect(['AVAILABLE', 'PENDING', 'UNAVAILABLE'], contains(n.status));
     expect(n.facts, isNotNull);
@@ -247,7 +247,7 @@ void main() {
   test('7. seguimiento con el código en la cabecera (TrackingApi); código inválido → mensaje único', () async {
     final t = await TrackingApi(Device().api).summary(trackingCode);
     expect(t.financial.originalAmount, 6000000);
-    expect(formatMinorUnits(t.financial.originalAmount, t.financial.currency), '60 000,00 COP');
+    expect(formatMinorUnits(t.financial.originalAmount, t.financial.currency), '60 000 COP');
     final n = await TrackingApi(Device().api).narrative(trackingCode);
     expect(['AVAILABLE', 'PENDING'], contains(n.status));
     await expectLater(
@@ -407,7 +407,7 @@ void main() {
     final api = CampaignApi(Device().api);
     final c = await api.get(goldenCode!);
     expect(c.status, 'OPEN');
-    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000 COP');
     final n = await api.narrative(goldenCode);
     expect(n.facts, isNotNull);
     // recorrido.py entrega el padre (6 u.) y el hijo (4 u.) a beneficiarios distintos.
@@ -419,7 +419,7 @@ void main() {
     final mine = await AccountDonationsApi(d.api).list();
     expect(mine.map((x) => x.campaignTitle), contains(c.title));
     final own = mine.firstWhere((x) => x.campaignTitle == c.title);
-    expect(formatMinorUnits(own.amount, own.currency), '40 000,00 COP');
+    expect(formatMinorUnits(own.amount, own.currency), '40 000 COP');
   }, skip: goldenCode == null ? 'Sin PAXFIDE_ENSAYO_PUBLIC_CODE' : false);
 }
 

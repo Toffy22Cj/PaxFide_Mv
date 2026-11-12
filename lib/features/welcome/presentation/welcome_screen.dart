@@ -24,6 +24,7 @@ import '../../campaigns/presentation/campaign_summary_card.dart';
 import 'welcome_world.dart';
 import '../../../shared/motion/pax_motion.dart';
 import '../../../shared/motion/pax_route.dart';
+import '../../campaigns/domain/campaign_status.dart';
 
 /// Colores de texto de la bienvenida, como en el landing: titular en dos tonos de verde, etiquetas en mono ámbar.
 /// Todo de la paleta (en oscuro, sus inversos).
@@ -1149,7 +1150,7 @@ class _CampaignCard extends StatelessWidget {
     final target = int.tryParse(c.targetAmount ?? '');
     final cleared = int.tryParse(c.clearedAmount ?? '');
     final p = CampaignProgress.of(target: target, cleared: cleared, endDate: c.endDate);
-    final closed = c.status.isNotEmpty && c.status != 'OPEN';
+    final closed = c.status.isNotEmpty && !campaignOpen(c.status, c.endDate);
     final baseUrl = AppScope.maybeOf(context)?.config.apiBaseUrl;
     final coverUrl = resolveApiMediaUrl(baseUrl, c.coverImageUrl);
     final logoUrl = resolveApiMediaUrl(baseUrl, c.organizationLogoUrl);
