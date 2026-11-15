@@ -105,6 +105,35 @@ class AuthApi {
     r.requireData();
   }
 
+  /// `POST /auth/google/register` (ADR-050 Enmienda 3): crea la cuenta con el correo que prueba Google **y** una
+  /// contraseña. Nace verificada, con las aceptaciones y vinculada a Google. Devuelve el JWT para entrar ya, o `null`
+  /// si el backend no pudo emitirlo (la cuenta existe igual: se entra con Google o con la contraseña).
+  /// Errores: [GoogleRegisterException] (400 y 409 con nombre), [GoogleSignInUnavailableException] (503).
+  Future<String?> googleRegister(
+    String idToken,
+    String password, {
+    required String acceptedTermsVersion,
+    required String acceptedDataPolicyVersion,
+  }) async {
+    final r = await _api.post(
+      '/auth/google/register',
+      body: {
+        'idToken': idToken,
+        'password': password,
+        'acceptedTermsVersion': acceptedTermsVersion,
+        'acceptedDataPolicyVersion': acceptedDataPolicyVersion,
+      },
+      credentialMode: CredentialMode.none,
+    );
+    if (r.statusCode == 503) throw const GoogleSignInUnavailableException();
+    final title = r.data?['title'];
+    if ((r.statusCode == 400 || r.statusCode == 409) && title is String) {
+      throw GoogleRegisterException(r.statusCode, title);
+    }
+    final token = r.requireData()['token'];
+    return token is String && token.isNotEmpty ? token : null;
+  }
+
   /// `POST /auth/password-reset`: solicita un enlace de recuperación de contraseña.
   /// Responde 202 sin cuerpo tanto si la cuenta existe como si no. 400 si el email va vacío.
   Future<void> requestPasswordReset(String email) async {
