@@ -5,6 +5,7 @@ import 'package:paxfide_mobile/core/offline/command_outcome.dart';
 import 'package:paxfide_mobile/core/offline/outbox_item.dart';
 import 'package:paxfide_mobile/core/offline/outbox_status.dart';
 import 'package:paxfide_mobile/core/offline/sync_engine.dart';
+import 'package:paxfide_mobile/core/storage/outbox_file_store.dart';
 import 'package:paxfide_mobile/core/storage/outbox_store.dart';
 
 import '../support/fakes.dart';
@@ -94,6 +95,14 @@ void main() {
     expect(await statusOf('1'), OutboxStatus.pending);
   });
 
+  test('sin JWT: no salió del teléfono → sigue PENDING, nunca FAILED (auditoría 2026-10-29, §3)', () async {
+    await engine.enqueue(pending('1'));
+    final noToken = FakeApiClient()..enqueue(const MissingCredentialException());
+    final e2 = SyncEngine(store: store, apiClient: _NoBeforeSendClient(noToken));
+    expect(await e2.send('1', 'acc-A'), CommandOutcome.notSent);
+    expect(await statusOf('1'), OutboxStatus.pending);
+  });
+
   test('negativa: IN_FLIGHT nunca vuelve a PENDING (fallo ambiguo tras salir)', () async {
     await engine.enqueue(pending('1'));
     api.enqueue(const NetworkTimeoutException());
@@ -177,6 +186,100 @@ void main() {
     await engine.enqueue(pending('1'));
     final again = SyncEngine(store: store, apiClient: FakeApiClient());
     expect((await again.entriesFor('acc-A')).single.status, OutboxStatus.pending);
+  });
+
+  group('Enmienda 4, S3: envío automático (sendAll)', () {
+    OutboxItem at(String id, int day, {OutboxStatus status = OutboxStatus.pending, String account = 'acc-A'}) =>
+        OutboxItem(
+          commandId: id,
+          accountId: account,
+          kind: 'DISPATCH',
+          resourceRef: 'A-$id',
+          path: '/physical-assets/A-$id/dispatch',
+          payload: const {'carrierRef': 'c'},
+          status: status,
+          createdAt: DateTime.utc(2026, 11, day),
+        );
+
+    test('manda PENDING y AMBIGUOUS de la cuenta, de la más antigua a la más reciente, con su mismo Command-Id', () async {
+      await store.saveItem(at('2', 2));
+      await store.saveItem(at('1', 1, status: OutboxStatus.ambiguous));
+      await store.saveItem(at('x', 1, account: 'acc-B'));
+      api.enqueue(const ApiResponse(statusCode: 200));
+      api.enqueue(const ApiResponse(statusCode: 200));
+      expect(await engine.sendAll('acc-A'), 2);
+      final posted = api.calls.where((c) => c.method == 'POST').toList();
+      expect(posted.map((c) => c.headers['Command-Id']), ['1', '2']);
+      expect(await statusOf('1'), isNull);
+      expect(await statusOf('x'), OutboxStatus.pending, reason: 'H2: la de otra cuenta no se envía');
+    });
+
+    test('sin red se detiene en la primera y todo sigue como estaba', () async {
+      await store.saveItem(at('1', 1));
+      await store.saveItem(at('2', 2));
+      api.enqueue(const ConnectionNotEstablishedException());
+      expect(await engine.sendAll('acc-A'), 0);
+      expect(posts(), 1);
+      expect(await statusOf('1'), OutboxStatus.pending);
+      expect(await statusOf('2'), OutboxStatus.pending);
+    });
+
+    test('FAILED no se reenvía solo', () async {
+      await store.saveItem(at('1', 1, status: OutboxStatus.failed));
+      expect(await engine.sendAll('acc-A'), 0);
+      expect(api.calls, isEmpty);
+    });
+  });
+
+  group('Enmienda 4, S4: entrada con foto que se sube antes de enviarse', () {
+    late InMemorySecureKeyValueStore secure;
+    late OutboxFileStore files;
+    late SyncEngine e;
+
+    OutboxItem delivery() => OutboxItem(
+      commandId: 'd-1',
+      accountId: 'acc-A',
+      kind: 'DELIVER',
+      resourceRef: 'A-1',
+      path: '/physical-assets/A-1/deliver',
+      payload: const {'finalCustodianRef': 'f', 'municipalityCode': '08001'},
+      status: OutboxStatus.pending,
+      createdAt: DateTime.utc(2026, 11, 7),
+      fileUploadPath: '/organizations/org-1/delivery-evidence',
+      fileResultKey: 'evidenceRef',
+    );
+
+    setUp(() async {
+      secure = InMemorySecureKeyValueStore();
+      files = OutboxFileStore(secure);
+      e = SyncEngine(store: SecureOutboxStore(secure), apiClient: api, files: files);
+      await files.save('d-1', const OutboxFile(bytes: [1, 2, 3], contentType: 'image/jpeg', filename: 'f.jpg'));
+    });
+
+    test('la foto rechazada (4xx) deja la entrada FAILED, sin enviar la entrega, y borra la foto', () async {
+      await e.enqueue(delivery());
+      api.enqueue(const ApiResponse(statusCode: 415, data: {'title': 'UnsupportedImageFormat'}));
+      expect(await e.send('d-1', 'acc-A'), CommandOutcome.failed);
+      expect(api.calls.where((c) => c.path.endsWith('/deliver')), isEmpty);
+      expect(await files.read('d-1'), isNull);
+    });
+
+    test('sin red ni para la foto: sigue PENDING con su foto guardada', () async {
+      await e.enqueue(delivery());
+      api.enqueue(const ConnectionNotEstablishedException());
+      expect(await e.send('d-1', 'acc-A'), CommandOutcome.notSent);
+      expect((await e.entriesFor('acc-A')).single.status, OutboxStatus.pending);
+      expect(await files.read('d-1'), isNotNull);
+    });
+
+    test('descartar una rechazada borra también su foto', () async {
+      await e.enqueue(delivery());
+      api.enqueue(const ApiResponse(statusCode: 403));
+      await e.send('d-1', 'acc-A');
+      await files.save('d-1', const OutboxFile(bytes: [9], contentType: 'image/jpeg', filename: 'f.jpg'));
+      await e.discard('d-1', 'acc-A');
+      expect(await files.read('d-1'), isNull);
+    });
   });
 
   test('almacén ilegible: no se envía nada', () async {

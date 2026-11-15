@@ -28,12 +28,14 @@ import 'package:paxfide_mobile/core/storage/outbox_store.dart';
 import 'package:paxfide_mobile/core/storage/token_store.dart';
 import 'package:paxfide_mobile/core/util/command_id.dart';
 import 'package:paxfide_mobile/features/auth/data/auth_api.dart';
+import 'package:paxfide_mobile/features/auth/domain/legal_versions.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_controller.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/features/campaigns/data/campaign_api.dart';
 import 'package:paxfide_mobile/features/donations/data/account_donations_api.dart';
 import 'package:paxfide_mobile/features/donations/data/donation_intent_api.dart';
 import 'package:paxfide_mobile/features/donations/domain/donation_flow.dart';
+import 'package:paxfide_mobile/features/physical_assets/data/delivery_evidence_api.dart';
 import 'package:paxfide_mobile/features/physical_assets/data/physical_asset_api.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_action.dart';
 import 'package:paxfide_mobile/features/physical_assets/domain/asset_command.dart';
@@ -109,14 +111,24 @@ void main() {
 
   test('0. registro con contraseña de menos de 12 caracteres → 400 (PasswordTooShort, develop 1b012da)', () async {
     await expectLater(
-      AuthApi(Device().api).register('corta-$stamp@demo.paxfide.local', 'once-chars!'),
+      AuthApi(Device().api).register(
+        'corta-$stamp@demo.paxfide.local',
+        'once-chars!',
+        acceptedTermsVersion: currentTermsVersion,
+        acceptedDataPolicyVersion: currentDataPolicyVersion,
+      ),
       throwsA(isA<BadRequestException>()),
     );
   });
 
   test('1. registro de cuenta (POST /auth/register) y login con /me; sin rol en el JWT', () async {
     final email = 'donante-movil-$stamp@demo.paxfide.local';
-    await AuthApi(donor.api).register(email, env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
+    await AuthApi(donor.api).register(
+      email,
+      env['TRACEABILITY_DEMO_SEED_PASSWORD']!,
+      acceptedTermsVersion: currentTermsVersion,
+      acceptedDataPolicyVersion: currentDataPolicyVersion,
+    );
     await donor.session.restore();
     await donor.session.login(email, env['TRACEABILITY_DEMO_SEED_PASSWORD']!);
     expect(donor.session.state.status, SessionStatus.authenticated);
@@ -179,9 +191,9 @@ void main() {
     final c = await CampaignApi(donor.api).get(publicCode);
     expect(c.status, 'OPEN');
     expect(c.currency, 'COP');
-    // Unidades mínimas ISO 4217: la meta creada como "50000000" son 500 000,00 COP.
+    // Unidades mínimas ISO 4217: la meta creada como "50000000" son 500 000 COP.
     expect(c.targetAmount, '50000000');
-    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000 COP');
     final n = await CampaignApi(donor.api).narrative(publicCode);
     expect(['AVAILABLE', 'PENDING', 'UNAVAILABLE'], contains(n.status));
     expect(n.facts, isNotNull);
@@ -235,7 +247,7 @@ void main() {
   test('7. seguimiento con el código en la cabecera (TrackingApi); código inválido → mensaje único', () async {
     final t = await TrackingApi(Device().api).summary(trackingCode);
     expect(t.financial.originalAmount, 6000000);
-    expect(formatMinorUnits(t.financial.originalAmount, t.financial.currency), '60 000,00 COP');
+    expect(formatMinorUnits(t.financial.originalAmount, t.financial.currency), '60 000 COP');
     final n = await TrackingApi(Device().api).narrative(trackingCode);
     expect(['AVAILABLE', 'PENDING'], contains(n.status));
     await expectLater(
@@ -323,12 +335,18 @@ void main() {
     final account = employee.session.principal!.accountId;
     final engine = SyncEngine(store: SecureOutboxStore(InMemorySecureKeyValueStore()), apiClient: employee.api);
     final ops = AssetOperations(engine: engine, api: PhysicalAssetApi(employee.api));
+    // ADR-051: primero se sube la foto (con conexión) y la entrega lleva su evidenceRef.
+    final evidenceRef = await DeliveryEvidenceApi(employee.api).upload(
+      organizationId: employee.session.principal!.organizationId!,
+      bytes: base64Decode(_onePixelPng),
+      contentType: 'image/png',
+      filename: 'entrega.png',
+    );
     final deliver = AssetCommand.build(AssetAction.deliver, assetRef, {
       'finalCustodianRef': 'custodio-final',
       'beneficiaryRef': 'beneficiario-1',
       'locationRef': 'centro-1',
-      'evidenceRef': 'acta-1',
-    })!;
+    }, evidenceRef: evidenceRef)!;
     expect((await ops.submit(deliver, accountId: account)).$2, CommandOutcome.acknowledged);
     expect((await PhysicalAssetApi(employee.api).get(assetRef)).lifecycleStatus, 'DELIVERED');
     final again = AssetCommand.build(AssetAction.dispatch, assetRef, {'carrierRef': 'x'})!;
@@ -389,7 +407,7 @@ void main() {
     final api = CampaignApi(Device().api);
     final c = await api.get(goldenCode!);
     expect(c.status, 'OPEN');
-    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000,00 COP');
+    expect(formatMinorUnits(c.targetAmount!, c.currency), '500 000 COP');
     final n = await api.narrative(goldenCode);
     expect(n.facts, isNotNull);
     // recorrido.py entrega el padre (6 u.) y el hijo (4 u.) a beneficiarios distintos.
@@ -401,6 +419,9 @@ void main() {
     final mine = await AccountDonationsApi(d.api).list();
     expect(mine.map((x) => x.campaignTitle), contains(c.title));
     final own = mine.firstWhere((x) => x.campaignTitle == c.title);
-    expect(formatMinorUnits(own.amount, own.currency), '40 000,00 COP');
+    expect(formatMinorUnits(own.amount, own.currency), '40 000 COP');
   }, skip: goldenCode == null ? 'Sin PAXFIDE_ENSAYO_PUBLIC_CODE' : false);
 }
+
+/// PNG de 1 × 1 px, para la foto de entrega del recorrido real.
+const _onePixelPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';

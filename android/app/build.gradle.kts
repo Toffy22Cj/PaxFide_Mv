@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.Base64
 
 plugins {
@@ -7,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.paxfide_mobile"
+    namespace = "com.paxfide.mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,8 +18,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.paxfide_mobile"
+        // Nombre definitivo (2026-10-29): registrado en Google Cloud para «Entrar con Google», junto con
+        // com.paxfide.mobile.demo (sabor demo). Si cambia, hay que registrar la app otra vez.
+        applicationId = "com.paxfide.mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -50,7 +52,9 @@ android {
 
     sourceSets {
         getByName("demo") {
-            res.srcDir(layout.buildDirectory.dir("generated/paxfide/demoRes"))
+            // Ruta fija (File), no un Provider: AGP 9 ya no acepta Providers aquí. La tarea que genera el XML va
+            // antes por las dependencias declaradas abajo (preDemo*/generateDemo*Resources).
+            res.srcDir(layout.buildDirectory.dir("generated/paxfide/demoRes").get().asFile)
         }
     }
 
@@ -90,7 +94,7 @@ fun paxfideDartDefines(): Map<String, String> {
 /** Host con permiso de HTTP sin cifrar: solo si la URL de la API es http:// y tiene host. Si no, ninguno. */
 fun paxfideCleartextHost(): String? {
     val api = paxfideDartDefines()["PAXFIDE_API_BASE_URL"]?.trim() ?: return null
-    val uri = try { java.net.URI(api) } catch (e: Exception) { return null }
+    val uri = try { URI(api) } catch (e: Exception) { return null }
     if (uri.scheme != "http" || uri.host.isNullOrBlank()) return null
     // Solo letras, dígitos, puntos y guiones: el valor va dentro de un XML.
     return uri.host.takeIf { Regex("^[A-Za-z0-9.-]+$").matches(it) }

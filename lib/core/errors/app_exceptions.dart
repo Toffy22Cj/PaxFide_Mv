@@ -29,6 +29,15 @@ class ConnectionNotEstablishedException extends TransportException {
   bool get isAmbiguous => false;
 }
 
+/// Determinista: no hay JWT guardado, así que la petición **no salió** del dispositivo. No es un rechazo del backend:
+/// una operación del Outbox sigue como estaba (`PENDING`), nunca `FAILED` (regla 2.6; auditoría 2026-10-29, §3).
+class MissingCredentialException extends TransportException {
+  const MissingCredentialException([super.message = 'No hay sesión: la petición no salió del teléfono']);
+
+  @override
+  bool get isAmbiguous => false;
+}
+
 /// Ambiguo: timeout sin respuesta; el backend pudo haber procesado la petición.
 class NetworkTimeoutException extends TransportException {
   const NetworkTimeoutException([super.message = 'Tiempo de espera agotado sin respuesta confirmada']);
@@ -65,6 +74,27 @@ class UnauthorizedException extends ApiHttpException {
 /// 403: estado de pantalla, nunca redirect.
 class ForbiddenException extends ApiHttpException {
   const ForbiddenException() : super(403, 'Acceso no autorizado para esta operación');
+}
+
+/// 403 `AcceptanceRequired` del login: contraseña correcta, pero faltan aceptaciones legales.
+/// Lleva solo las versiones pendientes; la otra, null.
+class AcceptanceRequiredException extends ApiHttpException {
+  const AcceptanceRequiredException({this.pendingTermsVersion, this.pendingDataPolicyVersion})
+    : super(403, 'Hay que aceptar las versiones legales vigentes');
+  final String? pendingTermsVersion;
+  final String? pendingDataPolicyVersion;
+}
+
+/// 403 `EmailNotVerified` de cualquier inicio de sesión (ADR-050 Enmienda 2, E2-3): contraseña o huella correctas,
+/// pero el correo de la cuenta sin confirmar. Se confirma con el enlace del correo (en la web) y se puede reenviar.
+class EmailNotVerifiedException extends ApiHttpException {
+  const EmailNotVerifiedException() : super(403, 'El correo de la cuenta no está confirmado');
+}
+
+/// 503 `GoogleSignInUnavailable` (ADR-050 D9): el backend no pudo obtener las llaves de Google. Se ofrece la
+/// contraseña.
+class GoogleSignInUnavailableException extends ApiHttpException {
+  const GoogleSignInUnavailableException() : super(503, 'Google no responde ahora');
 }
 
 /// 404.

@@ -37,6 +37,16 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   mobile_scanner: ^7.4.2
   qr_flutter: ^4.1.0
+  # Enmienda 2 de ADR-043 (aprobada 2026-10-21): entrar con huella o rostro (M-28).
+  local_auth: ^3.0.2
+  # Enmienda 2 de ADR-043: abrir el pago en el navegador (M-12) y subir el brillo del QR (E-11).
+  url_launcher: ^6.3.1
+  screen_brightness: ^2.1.1
+  image_picker: ^1.2.4
+  # ADR del mapa, D4 (enmienda de ADR-043 A2/D12): mapa del recorrido (M-25) sobre OpenStreetMap, sin geolocalización.
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +71,11 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
+  # Logo oficial (M-35).
+  assets:
+    - assets/images/
+    # Punto de cada zona pública DIVIPOLA para el mapa del recorrido (M-25): scripts/generar_zonas_mapa.py.
+    - assets/map/zonas.json
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

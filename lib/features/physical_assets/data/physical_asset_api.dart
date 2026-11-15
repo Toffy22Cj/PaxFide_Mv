@@ -11,20 +11,28 @@ class PhysicalAssetDto {
   const PhysicalAssetDto({
     required this.assetRef,
     required this.lifecycleStatus,
+    this.assetType,
     this.currentCustodianRef,
     this.currentLocation,
     this.quantity,
     this.unitOfMeasure,
     this.campaignRef,
+    this.zoneName,
   });
 
   final String assetRef;
   final String lifecycleStatus;
+
+  /// El tipo registrado (R-6, G-4b). Falta en respuestas anteriores a esa nota.
+  final String? assetType;
   final String? currentCustodianRef;
   final String? currentLocation;
   final String? quantity;
   final String? unitOfMeasure;
   final String? campaignRef;
+
+  /// Municipio sellado del último paso (enmienda 2 de ADR-029), «MUNICIPIO, DEPARTAMENTO»; falta en pasos antiguos.
+  final String? zoneName;
 
   static PhysicalAssetDto fromJson(Map<String, dynamic> j) {
     String req(String k) {
@@ -38,11 +46,13 @@ class PhysicalAssetDto {
     return PhysicalAssetDto(
       assetRef: req('assetRef'),
       lifecycleStatus: req('lifecycleStatus'),
+      assetType: opt('assetType'),
       currentCustodianRef: opt('currentCustodianRef'),
       currentLocation: opt('currentLocation'),
       quantity: opt('quantity'),
       unitOfMeasure: opt('unitOfMeasure'),
       campaignRef: opt('campaignRef'),
+      zoneName: opt('zoneName'),
     );
   }
 }
@@ -58,6 +68,20 @@ class PhysicalAssetApi {
   Future<PhysicalAssetDto> get(String assetRef) async {
     final r = await _api.get(assetPath(assetRef), credentialMode: CredentialMode.jwt);
     return PhysicalAssetDto.fromJson(r.requireData());
+  }
+
+  /// `GET /organizations/{organizationId}/physical-assets`: hasta 200 activos de la organización (sin cursor).
+  Future<List<PhysicalAssetDto>> listForOrganization(String organizationId) async {
+    final r = await _api.get(
+      '/organizations/${Uri.encodeComponent(organizationId)}/physical-assets',
+      credentialMode: CredentialMode.jwt,
+    );
+    final items = r.requireData()['items'];
+    if (items is! List) throw const MalformedResponseException();
+    return [
+      for (final i in items)
+        if (i is Map<String, dynamic>) PhysicalAssetDto.fromJson(i),
+    ];
   }
 
   /// Envía un comando con su `Command-Id`. Devuelve la respuesta HTTP tal cual; los fallos de transporte se lanzan.

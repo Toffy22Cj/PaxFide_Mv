@@ -6,6 +6,8 @@ void main() {
     test('rutas públicas exactas', () {
       expect(AppRoutes.categorize('/c/ABC123'), RouteCategory.public);
       expect(AppRoutes.categorize('/tracking'), RouteCategory.public);
+      expect(AppRoutes.categorize('/welcome'), RouteCategory.public, reason: 'Enmienda 3');
+      expect(AppRoutes.paramsOf('/welcome'), isEmpty);
     });
 
     test('seguimiento: el código nunca forma parte de una ruta aprobada', () {

@@ -7,7 +7,7 @@ const Map<String, int> _exponents = {'COP': 2};
 
 bool isKnownCurrency(String? currency) => _exponents.containsKey(currency);
 
-/// `1 000,00 COP` (miles con espacio y coma decimal, como el ejemplo del contrato).
+/// `1 000 COP` (miles con espacio; la coma decimal solo si hay centavos: `1 000,50 COP`).
 String formatMinorUnits(Object amount, String? currency) {
   final text = '$amount'.trim();
   final exp = _exponents[currency];
@@ -18,7 +18,9 @@ String formatMinorUnits(Object amount, String? currency) {
   final whole = digits.substring(0, digits.length - exp).replaceFirst(RegExp(r'^0+(?=\d)'), '');
   final fraction = digits.substring(digits.length - exp);
   final grouped = whole.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
-  return '${negative ? '-' : ''}$grouped${exp > 0 ? ',$fraction' : ''} $currency';
+  // Sin «,00»: los centavos solo se muestran si los hay (50 000 COP, pero 1 234,50 COP).
+  final cents = exp > 0 && fraction.replaceAll('0', '').isNotEmpty;
+  return '${negative ? '-' : ''}$grouped${cents ? ',$fraction' : ''} $currency';
 }
 
 /// Lo que escribe el donante (pesos, con `,` o `.` y hasta `exponente` decimales) → texto en unidades mínimas.
@@ -31,3 +33,8 @@ String? toMinorUnits(String input, String? currency) {
   final minor = '${m.group(1)}${(m.group(2) ?? '').padRight(exp, '0')}'.replaceFirst(RegExp(r'^0+'), '');
   return minor.isEmpty ? null : minor;
 }
+
+/// Importes sugeridos al donar (M-14), en unidades enteras de la moneda. Vacío si la moneda no tiene sugerencias.
+const Map<String, List<int>> suggestedAmounts = {
+  'COP': [10000, 20000, 50000, 100000],
+};

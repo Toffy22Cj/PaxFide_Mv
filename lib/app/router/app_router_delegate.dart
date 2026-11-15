@@ -8,6 +8,7 @@ import '../navigation_restore_state.dart';
 import '../navigation_store.dart';
 import '../pending_intent.dart';
 import '../session_guard.dart';
+import 'pax_page.dart';
 
 /// Construye el widget de una ruta del árbol.
 typedef LocationPageBuilder = Widget Function(BuildContext context, String location);
@@ -87,6 +88,9 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     if (now == SessionStatus.loggedOut && before == SessionStatus.authenticated) {
       // Invariante 4: logout limpia la pila autenticada. Sin decidir nada sobre el Outbox.
       _stack.removeWhere((l) => AppRoutes.categorize(l) == RouteCategory.authenticated);
+      // Enmienda 3: sin nada público encima, queda Entrar (con la bienvenida debajo, la pone _normalizeAndNotify),
+      // para volver a entrar en el acto, también con biometría.
+      if (_stack.isEmpty) _stack.add(AppRoutes.login);
     }
 
     if (now == SessionStatus.authenticated && before == SessionStatus.loggedOut) {
@@ -128,7 +132,7 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     if (_isResolved(status)) {
       final top = currentLocation;
       final decision = top == null
-          ? GuardDecision.redirect(status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.login)
+          ? GuardDecision.redirect(status == SessionStatus.authenticated ? AppRoutes.home : AppRoutes.welcome)
           : guard.evaluate(session: session.state, category: AppRoutes.categorize(top));
       if (decision.type == GuardDecisionType.redirect) {
         if (status == SessionStatus.loggedOut) {
@@ -144,6 +148,17 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
       // Ruta autenticada con pila vacía debajo → /home (§12, regla 4 de navegación).
       if (status == SessionStatus.authenticated && _stack.first != AppRoutes.home) {
         if (AppRoutes.categorize(_stack.first) == RouteCategory.authenticated) _stack.insert(0, AppRoutes.home);
+      }
+      // Una pública sola (restaurada al reabrir o abierta por enlace en frío) no tiene barra ni a dónde volver:
+      // debajo va /home con sesión, para que "volver" siempre lleve a algún sitio.
+      if (status == SessionStatus.authenticated &&
+          _stack.length == 1 &&
+          AppRoutes.categorize(_stack.first) == RouteCategory.public) {
+        _stack.insert(0, AppRoutes.home);
+      }
+      // Enmienda 3: sin sesión, la base de la pila es siempre la bienvenida.
+      if (status == SessionStatus.loggedOut && _stack.first != AppRoutes.welcome) {
+        _stack.insert(0, AppRoutes.welcome);
       }
       _persist();
     }
@@ -241,6 +256,24 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
   @override
   Object? get currentConfiguration => null;
 
+  /// Pestañas: fundido; bienvenida, entrar, registrarse e Inicio: eje Z; lo demás (detalles): deslizar.
+  static PaxTransition transitionFor(String location) {
+    if (_tabs.contains(location)) return PaxTransition.fadeThrough;
+    if (_flow.contains(location)) return PaxTransition.zAxis;
+    return PaxTransition.slide;
+  }
+
+  static const _flow = {AppRoutes.welcome, AppRoutes.login, AppRoutes.register, AppRoutes.home};
+
+  static const _tabs = {
+    AppRoutes.donations,
+    AppRoutes.scan,
+    AppRoutes.operator,
+    AppRoutes.operatorPending,
+    AppRoutes.prediction,
+    AppRoutes.account,
+  };
+
   @override
   Widget build(BuildContext context) {
     final pages = <Page<void>>[];
@@ -250,7 +283,12 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
       final d = guard.evaluate(session: session.state, category: AppRoutes.categorize(location));
       if (d.type == GuardDecisionType.allow) {
         pages.add(
-          MaterialPage<void>(key: ValueKey('$i:$location'), name: location, child: pageBuilder(context, location)),
+          PaxPage<void>(
+            key: ValueKey('$i:$location'),
+            name: location,
+            transition: transitionFor(location),
+            child: pageBuilder(context, location),
+          ),
         );
       } else if (d.type == GuardDecisionType.wait) {
         waiting = true;
@@ -258,8 +296,9 @@ class AppRouterDelegate extends RouterDelegate<Object> with ChangeNotifier, PopN
     }
     if (waiting || pages.isEmpty) {
       pages.add(
-        MaterialPage<void>(
+        PaxPage<void>(
           key: const ValueKey('waiting'),
+          transition: PaxTransition.zAxis,
           child: Builder(builder: waitingBuilder),
         ),
       );

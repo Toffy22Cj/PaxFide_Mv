@@ -4,19 +4,32 @@ import 'app/app_config.dart';
 import 'app/bootstrap.dart';
 import 'app/paxfide_app.dart';
 import 'core/storage/secure_key_value_store.dart';
+import 'shared/theme/pax_theme.dart';
+import 'shared/widgets/pax_ui.dart';
 import 'shared/widgets/state_views.dart';
+import 'shared/widgets/pax_app_bar.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final config = AppConfig.fromEnvironment();
   if (config.apiBaseUrl == null) {
     runApp(
-      const MaterialApp(
+      MaterialApp(
+        theme: PaxTheme.light,
+        darkTheme: PaxTheme.dark,
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
-          body: MessageView(
-            icon: Icons.settings,
+          appBar: PaxAppBar(title: const Text('Configuración interna')),
+          body: const MessageView(
+            icon: Icons.inbox_outlined,
             title: 'Falta configurar la API',
-            detail: 'Compila con --dart-define=PAXFIDE_API_BASE_URL=<base de la API>.',
+            detail:
+                'Esta compilación interna necesita la configuración del servidor. Avisa al equipo responsable antes '
+                'de continuar.',
+            action: NoticeBanner(
+              'Solo para builds internos: compila con --dart-define-from-file=config/dev.json.',
+              tone: Tone.info,
+            ),
           ),
         ),
       ),
@@ -25,5 +38,6 @@ void main() {
   }
   final services = buildServices(config: config, secureStore: const FlutterSecureKeyValueStore());
   runApp(PaxFideApp(services: services));
-  startServices(services);
+  // Enmienda 4 de ADR-043, S3: lo guardado sin conexión se envía solo cuando vuelve la red.
+  startServices(services).whenComplete(services.autoSync.start);
 }

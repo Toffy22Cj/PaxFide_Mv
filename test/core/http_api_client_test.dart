@@ -68,6 +68,37 @@ void main() {
     expect(srv.requests.single.headers['authorization'], 'Bearer el-jwt');
   });
 
+  test('put: cuerpo JSON con el JWT', () async {
+    await tokens.writeToken('jwt-1');
+    await client.put('/account/profile', body: {'givenName': 'Ana'}, credentialMode: CredentialMode.jwt);
+    final r = srv.requests.single;
+    expect(r.method, 'PUT');
+    expect(r.path, '/api/v1/account/profile');
+    expect(r.headers['authorization'], 'Bearer jwt-1');
+    expect(jsonDecode(r.body), {'givenName': 'Ana'});
+  });
+
+  test('postFile: multipart/form-data con un solo archivo en el campo pedido', () async {
+    await tokens.writeToken('jwt-1');
+    await client.postFile(
+      '/organizations/org-1/delivery-evidence',
+      field: 'file',
+      filename: 'entrega.jpg',
+      contentType: 'image/jpeg',
+      bytes: utf8.encode('BYTES-DE-LA-FOTO'),
+      credentialMode: CredentialMode.jwt,
+    );
+    final r = srv.requests.single;
+    expect(r.method, 'POST');
+    expect(r.headers['authorization'], 'Bearer jwt-1');
+    final type = ContentType.parse(r.headers['content-type']!);
+    expect(type.mimeType, 'multipart/form-data');
+    final boundary = type.parameters['boundary']!;
+    expect(r.body, startsWith('--$boundary\r\n'));
+    expect(r.body, contains('Content-Disposition: form-data; name="file"; filename="entrega.jpg"\r\n'));
+    expect(r.body, contains('Content-Type: image/jpeg\r\n\r\nBYTES-DE-LA-FOTO\r\n--$boundary--\r\n'));
+  });
+
   test('none: nunca envía Authorization aunque haya JWT', () async {
     await tokens.writeToken('el-jwt');
     await client.post('/auth/login', body: {'email': 'a', 'password': 'b'}, credentialMode: CredentialMode.none);
@@ -121,9 +152,11 @@ void main() {
     expect(loggedOut, 0);
   });
 
-  test('sin JWT guardado: la petición no sale y equivale a 401 (T-1)', () async {
-    final r = await client.get('/me', credentialMode: CredentialMode.jwt);
-    expect(r.statusCode, 401);
+  test('sin JWT guardado: la petición no sale, cierra la sesión (T-1) y avisa «no salió», no un 401', () async {
+    await expectLater(
+      client.get('/me', credentialMode: CredentialMode.jwt),
+      throwsA(isA<MissingCredentialException>().having((e) => e.isAmbiguous, 'ambigua', false)),
+    );
     expect(srv.requests, isEmpty);
     expect(loggedOut, 1);
   });

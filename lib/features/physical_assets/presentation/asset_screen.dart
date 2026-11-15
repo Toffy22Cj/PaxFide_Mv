@@ -9,15 +9,17 @@ import '../../../core/offline/command_outcome.dart';
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
 import '../../../shared/error_messages.dart';
-import '../../../shared/quantity.dart';
-import '../../../shared/widgets/qr_sheet.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/action_resolver.dart';
 import '../domain/asset_action.dart';
+import '../domain/asset_labels.dart';
+import '../../prediction/data/prediction_api.dart';
 import '../domain/asset_operations.dart';
 import '../domain/lifecycle_status.dart';
 import 'command_form_sheet.dart';
+import 'field_action_flow.dart';
 import 'outbox_entry_card.dart';
 
 String lifecycleLabel(String wire) => switch (LifecycleStatus.fromWire(wire)) {
@@ -47,6 +49,7 @@ class _AssetScreenState extends State<AssetScreen> {
   late final AssetOperations _ops = AssetOperations(engine: _services.syncEngine, api: _api);
 
   PhysicalAssetDto? _asset;
+  String? _campaignTitle;
   Object? _error;
   bool _loading = true;
   bool _busy = false;
@@ -84,12 +87,25 @@ class _AssetScreenState extends State<AssetScreen> {
         _asset = a;
         _loading = false;
       });
+      _loadCampaignTitle(a.campaignRef);
     } on AppException catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e;
         _loading = false;
       });
+    }
+  }
+
+  /// El nombre de la convocatoria, de las de la organización (`GET /me/campaigns`); si no se puede, un texto genérico.
+  Future<void> _loadCampaignTitle(String? campaignRef) async {
+    if (campaignRef == null || _campaignTitle != null) return;
+    try {
+      final all = await PredictionApi(_services.apiClient).myCampaigns();
+      final title = all.where((c) => c.campaignRef == campaignRef).map((c) => c.title).firstOrNull;
+      if (mounted && title != null) setState(() => _campaignTitle = title);
+    } on Object {
+      // sin nombre: se queda el texto genérico
     }
   }
 
@@ -119,12 +135,15 @@ class _AssetScreenState extends State<AssetScreen> {
   Future<void> _startAction(AssetAction action) async {
     final account = _accountId;
     if (account == null) return;
-    final cmd = await showCommandForm(context, action, widget.assetRef);
-    if (cmd == null || !mounted) return;
-    await _run(() async {
-      final (_, outcome) = await _ops.submit(cmd, accountId: account);
-      if (outcome == CommandOutcome.acknowledged) await _load();
-    });
+    final outcome = await runFieldAction(
+      context,
+      action: action,
+      assetRef: widget.assetRef,
+      operations: _ops,
+      accountId: account,
+    );
+    if (outcome == CommandOutcome.acknowledged && mounted) await _load();
+    await _loadEntries();
   }
 
   Future<void> _verify(OutboxItem item) => _run(() async {
@@ -158,7 +177,7 @@ class _AssetScreenState extends State<AssetScreen> {
             key: const Key('asset.qr'),
             tooltip: 'Mostrar QR del activo',
             icon: const Icon(Icons.qr_code_2),
-            onPressed: () => showQrSheet(context, title: 'QR del activo ${widget.assetRef}', url: qr),
+            onPressed: () => _services.router.push(AppRoutes.assetQrPath(widget.assetRef)),
           ),
       ],
       body: _body(context),
@@ -187,6 +206,7 @@ class _AssetScreenState extends State<AssetScreen> {
     final unresolved = _entries.any((e) => e.status != OutboxStatus.failed);
     final canShowAction = (principal?.showsOperatorActions ?? false) && action != AssetAction.readOnly && !unresolved;
 
+    final theme = Theme.of(context);
     return RefreshIndicator(
       onRefresh: () async {
         await _load();
@@ -195,49 +215,82 @@ class _AssetScreenState extends State<AssetScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final e in _entries)
+          Text(
+            assetTypeLabel(a.assetType),
+            key: const Key('asset.title'),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            quantityLabel(a.quantity, a.unitOfMeasure),
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StatusChip(
+              lifecycleLabel(a.lifecycleStatus),
+              key: const Key('asset.status'),
+              icon: lifecycleIcon(a.lifecycleStatus),
+              tone: action == AssetAction.readOnly ? Tone.neutral : Tone.success,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (action == AssetAction.readOnly) ...[
+            const NoticeBanner('Este activo ya fue entregado. Solo se puede consultar.', tone: Tone.info),
+            const SizedBox(height: 12),
+          ],
+          for (final e in _entries) ...[
             OutboxEntryCard(
               item: e,
               busy: _busy,
               onSend: () => _send(e),
               onVerify: () => _verify(e),
-              onRetrySame: () => _send(e),
               onDiscard: () => _discard(e),
               onNewOperation: canShowAction ? () => _startAction(action) : null,
             ),
-          if (canShowAction && !_busy && _entries.isEmpty)
-            FilledButton.icon(
+            const SizedBox(height: 8),
+          ],
+          // Entregar pide la foto de la entrega dentro del formulario (ADR-051).
+          if (canShowAction && !_busy && _entries.isEmpty) ...[
+            FilledButton(
               key: const Key('asset.action'),
               onPressed: () => _startAction(action),
-              icon: const Icon(Icons.play_arrow),
-              label: Text(actionLabel(action)),
+              child: Text(actionLabel(action)),
             ),
+            const SizedBox(height: 12),
+          ],
           if (_busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
-          const SizedBox(height: 12),
-          Card(
+          SectionCard(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(title: const Text('Referencia'), subtitle: Text(a.assetRef)),
-                ListTile(
-                  key: const Key('asset.status'),
-                  title: const Text('Estado'),
-                  subtitle: Text(lifecycleLabel(a.lifecycleStatus)),
+                KeyedSubtree(
+                  key: const Key('asset.campaign'),
+                  child: LabeledValue(
+                    'Convocatoria',
+                    a.campaignRef == null ? 'Sin convocatoria' : (_campaignTitle ?? 'Convocatoria de tu organización'),
+                  ),
                 ),
-                ListTile(
-                  title: const Text('Cantidad'),
-                  subtitle: Text(formatQuantityWithUnit(a.quantity, a.unitOfMeasure)),
+                KeyedSubtree(
+                  key: const Key('asset.zone'),
+                  child: LabeledValue('Municipio', a.zoneName ?? 'Sin municipio registrado'),
                 ),
-                ListTile(title: const Text('Custodio actual'), subtitle: Text(a.currentCustodianRef ?? '—')),
-                ListTile(
-                  key: const Key('asset.location'),
-                  title: const Text('Ubicación actual'),
-                  subtitle: Text(a.currentLocation ?? 'Sin ubicación registrada'),
+                if (a.currentLocation case final l? when l.trim().isNotEmpty)
+                  KeyedSubtree(key: const Key('asset.location'), child: LabeledValue('Lugar', humanize(l))),
+                if (a.currentCustodianRef case final c? when c.trim().isNotEmpty) LabeledValue('Lo tiene', humanize(c)),
+                const SizedBox(height: 4),
+                SelectableText(
+                  'Código del activo: ${a.assetRef}',
+                  key: const Key('asset.ref'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ],
             ),
           ),
-          if (action == AssetAction.readOnly)
-            const Padding(padding: EdgeInsets.all(8), child: Text('Este activo no tiene más acciones.')),
         ],
       ),
     );

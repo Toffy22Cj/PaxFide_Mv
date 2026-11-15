@@ -7,20 +7,24 @@ import 'package:paxfide_mobile/features/donations/domain/donation_flow.dart';
 
 import '../support/app_harness.dart';
 
-ApiResponse campaign({String status = 'OPEN', List<String> methods = const ['GATEWAY'], String? currency = 'COP'}) =>
-    ApiResponse(
-      statusCode: 200,
-      data: {
-        'organizationName': 'Fundación Demo',
-        'title': 'Abrigo',
-        'status': status,
-        'startDate': '2026-10-01T00:00:00Z',
-        'endDate': '2026-12-01T00:00:00Z',
-        'acceptedDonationTypes': ['MONETARY'],
-        'acceptedPaymentMethods': methods,
-        'currency': ?currency,
-      },
-    );
+ApiResponse campaign({
+  String status = 'OPEN',
+  List<String> methods = const ['GATEWAY'],
+  String? currency = 'COP',
+  String endDate = '2030-12-01T00:00:00Z',
+}) => ApiResponse(
+  statusCode: 200,
+  data: {
+    'organizationName': 'Fundación Demo',
+    'title': 'Abrigo',
+    'status': status,
+    'startDate': '2026-10-01T00:00:00Z',
+    'endDate': endDate,
+    'acceptedDonationTypes': ['MONETARY'],
+    'acceptedPaymentMethods': methods,
+    'currency': ?currency,
+  },
+);
 
 const createPath = 'POST /public/campaigns/PUB1/donation-intents';
 const created = ApiResponse(
@@ -44,6 +48,8 @@ void main() {
     await tester.tap(find.byKey(const Key('donate.open')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('donate.amount')), amount);
+    await tester.ensureVisible(find.byKey(const Key('donate.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donate.submit')));
     await tester.pumpAndSettle();
   }
@@ -65,6 +71,18 @@ void main() {
     }
     await openCampaign(tester);
     expect(find.byKey(const Key('donate.open')), findsOneWidget);
+  });
+
+  testWidgets('convocatoria con la fecha de cierre ya pasada (el backend aún dice OPEN): «Terminada» y sin Donar', (
+    tester,
+  ) async {
+    await openCampaign(tester, c: campaign(endDate: '2026-11-01T00:00:00Z'));
+    expect(
+      find.descendant(of: find.byKey(const Key('campaign.status')), matching: find.text('Terminada')),
+      findsOneWidget,
+    );
+    expect(find.text('Abierta'), findsNothing);
+    expect(find.byKey(const Key('donate.open')), findsNothing);
   });
 
   testWidgets('sin sesión: CV-11 sin JWT y con Command-Id; consulta manual con Intent-Token; nada se guarda', (
@@ -93,14 +111,22 @@ void main() {
 
     await tester.tap(find.byKey(const Key('donate.refresh')));
     await tester.pumpAndSettle();
-    expect(find.text('Estado: Pago pendiente'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('donate.status')), matching: find.text('Pago pendiente')),
+      findsOneWidget,
+    );
     final get = h.api.calls.lastWhere((c) => c.path == '/public/donation-intents/int-1');
     expect(get.headers['Intent-Token'], 'TOKEN-SECRETO');
     expect(get.credentialMode, CredentialMode.none);
     expect(get.path, isNot(contains('TOKEN')));
 
     await tester.tap(find.byKey(const Key('donate.refresh')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    // Revelado circular con el agradecimiento, que se va solo.
+    expect(find.text('¡Gracias!'), findsOneWidget);
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.thanks')), findsNothing);
     expect(find.text('CODIGO-NUEVO'), findsOneWidget);
 
     // Ni el Intent-Token ni el código llegan a ningún almacén, ruta o URL.
@@ -141,6 +167,10 @@ void main() {
     h.api.routes[createPath] = (_) => n++ == 0 ? const ApiResponse(statusCode: 409) : created;
     await donate(tester, '1000');
     expect(find.byKey(const Key('donate.rejected')), findsOneWidget);
+    await tester.drag(find.byKey(const Key('donate.amount')), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('donate.submit')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('donate.submit')));
     await tester.pumpAndSettle();
     final ids = creates(h).map((c) => c.headers['Command-Id']).toList();
@@ -184,4 +214,159 @@ void main() {
     expect(find.text('El servidor no devolvió una dirección de pago para esta donación.'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path.startsWith('/public/donation-intents/')), isEmpty);
   });
+
+  testWidgets('M-14: un importe sugerido escribe la cifra y se puede cambiar', (tester) async {
+    await openCampaign(tester);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.text('20 000 COP'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donate.suggested.20000')));
+    await tester.pumpAndSettle();
+    expect(find.text('Se donarán 20 000 COP.'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('donate.amount')), '15000');
+    await tester.pumpAndSettle();
+    expect(find.text('Se donarán 15 000 COP.'), findsOneWidget);
+  });
+
+  testWidgets('M-11: sin cuenta se puede donar o iniciar sesión antes de pagar y volver a la convocatoria', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.guest')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('donate.login')));
+    await tester.pumpAndSettle();
+    expect(h.services.router.currentLocation, '/login');
+    expect(h.services.pendingIntents.current?.route, '/c/PUB1');
+  });
+
+  testWidgets('M-11: con sesión, la hoja dice que la donación queda en Mis donaciones', (tester) async {
+    await openCampaign(tester, loggedIn: true);
+    await tester.ensureVisible(find.byKey(const Key('donate.open')));
+    await tester.tap(find.byKey(const Key('donate.open')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('donate.withAccount')), findsOneWidget);
+    expect(find.byKey(const Key('donate.login')), findsNothing);
+  });
+
+  testWidgets('M-12: «Abrir el pago» abre el checkout en el navegador; si falla, avisa y queda el enlace', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    h.api.routes[createPath] = (_) => created;
+    await donate(tester, '1000');
+    await tester.ensureVisible(find.byKey(const Key('donate.openPayment')));
+    await tester.tap(find.byKey(const Key('donate.openPayment')));
+    await tester.pumpAndSettle();
+    expect(h.links.opened.single.toString(), '$testOrigin/demo/checkout/sim_abc');
+
+    h.links.succeed = false;
+    await tester.tap(find.byKey(const Key('donate.openPayment')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No pudimos abrir el navegador'), findsOneWidget);
+    expect(find.byKey(const Key('donate.checkout')), findsOneWidget);
+  });
+
+  testWidgets('decisión 5: Inicio muestra las convocatorias abiertas y desde una se puede donar', (tester) async {
+    final h = AppHarness();
+    h.api.routes['GET /public/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {
+            'publicCode': 'PUB1',
+            'title': 'Abrigo',
+            'organizationName': 'Fundación Demo',
+            'status': 'OPEN',
+            'startDate': '2026-10-01',
+            'endDate': '2026-12-01',
+          },
+        ],
+      },
+    );
+    h.api.routes['GET /public/campaigns/PUB1'] = (_) => campaign();
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200, scrollable: _homeList);
+    await tester.drag(find.byKey(const Key('home.campaigns')), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home.campaign.PUB1')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/c/PUB1');
+    expect(find.byKey(const Key('donate.open')), findsOneWidget);
+  });
+
+  testWidgets('Inicio: si falla el catálogo, «Reintentar» lo vuelve a pedir y se muestra', (tester) async {
+    final h = AppHarness();
+    var fail = true;
+    h.api.routes['GET /public/campaigns'] = (_) => fail
+        ? const NetworkTimeoutException()
+        : const ApiResponse(
+            statusCode: 200,
+            data: {
+              'items': [
+                {
+                  'publicCode': 'PUB1',
+                  'title': 'Abrigo',
+                  'organizationName': 'Fundación Demo',
+                  'status': 'OPEN',
+                  'startDate': '2026-10-01',
+                  'endDate': '2099-12-01',
+                },
+              ],
+            },
+          );
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    await tester.scrollUntilVisible(find.text('No pudimos cargar las convocatorias.'), 200, scrollable: _homeList);
+    fail = false;
+    await tester.ensureVisible(find.widgetWithText(TextButton, 'Reintentar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Reintentar'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('home.campaign.PUB1')), 200, scrollable: _homeList);
+    expect(find.byKey(const Key('home.campaign.PUB1')), findsOneWidget);
+  });
+
+  testWidgets('Enmienda 4, S5: sin red la donación se guarda; sale sola al volver la red y luego se paga y consulta', (
+    tester,
+  ) async {
+    final h = await openCampaign(tester);
+    var online = false;
+    h.api.routes[createPath] = (_) => online ? created : const ConnectionNotEstablishedException();
+    await donate(tester, '50000');
+    expect(find.byKey(const Key('donate.savedOffline')), findsOneWidget);
+    expect(find.textContaining('se enviará sola'), findsOneWidget);
+    expect(h.secure.values.keys, contains('paxfide.donations.saved'));
+    final firstId = creates(h).single.headers['Command-Id'];
+
+    online = true;
+    await h.services.autoSync.run();
+    await tester.pumpAndSettle();
+    expect(creates(h).map((c) => c.headers['Command-Id']).toSet(), {firstId}, reason: 'mismo Command-Id');
+    expect(h.secure.values['paxfide.donations.saved'], contains('TOKEN-SECRETO'), reason: 'statusToken cifrado (S5)');
+
+    // Sin cuenta: la encuentra en «Seguir una donación»
+    Navigator.of(tester.element(find.byKey(const Key('donate.savedOffline')))).pop();
+    await tester.pumpAndSettle();
+    h.services.router.push('/tracking');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('saved.donations')), findsOneWidget);
+    expect(find.byKey(Key('saved.pay.$firstId')), findsOneWidget);
+
+    h.api.routes['GET /public/donation-intents/int-1'] = (_) =>
+        const ApiResponse(statusCode: 200, data: {'status': 'CONFIRMED', 'trackingCode': 'CODIGO-NUEVO'});
+    await tester.ensureVisible(find.byKey(Key('saved.status.$firstId')));
+    await tester.tap(find.byKey(Key('saved.status.$firstId')));
+    await tester.pumpAndSettle();
+    expect(find.text('CODIGO-NUEVO'), findsOneWidget);
+    expect(h.api.calls.last.headers['Intent-Token'], 'TOKEN-SECRETO');
+    expect(h.secure.values.values.join(), isNot(contains('CODIGO-NUEVO')), reason: 'el código no se guarda (§0)');
+  });
 }
+
+/// La lista de Inicio (la tarjeta de seguimiento tiene su propio campo de texto, que también se desplaza).
+final _homeList = find.byType(Scrollable).first;

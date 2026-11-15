@@ -73,6 +73,19 @@ void main() {
     expect(posts(h), 0);
   });
 
+  testWidgets('M-04: AMBIGUOUS → «Reintentar con el mismo envío» sale con el MISMO Command-Id', (tester) async {
+    final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.ambiguous)]);
+    h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const ApiResponse(statusCode: 200, data: {});
+    h.services.router.go(AppRoutes.operator);
+    h.services.router.push(AppRoutes.operatorPending);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('outbox.retry.cmd-1')));
+    await tester.pumpAndSettle();
+    final post = h.api.calls.singleWhere((c) => c.method == 'POST' && c.path == '/physical-assets/A-1/dispatch');
+    expect(post.headers['Command-Id'], 'cmd-1');
+    expect(find.text('No hay operaciones pendientes de tu cuenta.'), findsOneWidget);
+  });
+
   testWidgets('pendientes: FAILED → Descartar pide confirmación; cancelar no borra', (tester) async {
     final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.failed)]);
     h.services.router.go(AppRoutes.operator);
@@ -91,6 +104,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(await SecureOutboxStore(h.secure).getAllItems(), isEmpty);
     expect(posts(h), 0, reason: 'descartar no envía nada');
+  });
+
+  testWidgets('M-03: deslizar una rechazada la descarta con la misma confirmación', (tester) async {
+    final h = await start(tester, stored: [entry('cmd-1', OutboxStatus.failed), entry('cmd-2', OutboxStatus.pending)]);
+    h.services.router.go(AppRoutes.operatorPending);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('outbox.swipe.cmd-2')), findsNothing, reason: 'solo las rechazadas');
+    await tester.drag(find.byKey(const Key('outbox.swipe.cmd-1')), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Descartar la operación?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Descartar'));
+    await tester.pumpAndSettle();
+    expect((await SecureOutboxStore(h.secure).getAllItems()).map((i) => i.commandId), ['cmd-2']);
+    expect(find.byKey(const Key('outbox.entry.cmd-1')), findsNothing);
   });
 
   testWidgets('H2: otra cuenta no ve ni envía las entradas; tras volver la cuenta dueña, reaparecen', (tester) async {
@@ -121,6 +148,8 @@ void main() {
     h.api.enqueue(meResponse(account: 'acc-1'));
     await tester.enterText(find.byKey(const Key('login.email')), 'a@demo');
     await tester.enterText(find.byKey(const Key('login.password')), 'pw');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     h.services.router.go(AppRoutes.operator);
@@ -151,10 +180,16 @@ void main() {
     await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
     await tester.tap(find.byKey(const Key('form.submit')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('review.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('result.notSent')), findsOneWidget, reason: 'Guardado en el teléfono');
+    await tester.tap(find.byKey(const Key('result.close')));
+    await tester.pumpAndSettle();
     final stored = (await SecureOutboxStore(h.secure).getAllItems()).single;
     expect(stored.status, OutboxStatus.pending);
     expect(stored.accountId, 'acc-1');
-    expect(find.text('Pendiente de enviar\nGuardada en este dispositivo. No se ha enviado.'), findsOneWidget);
+    expect(find.text('Pendiente de enviar'), findsOneWidget);
+    expect(find.text('Guardada en este dispositivo. Se enviará sola cuando haya conexión.'), findsOneWidget);
     expect(find.byKey(const Key('asset.action')), findsNothing, reason: 'no se apila otra operación');
 
     h.api.enqueue(const ApiResponse(statusCode: 200, data: {}));
@@ -163,5 +198,38 @@ void main() {
     expect(await SecureOutboxStore(h.secure).getAllItems(), isEmpty);
     final sent = h.api.calls.where((c) => c.method == 'POST').last;
     expect(sent.headers['Command-Id'], stored.commandId, reason: 'el envío posterior usa el mismo Command-Id');
+  });
+
+  testWidgets('Enmienda 4, S3: lo guardado sin conexión se envía solo al volver la red, con el mismo Command-Id', (
+    tester,
+  ) async {
+    final h = await start(tester);
+    h.services.router.push('/assets/A-1');
+    await tester.pumpAndSettle();
+    h.api.enqueue(const ConnectionNotEstablishedException());
+    await tester.tap(find.byKey(const Key('asset.action')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
+    await tester.tap(find.byKey(const Key('form.submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('review.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('se enviará sola'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('result.close')));
+    await tester.pumpAndSettle();
+    final stored = (await SecureOutboxStore(h.secure).getAllItems()).single;
+
+    // Sin red, una ronda automática no cambia nada
+    h.api.enqueue(const ConnectionNotEstablishedException());
+    await h.services.autoSync.run();
+    expect((await SecureOutboxStore(h.secure).getAllItems()).single.status, OutboxStatus.pending);
+
+    // Con red, sale sola
+    h.api.enqueue(const ApiResponse(statusCode: 200, data: {}));
+    await h.services.autoSync.run();
+    await tester.pumpAndSettle();
+    expect(await SecureOutboxStore(h.secure).getAllItems(), isEmpty);
+    final sent = h.api.calls.where((c) => c.method == 'POST' && c.path.endsWith('/dispatch')).toList();
+    expect(sent.map((c) => c.headers['Command-Id']).toSet(), {stored.commandId});
   });
 }

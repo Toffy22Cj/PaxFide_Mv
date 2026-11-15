@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../errors/app_exceptions.dart';
 import '../network/api_client.dart';
 import '../network/credential_mode.dart';
+import '../network/api_response.dart';
+import '../storage/outbox_file_store.dart';
 import '../storage/outbox_store.dart';
 import 'command_outcome.dart';
 import 'outbox_item.dart';
@@ -24,16 +26,20 @@ class OutboxOperationNotAllowedException extends AppException {
 /// | `ACKNOWLEDGED` | terminal: se retira |
 ///
 /// Invariantes:
-/// - Nunca envía por su cuenta: no hay temporizadores ni reintentos automáticos. Solo [send] lo hace.
+/// - Solo [send] envía. [sendAll] lo llama el envío automático (`AutoSync`, Enmienda 4 de ADR-043, S3) cuando hay
+///   red, con el mismo `commandId` de cada entrada.
 /// - `IN_FLIGHT` nunca vuelve a `PENDING`. Si la conexión no llega a abrirse, la entrada no pasa por `IN_FLIGHT`.
 /// - H2: cada operación recibe el `accountId` de la sesión y solo actúa sobre entradas de esa cuenta; las demás
 ///   ni se ven ni se envían. Un logout no borra nada.
 /// - El `commandId` lo genera la feature; este motor no crea ninguno.
 class SyncEngine extends ChangeNotifier {
-  SyncEngine({required this.store, required this.apiClient});
+  SyncEngine({required this.store, required this.apiClient, this.files});
 
   final OutboxStore store;
   final ApiClient apiClient;
+
+  /// Archivos que algunas entradas suben antes de enviarse (S4). Sin él, esas entradas no salen.
+  final OutboxFileStore? files;
   final Set<String> _sending = {};
 
   /// Entradas visibles para [accountId], de la más reciente a la más antigua. Las `ACKNOWLEDGED` no se listan.
@@ -69,14 +75,26 @@ class SyncEngine extends ChangeNotifier {
   /// Envío explícito: `PENDING` o reintento manual de `AMBIGUOUS` con el **mismo** `commandId`.
   /// `FAILED`, `IN_FLIGHT` y `ACKNOWLEDGED` no se envían.
   Future<CommandOutcome> send(String commandId, String accountId) async {
-    final item = await _own(commandId, accountId);
-    if (item.status != OutboxStatus.pending && item.status != OutboxStatus.ambiguous) {
-      throw OutboxOperationNotAllowedException('No se puede enviar una operación en ${item.status.name}');
+    final first = await _own(commandId, accountId);
+    if (first.status != OutboxStatus.pending && first.status != OutboxStatus.ambiguous) {
+      throw OutboxOperationNotAllowedException('No se puede enviar una operación en ${first.status.name}');
     }
     if (!_sending.add(commandId)) {
       throw const OutboxOperationNotAllowedException('La operación ya se está enviando');
     }
     try {
+      // S4: primero el archivo (la foto de una entrega hecha sin conexión). Subirlo otra vez es seguro: los mismos
+      // bytes dan el mismo resultado (ADR-051 F9). Sin red, o sin archivo legible, la entrada no sale.
+      var item = first;
+      if (item.fileUploadPath != null) {
+        final uploaded = await _uploadFile(item, accountId);
+        if (uploaded == null) {
+          return (await store.getAllItems()).any((i) => i.commandId == commandId && i.status == OutboxStatus.failed)
+              ? CommandOutcome.failed
+              : CommandOutcome.notSent;
+        }
+        item = uploaded;
+      }
       CommandOutcome outcome;
       int? status;
       try {
@@ -115,6 +133,74 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
+  /// Sube el archivo de [item] y guarda la entrada con el resultado en el cuerpo (y el archivo borrado). `null` si no
+  /// salió (sin red, fallo ambiguo o 5xx: se reintenta luego) o si el servidor lo rechazó (4xx: la entrada pasa a
+  /// `FAILED` y el archivo se borra, porque ya no sirve).
+  Future<OutboxItem?> _uploadFile(OutboxItem item, String accountId) async {
+    final file = await files?.read(item.commandId);
+    if (file == null) return null;
+    final ApiResponse r;
+    try {
+      r = await apiClient.postFile(
+        item.fileUploadPath!,
+        field: 'file',
+        filename: file.filename,
+        contentType: file.contentType,
+        bytes: file.bytes,
+        credentialMode: CredentialMode.jwt,
+      );
+    } on TransportException {
+      return null;
+    }
+    final result = r.data?[item.fileResultKey];
+    if (r.isSuccess && result is String && result.isNotEmpty) {
+      final next = item.withUploadedFile(result);
+      await store.updateStatus(item.commandId, next);
+      await files?.delete(item.commandId);
+      notifyListeners();
+      return next;
+    }
+    if (r.statusCode >= 400 && r.statusCode < 500) {
+      await store.updateStatus(
+        item.commandId,
+        item.copyWith(status: OutboxStatus.failed, rejectionStatus: r.statusCode),
+      );
+      await files?.delete(item.commandId);
+      notifyListeners();
+    }
+    return null;
+  }
+
+  /// Envío automático (Enmienda 4 de ADR-043, S3): manda, de la más antigua a la más reciente, las entradas de
+  /// [accountId] en `PENDING` o `AMBIGUOUS`, cada una con su **mismo** `commandId` (el backend responde igual a un
+  /// reenvío y no duplica). Se detiene en cuanto una no sale (sin red). `FAILED` no se toca: espera a la persona.
+  /// Devuelve cuántas quedaron confirmadas.
+  Future<int> sendAll(String accountId) async {
+    final List<OutboxItem> due;
+    try {
+      due =
+          (await entriesFor(accountId))
+              .where((i) => i.status == OutboxStatus.pending || i.status == OutboxStatus.ambiguous)
+              .toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } on AppException {
+      return 0; // almacén ilegible: no se toca (lo muestra Pendientes)
+    }
+    var acknowledged = 0;
+    for (final item in due) {
+      if (_sending.contains(item.commandId)) continue;
+      final CommandOutcome outcome;
+      try {
+        outcome = await send(item.commandId, accountId);
+      } on OutboxOperationNotAllowedException {
+        continue; // cambió de estado mientras tanto
+      }
+      if (outcome == CommandOutcome.notSent) break;
+      if (outcome == CommandOutcome.acknowledged) acknowledged++;
+    }
+    return acknowledged;
+  }
+
   /// "Verificar estado" de una entrada `AMBIGUOUS`. [observedMatchesExpected] es la comprobación de la feature
   /// (p. ej. `lifecycleStatus` esperado). Si coincide → `ACKNOWLEDGED`; si no, sigue `AMBIGUOUS`. Nunca reenvía.
   Future<bool> verify(
@@ -142,6 +228,7 @@ class SyncEngine extends ChangeNotifier {
       throw const OutboxOperationNotAllowedException('Solo se descarta una operación rechazada');
     }
     await store.deleteItem(commandId);
+    await files?.delete(commandId);
     notifyListeners();
   }
 }

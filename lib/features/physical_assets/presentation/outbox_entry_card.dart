@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/offline/outbox_item.dart';
 import '../../../core/offline/outbox_status.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../domain/asset_action.dart';
 import 'command_form_sheet.dart';
 
@@ -27,7 +28,6 @@ class OutboxEntryCard extends StatelessWidget {
     this.showAsset = false,
     this.onSend,
     this.onVerify,
-    this.onRetrySame,
     this.onDiscard,
     this.onNewOperation,
     this.onOpenAsset,
@@ -38,7 +38,6 @@ class OutboxEntryCard extends StatelessWidget {
   final bool showAsset;
   final VoidCallback? onSend;
   final VoidCallback? onVerify;
-  final VoidCallback? onRetrySame;
   final VoidCallback? onDiscard;
   final VoidCallback? onNewOperation;
   final VoidCallback? onOpenAsset;
@@ -46,12 +45,12 @@ class OutboxEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = kindLabel(item.kind);
-    final title = showAsset ? '$label · activo ${item.resourceRef}' : label;
+    final title = '$label · ${item.resourceRef}';
     final (IconData icon, String state, String detail, List<Widget> actions) = switch (item.status) {
       OutboxStatus.pending => (
         Icons.schedule,
         'Pendiente de enviar',
-        'Guardada en este dispositivo. No se ha enviado.',
+        'Guardada en este dispositivo. Se enviará sola cuando haya conexión.',
         [
           FilledButton(
             key: Key('outbox.send.${item.commandId}'),
@@ -64,17 +63,18 @@ class OutboxEntryCard extends StatelessWidget {
       OutboxStatus.ambiguous => (
         Icons.help_outline,
         'No pudimos confirmar la operación',
-        'Puede que el servidor la haya registrado. Verifica el estado antes de reintentar.',
+        'Puede que haya quedado registrada. Se reenvía sola con el mismo envío (sin duplicarse); también puedes verificar el estado.',
         [
           FilledButton(
             key: Key('outbox.verify.${item.commandId}'),
             onPressed: busy ? null : onVerify,
             child: const Text('Verificar estado'),
           ),
+          // M-04: reintento manual con el mismo `commandId` (el backend no lo aplica dos veces), después de verificar.
           TextButton(
             key: Key('outbox.retry.${item.commandId}'),
-            onPressed: busy ? null : onRetrySame,
-            child: const Text('Reintentar'),
+            onPressed: busy ? null : onSend,
+            child: const Text('Reintentar con el mismo envío'),
           ),
         ],
       ),
@@ -94,20 +94,35 @@ class OutboxEntryCard extends StatelessWidget {
       ),
       OutboxStatus.acknowledged => (Icons.check_circle, 'Confirmada', '', <Widget>[]),
     };
+    final tone = switch (item.status) {
+      OutboxStatus.failed => Tone.error,
+      OutboxStatus.acknowledged => Tone.success,
+      OutboxStatus.inFlight => Tone.info,
+      _ => Tone.pending,
+    };
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Card(
       key: Key('outbox.entry.${item.commandId}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ListTile(
-            leading: Icon(icon),
-            title: Text(title),
-            subtitle: Text('$state\n$detail'),
-            isThreeLine: true,
-            onTap: onOpenAsset,
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpenAsset,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: StatusChip(state, icon: icon, tone: tone),
+              ),
+              if (detail.isNotEmpty) ...[const SizedBox(height: 8), Text(detail, style: TextStyle(color: muted))],
+              if (actions.isNotEmpty) ...[const SizedBox(height: 10), ...actions],
+            ],
           ),
-          if (actions.isNotEmpty) OverflowBar(alignment: MainAxisAlignment.end, children: actions),
-        ],
+        ),
       ),
     );
   }

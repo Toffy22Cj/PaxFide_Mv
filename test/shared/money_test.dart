@@ -2,18 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/shared/money.dart';
 
 /// referencia-api-v1 §0 (develop 1b012da): importes en unidades mínimas ISO 4217; COP con exponente 2:
-/// "100000" son 1 000,00 COP.
+/// "100000" son 1 000 COP.
 void main() {
   group('mostrar unidades mínimas', () {
     test('el ejemplo literal del contrato', () {
-      expect(formatMinorUnits('100000', 'COP'), '1 000,00 COP');
+      expect(formatMinorUnits('100000', 'COP'), '1 000 COP');
     });
 
     test('valores reales del ensayo (meta de la convocatoria y donación)', () {
-      expect(formatMinorUnits('50000000', 'COP'), '500 000,00 COP');
-      expect(formatMinorUnits(6000000, 'COP'), '60 000,00 COP');
+      expect(formatMinorUnits('50000000', 'COP'), '500 000 COP');
+      expect(formatMinorUnits(6000000, 'COP'), '60 000 COP');
       expect(formatMinorUnits(5, 'COP'), '0,05 COP');
-      expect(formatMinorUnits(0, 'COP'), '0,00 COP');
+      expect(formatMinorUnits(0, 'COP'), '0 COP');
+      // Los centavos solo si los hay: nunca «,00».
+      expect(formatMinorUnits('123450', 'COP'), '1 234,50 COP');
     });
 
     test('moneda sin exponente conocido: nunca se inventa la escala', () {

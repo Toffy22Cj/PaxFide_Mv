@@ -19,6 +19,11 @@ class OutboxItem {
   /// Código HTTP del rechazo (solo en `FAILED`), para explicar el motivo sin guardar el cuerpo de la respuesta.
   final int? rejectionStatus;
 
+  /// Enmienda 4 de ADR-043, S4: antes de enviarse, sube su archivo (`OutboxFileStore`) a esta ruta y añade al cuerpo
+  /// el campo [fileResultKey] de la respuesta (la foto de una entrega y su `evidenceRef`). `null` = nada que subir.
+  final String? fileUploadPath;
+  final String? fileResultKey;
+
   const OutboxItem({
     required this.commandId,
     required this.accountId,
@@ -29,7 +34,22 @@ class OutboxItem {
     required this.status,
     required this.createdAt,
     this.rejectionStatus,
+    this.fileUploadPath,
+    this.fileResultKey,
   });
+
+  /// La entrada con su archivo ya subido: el cuerpo lleva el resultado y ya no hay nada que subir.
+  OutboxItem withUploadedFile(String result) => OutboxItem(
+    commandId: commandId,
+    accountId: accountId,
+    kind: kind,
+    resourceRef: resourceRef,
+    path: path,
+    payload: {...payload, fileResultKey!: result},
+    status: status,
+    createdAt: createdAt,
+    rejectionStatus: rejectionStatus,
+  );
 
   OutboxItem copyWith({OutboxStatus? status, int? rejectionStatus}) {
     return OutboxItem(
@@ -42,6 +62,8 @@ class OutboxItem {
       status: status ?? this.status,
       createdAt: createdAt,
       rejectionStatus: rejectionStatus ?? this.rejectionStatus,
+      fileUploadPath: fileUploadPath,
+      fileResultKey: fileResultKey,
     );
   }
 
@@ -55,6 +77,8 @@ class OutboxItem {
     'status': status.name,
     'createdAt': createdAt.toUtc().toIso8601String(),
     'rejectionStatus': ?rejectionStatus,
+    'fileUploadPath': ?fileUploadPath,
+    'fileResultKey': ?fileResultKey,
   };
 
   /// `null` si la entrada no tiene la forma esperada.
@@ -77,6 +101,8 @@ class OutboxItem {
       status: status,
       createdAt: createdAt,
       rejectionStatus: j['rejectionStatus'] is int ? j['rejectionStatus'] as int : null,
+      fileUploadPath: j['fileUploadPath'] is String ? j['fileUploadPath'] as String : null,
+      fileResultKey: j['fileResultKey'] is String ? j['fileResultKey'] as String : null,
     );
   }
 }

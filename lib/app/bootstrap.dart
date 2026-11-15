@@ -1,13 +1,27 @@
+import 'package:flutter_map/flutter_map.dart' show TileProvider;
+
+import '../core/links/link_opener.dart';
+import '../core/media/photo_picker.dart';
 import '../core/network/api_client.dart';
 import '../core/network/auth_response_handler.dart';
+import '../core/network/caching_api_client.dart';
 import '../core/network/http_api_client.dart';
 import '../core/offline/outbox_recovery.dart';
 import '../core/offline/sync_engine.dart';
+import '../core/storage/device_credential_store.dart';
+import '../core/storage/outbox_file_store.dart';
 import '../core/storage/outbox_store.dart';
+import '../features/auth/google/google_id_token_provider.dart';
+import '../features/auth/data/profile_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
+import '../features/auth/biometrics/biometric_authenticator.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../features/donations/data/donation_intent_api.dart';
+import '../features/donations/domain/donation_queue.dart';
+import '../shared/theme/text_size_controller.dart';
+import '../shared/theme/theme_controller.dart';
 import '../shared/widgets/state_views.dart';
 import 'app_config.dart';
 import 'app_pages.dart';
@@ -16,6 +30,7 @@ import 'navigation_store.dart';
 import 'pending_intent.dart';
 import 'qr_scanner_sheet.dart';
 import 'router/app_router_delegate.dart';
+import '../shared/city/city_pause_controller.dart';
 
 /// Construye las dependencias. [apiClientFactory] permite inyectar un `ApiClient` falso en los tests.
 AppServices buildServices({
@@ -23,15 +38,22 @@ AppServices buildServices({
   required SecureKeyValueStore secureStore,
   ApiClient Function(TokenStore tokenStore, AuthResponseHandler handler)? apiClientFactory,
   QrScannerBuilder qrScannerBuilder = defaultQrScanner,
+  BiometricAuthenticator? biometricAuthenticator,
+  LinkOpener linkOpener = const UrlLauncherLinkOpener(),
+  PhotoPicker? photoPicker,
+  TileProvider? mapTileProvider,
+  GoogleIdTokenProvider? google,
 }) {
   final tokenStore = SecureTokenStore(secureStore);
   late final SessionController session;
   final handler = AuthResponseHandler(tokenStore: tokenStore, onSessionLoggedOut: () => session.onUnauthorized());
-  final api =
+  final network =
       apiClientFactory?.call(tokenStore, handler) ??
       HttpApiClient(baseUrl: config.apiBaseUrl!, tokenStore: tokenStore, authResponseHandler: handler);
+  // Enmienda 4 de ADR-043, S2: las lecturas se guardan para verlas sin conexión.
+  final api = CachingApiClient(network, secureStore, accountId: () => session.principal?.accountId);
   final authApi = AuthApi(api);
-  session = SessionController(tokenStore: tokenStore, authApi: authApi);
+  session = SessionController(tokenStore: tokenStore, authApi: authApi, profileStore: SecureProfileStore(secureStore));
   final outboxStore = SecureOutboxStore(secureStore);
   final services = AppServices(
     config: config,
@@ -41,7 +63,31 @@ AppServices buildServices({
     pendingIntents: PendingIntentHolder(),
     qrScannerBuilder: qrScannerBuilder,
     outboxStore: outboxStore,
-    syncEngine: SyncEngine(store: outboxStore, apiClient: api),
+    syncEngine: SyncEngine(store: outboxStore, apiClient: api, files: OutboxFileStore(secureStore)),
+    theme: ThemeController(secureStore),
+    textSize: TextSizeController(secureStore),
+    cityPause: CityPauseController(secureStore),
+    linkOpener: linkOpener,
+    photoPicker: photoPicker,
+    deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
+    mapTileProvider: mapTileProvider,
+    google:
+        google ??
+        (config.googleServerClientId != null && GoogleSignInIdTokenProvider.supportedPlatform
+            ? GoogleSignInIdTokenProvider(config.googleServerClientId!)
+            : const UnavailableGoogleIdTokenProvider()),
+    offline: api.offline,
+    // local_auth no funciona en Linux ni en la web: ahí no se ofrece y se entra con contraseña.
+    biometricAuthenticator:
+        biometricAuthenticator ??
+        (LocalAuthBiometricAuthenticator.supportedPlatform
+            ? LocalAuthBiometricAuthenticator()
+            : const UnavailableBiometricAuthenticator()),
+  );
+  services.donationQueue = DonationQueue(
+    secureStore,
+    DonationIntentApi(api),
+    sessionAccountId: () => session.principal?.accountId,
   );
   services.router = AppRouterDelegate(
     session: session,
@@ -65,6 +111,9 @@ Future<void> runOutboxRecovery(AppServices services) async {
 
 /// Arranque: T-2, posición restaurable y sesión (UNKNOWN → RESTORING → …). El router ya está activo (G-1 a).
 Future<void> startServices(AppServices services) async {
+  await services.theme.load();
+  await services.textSize.load();
+  await services.cityPause.load();
   await runOutboxRecovery(services);
   await services.router.loadRestorable();
   await services.session.restore();

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Estados de pantalla (no son rutas, §12 regla 1).
+import 'loaders.dart';
+import 'pax_ui.dart';
+import 'pax_app_bar.dart';
+
+/// Estados de pantalla (no son rutas, §12 regla 1). La carga son los cubos encadenados, como en la web.
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.label = 'Cargando…'});
   final String label;
@@ -9,7 +13,7 @@ class LoadingView extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
-      children: [const CircularProgressIndicator(), const SizedBox(height: 12), Text(label)],
+      children: [const ChainCubesLoader(), const SizedBox(height: 12), Text(label)],
     ),
   );
 }
@@ -31,12 +35,16 @@ class MessageView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
+            IconCircle(icon),
+            const SizedBox(height: 16),
             Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
             if (detail != null) ...[
               const SizedBox(height: 8),
-              Text(detail!, textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+              Text(
+                detail!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ],
             if (action != null) ...[const SizedBox(height: 16), action!],
           ],
@@ -55,7 +63,7 @@ class ErrorRetryView extends StatelessWidget {
   Widget build(BuildContext context) => MessageView(
     icon: Icons.cloud_off,
     title: message,
-    action: FilledButton.tonal(onPressed: onRetry, child: const Text('Reintentar')),
+    action: OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
   );
 }
 
@@ -64,5 +72,19 @@ class WaitingView extends StatelessWidget {
   const WaitingView({super.key});
 
   @override
-  Widget build(BuildContext context) => const Scaffold(body: LoadingView(label: 'Comprobando la sesión…'));
+  Widget build(BuildContext context) => Scaffold(
+    appBar: PaxAppBar(title: const Text('PaxFide')),
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BrandHeader(),
+          const SizedBox(height: 40),
+          const ChainCubesLoader(),
+          const SizedBox(height: 16),
+          Text('Comprobando la sesión…', style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    ),
+  );
 }

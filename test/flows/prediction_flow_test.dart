@@ -10,13 +10,16 @@ import '../support/app_harness.dart';
 const path = '/organizations/org-1/campaigns/camp-9/prediction';
 
 void main() {
-  Future<AppHarness> open(WidgetTester tester, List<String> roles, {bool withList = false}) async {
+  Future<AppHarness> open(WidgetTester tester, List<String> roles) async {
     final h = AppHarness();
-    if (!withList) {
-      // Sin listado: la app ofrece escribir la referencia como último recurso.
-      h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
-      h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
-    }
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [
+          {'campaignRef': 'camp-9', 'publicCode': 'PUB9', 'title': 'Abrigo para el invierno', 'status': 'OPEN'},
+        ],
+      },
+    );
     h.saveToken('jwt');
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: roles)));
     h.services.router.go(AppRoutes.prediction);
@@ -25,8 +28,7 @@ void main() {
   }
 
   Future<void> query(WidgetTester tester) async {
-    await tester.enterText(find.byKey(const Key('prediction.campaignRef')), 'camp-9');
-    await tester.tap(find.byKey(const Key('prediction.submit')));
+    await tester.tap(find.byKey(const Key('prediction.choice.camp-9')));
     await tester.pumpAndSettle();
   }
 
@@ -51,25 +53,19 @@ void main() {
       final call = h.api.calls.last;
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
-      expect(find.text(predictionLabel), findsOneWidget);
-      expect(find.text('Probabilidad estimada de alcanzar la meta: 85.2 %'), findsOneWidget);
-      expect(find.text('Porcentaje final estimado de la meta: 104.1 %'), findsOneWidget);
-      expect(find.text('Tiempo transcurrido de la convocatoria: 25.0 %'), findsOneWidget);
-      // Solo lo que devuelve el backend: nada de bandas de confianza.
+      expect(find.byKey(const Key('prediction.label')), findsNothing);
+      // Solo la predicción con su porcentaje y una línea de advertencia: sin modelo, fecha, ni otras cifras.
+      expect(find.byKey(const Key('prediction.percent')), findsOneWidget);
+      expect(find.text('85,2 %'), findsOneWidget);
+      expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
+      expect(find.textContaining('datos de prueba'), findsNothing);
+      expect(find.textContaining('Porcentaje final'), findsNothing);
+      expect(find.textContaining('Tiempo transcurrido'), findsNothing);
+      expect(find.textContaining('p3-v1'), findsNothing);
+      expect(find.textContaining('calculado'), findsNothing);
+      expect(find.textContaining('⚠'), findsNothing);
+      expect(find.byKey(const Key('prediction.history'), skipOffstage: false), findsNothing);
       expect(find.textContaining('confianza'), findsNothing);
-      // Gráfico histórico: el backend no lo expone todavía → "No disponible", sin cortes inventados.
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('prediction.history'), skipOffstage: false),
-          matching: find.text('No disponible', skipOffstage: false),
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('95'), findsNothing);
-      // La etiqueta va antes que cualquier cifra.
-      final labelY = tester.getTopLeft(find.byKey(const Key('prediction.label'))).dy;
-      final figureY = tester.getTopLeft(find.textContaining('Probabilidad estimada')).dy;
-      expect(labelY, lessThan(figureY));
     });
   }
 
@@ -89,7 +85,7 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.text(predictionLabel), findsOneWidget);
+    expect(find.byKey(const Key('prediction.label')), findsNothing);
     expect(find.textContaining('La política STRICT'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
   });
@@ -143,18 +139,26 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['ADMINISTRATOR'])));
     h.services.router.go(AppRoutes.prediction);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('prediction.campaignRef')), findsNothing, reason: 'con listado no se escribe');
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
-    expect(find.text('Probabilidad estimada de alcanzar la meta: 50.0 %'), findsOneWidget);
+    expect(find.text('50,0 %'), findsOneWidget);
+    expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
   });
 
-  testWidgets('REPRESENTATIVE (sin listado de organización) usa sus convocatorias de GET /me/campaigns', (
+  testWidgets('REPRESENTATIVE ve las convocatorias de su organización como tarjetas', (tester) async {
+    final h = await open(tester, ['REPRESENTATIVE']);
+    expect(find.byKey(const Key('prediction.choice.camp-9')), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/organizations/org-1/campaigns'), hasLength(1));
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsNothing);
+  });
+
+  testWidgets('backend anterior (403 en el listado de la organización) → sus convocatorias de GET /me/campaigns', (
     tester,
   ) async {
     final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
     h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(
       statusCode: 200,
       data: {
@@ -168,7 +172,6 @@ void main() {
     await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
     h.services.router.go(AppRoutes.prediction);
     await tester.pumpAndSettle();
-    expect(h.api.calls.where((c) => c.path == '/organizations/org-1/campaigns'), isEmpty);
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
     expect(h.api.calls.last.path, path);
@@ -193,10 +196,30 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.text(predictionLabel), findsOneWidget);
+    expect(find.byKey(const Key('prediction.label')), findsNothing);
     expect(find.textContaining('Fuera del rango del modelo'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
     expect(find.textContaining('Tiempo transcurrido'), findsNothing);
     expect(find.textContaining('%)'), findsNothing);
+  });
+
+  testWidgets('sin convocatorias → un mensaje claro, nunca un campo para escribir una referencia interna', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  test('el texto dice si es probable o no alcanzar la meta (corte en el 50 %)', () {
+    expect(likelihoodText(0.85), 'Es probable alcanzar la meta');
+    expect(likelihoodText(0.5), 'Es probable alcanzar la meta');
+    expect(likelihoodText(0.002), 'No es probable alcanzar la meta');
   });
 }

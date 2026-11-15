@@ -1,5 +1,6 @@
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_response.dart';
 import '../../../core/network/credential_mode.dart';
 
 /// Respuesta de `GET /api/v1/me` (ficha N1): exactamente estos cuatro campos.
@@ -27,32 +28,148 @@ class MeDto {
   }
 }
 
-/// `POST /auth/login`, `POST /auth/register` y `GET /me` (referencia-api-v1 §1).
+/// Credencial de este dispositivo para entrar con biometría (M-28). El `deviceToken` solo llega en el alta.
+class DeviceEnrollment {
+  const DeviceEnrollment({required this.credentialId, required this.deviceToken});
+  final String credentialId;
+  final String deviceToken;
+}
+
+/// `POST /auth/login`, `POST /auth/register`, `GET /me`, entrar con biometría y reenviar la verificación del correo
+/// (referencia-api-v1 §1).
 class AuthApi {
   const AuthApi(this._api);
 
   final ApiClient _api;
 
   /// Devuelve el JWT. 401 único para email inexistente, contraseña errónea o cuenta inactiva.
-  Future<String> login(String email, String password) async {
+  /// Si la cuenta tiene aceptaciones pendientes, el backend responde 403 `AcceptanceRequired`
+  /// y se lanza [AcceptanceRequiredException] con las versiones pendientes.
+  Future<String> login(
+    String email,
+    String password, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
     final r = await _api.post(
       '/auth/login',
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
       credentialMode: CredentialMode.none,
     );
+    return _token(r);
+  }
+
+  /// Respuesta de un inicio de sesión (contraseña o biometría): el JWT, o los 403 con nombre que comparten
+  /// (ADR-050 D3 y Enmienda 2, E2-3).
+  static String _token(ApiResponse r) {
+    if (r.statusCode == 403 && r.data?['title'] == 'EmailNotVerified') throw const EmailNotVerifiedException();
+    if (r.statusCode == 403 && r.data?['title'] == 'AcceptanceRequired') {
+      final terms = r.data?['pendingTermsVersion'];
+      final dataPolicy = r.data?['pendingDataPolicyVersion'];
+      final pendingTerms = terms is String && terms.isNotEmpty ? terms : null;
+      final pendingDataPolicy = dataPolicy is String && dataPolicy.isNotEmpty ? dataPolicy : null;
+      if (pendingTerms == null && pendingDataPolicy == null) {
+        throw const MalformedResponseException();
+      }
+      throw AcceptanceRequiredException(pendingTermsVersion: pendingTerms, pendingDataPolicyVersion: pendingDataPolicy);
+    }
     final token = r.requireData()['token'];
     if (token is! String || token.isEmpty) throw const MalformedResponseException();
     return token;
   }
 
-  /// 201 `{accountId, status}`. Sin `Command-Id` (DD-56). 409 si el email ya existe.
-  Future<void> register(String email, String password) async {
+  /// 201 `{accountId, status}`. Sin `Command-Id` (DD-56). 409 si el email ya existe; 400 si la contraseña es corta
+  /// o si falta alguna de las versiones vigentes de términos o política de datos (`acceptedTermsVersion`,
+  /// `acceptedDataPolicyVersion`).
+  Future<void> register(
+    String email,
+    String password, {
+    required String acceptedTermsVersion,
+    required String acceptedDataPolicyVersion,
+  }) async {
     final r = await _api.post(
       '/auth/register',
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'acceptedTermsVersion': acceptedTermsVersion,
+        'acceptedDataPolicyVersion': acceptedDataPolicyVersion,
+      },
       credentialMode: CredentialMode.none,
     );
     r.requireData();
+  }
+
+  /// `POST /auth/password-reset`: solicita un enlace de recuperación de contraseña.
+  /// Responde 202 sin cuerpo tanto si la cuenta existe como si no. 400 si el email va vacío.
+  Future<void> requestPasswordReset(String email) async {
+    final r = await _api.post('/auth/password-reset', body: {'email': email}, credentialMode: CredentialMode.none);
+    if (!r.isSuccess) {
+      throw r.error ?? BadRequestException(r.statusCode);
+    }
+  }
+
+  /// `POST /auth/device-credentials` con la sesión iniciada: da de alta este dispositivo para entrar con biometría.
+  Future<DeviceEnrollment> enrollDevice({String? deviceName}) async {
+    final r = await _api.post(
+      '/auth/device-credentials',
+      body: {'deviceName': ?deviceName},
+      credentialMode: CredentialMode.jwt,
+    );
+    final j = r.requireData();
+    final id = j['credentialId'];
+    final token = j['deviceToken'];
+    if (id is! String || id.isEmpty || token is! String || token.isEmpty) throw const MalformedResponseException();
+    return DeviceEnrollment(credentialId: id, deviceToken: token);
+  }
+
+  /// `POST /auth/device-login`: devuelve el JWT, con las mismas reglas que [login]: el mismo 401 para un token
+  /// inexistente, revocado o de una cuenta inactiva; [EmailNotVerifiedException]; [AcceptanceRequiredException], y
+  /// entonces se repite con las versiones aceptadas.
+  Future<String> deviceLogin(
+    String deviceToken, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
+    final r = await _api.post(
+      '/auth/device-login',
+      body: {
+        'deviceToken': deviceToken,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
+      credentialMode: CredentialMode.none,
+    );
+    return _token(r);
+  }
+
+  /// `POST /auth/google` (ADR-050 D9): el JWT, con las mismas reglas que [login]: el mismo 401 si el `idToken` no vale
+  /// o la cuenta de Google no está vinculada; [EmailNotVerifiedException]; [AcceptanceRequiredException] (se repite
+  /// con el mismo `idToken` y las versiones); [GoogleSignInUnavailableException] si Google no responde (503).
+  Future<String> googleLogin(String idToken, {String? acceptedTermsVersion, String? acceptedDataPolicyVersion}) async {
+    final r = await _api.post(
+      '/auth/google',
+      body: {
+        'idToken': idToken,
+        'acceptedTermsVersion': ?acceptedTermsVersion,
+        'acceptedDataPolicyVersion': ?acceptedDataPolicyVersion,
+      },
+      credentialMode: CredentialMode.none,
+    );
+    if (r.statusCode == 503) throw const GoogleSignInUnavailableException();
+    return _token(r);
+  }
+
+  /// `POST /auth/email-verification` (ADR-050 Enmienda 2): reenvía el correo de confirmación. Siempre el mismo 202,
+  /// exista o no la cuenta; una segunda petición antes de 5 minutos no envía nada.
+  Future<void> requestEmailVerification(String email) async {
+    final r = await _api.post('/auth/email-verification', body: {'email': email}, credentialMode: CredentialMode.none);
+    if (!r.isSuccess) throw r.error ?? BadRequestException(r.statusCode);
   }
 
   Future<MeDto> me() async {

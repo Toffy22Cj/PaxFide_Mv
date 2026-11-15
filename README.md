@@ -14,6 +14,8 @@ La app no trae hosts por defecto. Se configura al compilar con un fichero JSON (
 |---|---|
 | `PAXFIDE_API_BASE_URL` | Base de la API, terminada en `/api/v1` |
 | `PAXFIDE_PUBLIC_BASE_URL` | Origen de los enlaces y QR, el mismo que usa la web. Sin él, el escáner no aprueba ningún enlace y no se generan QR |
+| `PAXFIDE_MAP_TILE_URL` | Teselas del mapa del recorrido (M-25, ADR del mapa), con `{z}`, `{x}` y `{y}`. En desarrollo, `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Sin ella no hay mapa. **Producción necesita un proveedor de teselas**: las públicas de OpenStreetMap no admiten ese tráfico |
+| `PAXFIDE_GOOGLE_SERVER_CLIENT_ID` | «Entrar con Google» (ADR-050 D9, Enmienda 5 de ADR-043): el ID de cliente **web** de Google Cloud (`…apps.googleusercontent.com`), el mismo que va en `GOOGLE_OAUTH_CLIENT_IDS` del backend. Por defecto, el de PaxFide (`AppConfig.defaultGoogleServerClientId`) |
 
 ```bash
 cp config/dev.example.json config/dev.json       # escritorio y backend local
@@ -46,17 +48,19 @@ Si el llavero no está desbloqueado, la sesión no se puede guardar y el login f
 2. `flutter devices` debe listar el teléfono.
 3. Elegir cómo llega el teléfono al backend:
 
-### Opción recomendada: túnel `https` (Cloudflare quick tunnel)
+### Opción recomendada: el servidor del equipo con Tailscale Funnel
 
-El teléfono no necesita estar en la misma red y no hace falta HTTP sin cifrar.
+`scripts/servidor/paxfide.sh arrancar` (repositorio del backend) publica la web y la API con URLs **fijas**, que no
+cambian al reiniciar: la web en `https://<pc>.<red>.ts.net` y la API en `https://<pc>.<red>.ts.net:8443`. El mismo
+comando escribe la URL de la API en la web y la recompila si cambió. El teléfono no necesita estar en la misma red.
 
-```bash
-# en la máquina del backend (sin cuenta de Cloudflare; la URL cambia en cada arranque)
-cloudflared tunnel --url http://localhost:8080
-# → https://<algo>.trycloudflare.com
-```
+En `config/movil.json` (como en `config/movil.example.json`):
 
-Poner esa URL en `config/movil.json` como `PAXFIDE_API_BASE_URL` (`https://<algo>.trycloudflare.com/api/v1`). Si también se quieren QR que abra la web, otro túnel para la web (`--url http://localhost:3000`) en `PAXFIDE_PUBLIC_BASE_URL`.
+- `PAXFIDE_API_BASE_URL`: `https://<pc>.<red>.ts.net:8443/api/v1`
+- `PAXFIDE_PUBLIC_BASE_URL`: `https://<pc>.<red>.ts.net` (los QR abren la web)
+
+Como las URLs no cambian, el APK se compila una vez. Sin el servidor del equipo sigue sirviendo un Cloudflare quick
+tunnel (`cloudflared tunnel --url http://localhost:8080`), pero su URL cambia en cada arranque y hay que recompilar.
 
 ```bash
 flutter run --flavor normal --dart-define-from-file=config/movil.json      # depuración
@@ -65,7 +69,7 @@ flutter build apk --flavor normal --dart-define-from-file=config/movil.json # AP
 
 ### Alternativa: HTTP sin cifrar en la red local (solo build de demo)
 
-Solo el **sabor `demo`** (id `com.example.paxfide_mobile.demo`, nombre "PaxFide demo") permite HTTP sin cifrar, y **solo para el host** de `PAXFIDE_API_BASE_URL` cuando empieza por `http://`. El sabor `normal` nunca lo permite, ni siquiera en debug (DDM-41).
+Solo el **sabor `demo`** (id `com.paxfide.mobile.demo`, nombre "PaxFide demo") permite HTTP sin cifrar, y **solo para el host** de `PAXFIDE_API_BASE_URL` cuando empieza por `http://`. El sabor `normal` nunca lo permite, ni siquiera en debug (DDM-41).
 
 ```bash
 # config/demo-lan.json: {"PAXFIDE_API_BASE_URL": "http://192.168.1.20:8080/api/v1", "PAXFIDE_PUBLIC_BASE_URL": "..."}

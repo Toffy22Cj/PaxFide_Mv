@@ -17,6 +17,9 @@ class AppRoutes {
   static const String campaignPublic = '/c/:publicCode';
   static const String tracking = '/tracking';
 
+  /// Bienvenida sin sesión (M-01/M-02, Enmienda 3 de ADR-043): pública y destino por defecto de LOGGED_OUT.
+  static const String welcome = '/welcome';
+
   // Transitorias de autenticación (nunca restaurables)
   static const String login = '/login';
   static const String register = '/register';
@@ -29,16 +32,38 @@ class AppRoutes {
   static const String asset = '/assets/:assetRef';
   static const String prediction = '/prediction';
 
+  // Enmienda 2 de ADR-043 (aprobada 2026-10-21). Mi día sigue en `/operator`.
+  static const String account = '/account';
+  static const String myCampaigns = '/employee/campaigns';
+  static const String assetQr = '/assets/:assetRef/qr';
+
+  /// Pestaña Escanear del empleado (M-03): el escáner como pantalla de la barra, no como hoja aparte.
+  static const String scan = '/scan';
+
   // Fuera de v1 (diferida por secuenciación contractual, §9)
   static const String campaignsDiferido = '/campaigns';
 
   /// Longitud máxima defensiva de un parámetro (§10: no se inventa formato).
   static const int maxParamLength = 256;
 
-  static const _fixedAuthenticated = {home, donations, operator, operatorPending, prediction};
+  static const _fixedAuthenticated = {
+    home,
+    donations,
+    operator,
+    operatorPending,
+    prediction,
+    account,
+    myCampaigns,
+    scan,
+  };
 
   static String campaignPath(String publicCode) => '/c/$publicCode';
   static String assetPath(String assetRef) => '/assets/$assetRef';
+  static String assetQrPath(String assetRef) => '/assets/$assetRef/qr';
+
+  /// `/assets/X/qr`: el QR del activo a pantalla completa (E-11).
+  static bool isAssetQr(String path) =>
+      path.startsWith('/assets/') && path.endsWith('/qr') && path.split('/').length == 4;
 
   /// Validación estructural de un parámetro: no vacío, sin espacios, sin '/', longitud máxima.
   static bool isValidParam(String value) =>
@@ -50,7 +75,11 @@ class AppRoutes {
 
   /// Parámetros que una ruta concreta admite (y solo esos). `null` si la ruta no es del árbol.
   static Map<String, String>? paramsOf(String path) {
-    if (path == tracking || path == login || path == register || _fixedAuthenticated.contains(path)) {
+    if (path == tracking ||
+        path == welcome ||
+        path == login ||
+        path == register ||
+        _fixedAuthenticated.contains(path)) {
       return const {};
     }
     final segments = path.split('/');
@@ -61,6 +90,12 @@ class AppRoutes {
       if (segments[1] == 'c') return {'publicCode': value};
       if (segments[1] == 'assets') return {'assetRef': value};
     }
+    // '/assets/X/qr' → ['', 'assets', 'X', 'qr']
+    if (segments.length == 4 && segments[0].isEmpty && segments[1] == 'assets' && segments[3] == 'qr') {
+      final value = Uri.decodeComponent(segments[2]);
+      if (!isValidParam(value)) return null;
+      return {'assetRef': value};
+    }
     return null;
   }
 
@@ -68,7 +103,7 @@ class AppRoutes {
   static RouteCategory categorize(String path) {
     final params = _safeParams(path);
     if (params == null) return RouteCategory.notApproved;
-    if (path == tracking || path.startsWith('/c/')) return RouteCategory.public;
+    if (path == tracking || path == welcome || path.startsWith('/c/')) return RouteCategory.public;
     if (path == login || path == register) return RouteCategory.authTransitory;
     return RouteCategory.authenticated;
   }

@@ -7,15 +7,19 @@ import '../../../app/app_services.dart';
 import '../../../app/app_shell.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
+import '../../../shared/widgets/error_message.dart';
+import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
 
 /// Etiqueta obligatoria (encargo §4.7). Siempre visible encima de cualquier cifra de la predicción.
-const predictionLabel = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
+/// El único texto de la predicción (decisión de Adonis, 2026-11-11): si es probable o no alcanzar la meta.
+String likelihoodText(double probability) =>
+    probability >= 0.5 ? 'Es probable alcanzar la meta' : 'No es probable alcanzar la meta';
 
-String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1)} %';
+String percent(double fraction) => '${(fraction * 100).toStringAsFixed(1).replaceAll('.', ',')} %';
 
 /// `/prediction`: excepción de alcance (ADR-043 §0 A3), solo representada para `ADMINISTRATOR`/`REPRESENTATIVE`
 /// según `/me`. Muestra únicamente lo que devuelve el backend; sin bandas ni cifras propias.
@@ -39,11 +43,12 @@ class _PredictionScreenState extends State<PredictionScreen> {
   String? _selected;
   bool _listRequested = false;
 
-  /// ADMINISTRATOR: listado de la organización. Si no lo hay (otro rol, 403 o vacío): `GET /me/campaigns` (DDM-38).
+  /// ADMINISTRATOR o REPRESENTATIVE: listado de la organización. Si no lo hay (403 de un backend anterior o vacío):
+  /// `GET /me/campaigns` (DDM-38). Nunca se pide escribir una referencia interna.
   Future<void> _loadChoices(Principal p) async {
     _listRequested = true;
     var list = <CampaignChoice>[];
-    if (p.roles.contains(Principal.administrator)) {
+    if (p.roles.contains(Principal.administrator) || p.roles.contains(Principal.representative)) {
       try {
         list = await _api.organizationCampaigns(p.organizationId!);
       } on AppException {
@@ -112,53 +117,53 @@ class _PredictionScreenState extends State<PredictionScreen> {
             children: [
               if (choices == null) const LinearProgressIndicator(),
               if (choices != null && choices.isNotEmpty) ...[
-                Text('Elige una convocatoria', style: Theme.of(context).textTheme.titleMedium),
-                for (final c in choices)
-                  ListTile(
-                    key: Key('prediction.choice.${c.campaignRef}'),
-                    leading: Icon(_selected == c.campaignRef ? Icons.radio_button_checked : Icons.radio_button_off),
-                    title: Text(c.title),
-                    subtitle: Text(c.status == 'OPEN' ? 'Abierta' : (c.status == 'CLOSED' ? 'Cerrada' : c.status)),
-                    enabled: !_loading,
-                    onTap: () => _query(p.organizationId!, c.campaignRef),
-                  ),
-              ],
-              if (choices != null && choices.isEmpty) ...[
-                const Text('No hay un listado de convocatorias disponible para tu cuenta.'),
+                Text('Elige una convocatoria', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
-                TextField(
-                  key: const Key('prediction.campaignRef'),
-                  controller: _campaignRef,
-                  enabled: !_loading,
-                  decoration: const InputDecoration(
-                    labelText: 'Referencia de la convocatoria (campaignRef)',
-                    helperText: 'La muestra el panel de la organización en la web.',
-                    border: OutlineInputBorder(),
+                for (final c in choices)
+                  Card(
+                    key: Key('prediction.choice.${c.campaignRef}'),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _loading ? null : () => _query(p.organizationId!, c.campaignRef),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _selected == c.campaignRef ? Icons.radio_button_checked : Icons.radio_button_off,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(c.title, style: Theme.of(context).textTheme.titleSmall)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            StatusChip(
+                              c.status == 'OPEN' ? 'Abierta' : (c.status == 'CLOSED' ? 'Cerrada' : c.status),
+                              icon: Icons.inventory_2_outlined,
+                              tone: Tone.info,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  onSubmitted: (_) => _query(p.organizationId!),
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  key: const Key('prediction.submit'),
-                  onPressed: _loading ? null : () => _query(p.organizationId!),
-                  child: const Text('Consultar'),
-                ),
               ],
+              if (choices != null && choices.isEmpty)
+                const MessageView(
+                  key: Key('prediction.noCampaigns'),
+                  icon: Icons.campaign_outlined,
+                  title: 'Tu organización todavía no tiene convocatorias.',
+                  detail: 'Cuando se cree una desde la web, aparecerá aquí para consultar su predicción.',
+                ),
               const SizedBox(height: 16),
-              if (_loading) const LinearProgressIndicator(),
+              if (_loading) const LoadingView(label: 'Cargando predicción…'),
               if (_error != null) _errorView(_error!),
-              if (_prediction != null) ...[
-                _PredictionCard(prediction: _prediction!),
-                // Gráfico de las estimaciones históricas: el backend aún no las expone (S-08). Nunca se inventan cortes.
-                const Card(
-                  key: Key('prediction.history'),
-                  child: ListTile(
-                    leading: Icon(Icons.show_chart),
-                    title: Text('Evolución de las estimaciones'),
-                    subtitle: Text('No disponible'),
-                  ),
-                ),
-              ],
+              if (_prediction != null) ...[_PredictionCard(prediction: _prediction!)],
             ],
           );
         },
@@ -172,11 +177,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
       BadRequestException() => 'Escribe una referencia válida.',
       _ => describeError(e),
     };
-    return Text(
-      text,
-      key: const Key('prediction.error'),
-      style: TextStyle(color: Theme.of(context).colorScheme.error),
-    );
+    return ErrorMessage(text, textKey: const Key('prediction.error'));
   }
 }
 
@@ -188,53 +189,58 @@ class _PredictionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = prediction;
     final theme = Theme.of(context);
+    final ink = theme.colorScheme.onSecondaryContainer;
     return Card(
       key: const Key('prediction.card'),
-      color: theme.colorScheme.tertiaryContainer,
+      color: theme.colorScheme.secondaryContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.secondary),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              predictionLabel,
-              key: const Key('prediction.label'),
-              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text('No es un hecho registrado. Modelo ${p.modelVersion} · calculado el ${p.asOf}'),
-            const Divider(),
             // Sin estimación (incluido OUTSIDE_TRAINED_RANGE): solo el motivo, nunca una cifra.
-            if (!p.available || p.unavailableReason != null)
+            if (!p.available || p.unavailableReason != null || p.probabilityReachTarget == null)
               Text(
                 p.unavailableText ?? 'Sin estimación para esta convocatoria.',
                 key: const Key('prediction.unavailable'),
+                style: theme.textTheme.bodyLarge?.copyWith(color: ink),
               )
             else ...[
-              if (p.probabilityReachTarget != null) ...[
-                Center(
+              // Decorativo: la probabilidad se lee en el texto de debajo (M-04).
+              ExcludeSemantics(
+                child: Center(
                   child: SizedBox(
                     width: 180,
                     height: 100,
                     child: CustomPaint(
                       painter: _ArcPainter(
                         fraction: p.probabilityReachTarget!.clamp(0, 1),
-                        color: theme.colorScheme.tertiary,
+                        color: theme.colorScheme.primary,
                         track: theme.colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ),
                 ),
-                Center(child: Text('Probabilidad estimada de alcanzar la meta: ${percent(p.probabilityReachTarget!)}')),
-              ],
-              if (p.estimatedFinalPctOfTarget != null)
-                Text('Porcentaje final estimado de la meta: ${percent(p.estimatedFinalPctOfTarget!)}'),
-              if (p.pctTimeElapsed != null)
-                Text('Tiempo transcurrido de la convocatoria: ${percent(p.pctTimeElapsed!)}'),
+              ),
+              Center(
+                child: Text(
+                  percent(p.probabilityReachTarget!),
+                  key: const Key('prediction.percent'),
+                  style: theme.textTheme.displaySmall?.copyWith(color: ink, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Center(
+                child: Text(
+                  likelihoodText(p.probabilityReachTarget!),
+                  key: const Key('prediction.likelihood'),
+                  style: theme.textTheme.titleMedium?.copyWith(color: ink, fontWeight: FontWeight.w600),
+                ),
+              ),
             ],
-            const SizedBox(height: 8),
-            for (final w in {p.warning, ...p.warnings}.where((w) => w.isNotEmpty))
-              Text('⚠ $w', style: theme.textTheme.bodySmall),
           ],
         ),
       ),

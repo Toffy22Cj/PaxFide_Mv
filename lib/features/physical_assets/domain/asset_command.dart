@@ -1,3 +1,4 @@
+import '../data/delivery_evidence_api.dart';
 import '../data/physical_asset_api.dart';
 import 'asset_action.dart';
 
@@ -9,7 +10,10 @@ class CommandField {
 }
 
 /// Comando de PhysicalAsset (`dispatch`/`receive`/`deliver`) listo para el Outbox: ruta y cuerpo exactos del
-/// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor).
+/// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor). Recibir y entregar
+/// llevan además el `municipalityCode` elegido del catálogo DIVIPOLA.
+///
+/// Entregar lleva además el `evidenceRef` que devolvió la subida de la foto (ADR-051 F3): no se escribe a mano.
 class AssetCommand {
   AssetCommand._(this.action, this.assetRef, this.values);
 
@@ -25,12 +29,28 @@ class AssetCommand {
       CommandField('finalCustodianRef', 'Custodio final'),
       CommandField('beneficiaryRef', 'Beneficiario (referencia)'),
       CommandField('locationRef', 'Lugar de entrega'),
-      CommandField('evidenceRef', 'Referencia de la evidencia'),
     ],
   };
 
-  /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido).
-  static AssetCommand? build(AssetAction action, String assetRef, Map<String, String> input, {List<String>? errors}) {
+  /// Recibir y entregar llevan el municipio DIVIPOLA de 5 dígitos (enmienda 2 de ADR-029; el backend da 400 sin él).
+  /// Despachar no: el backend sella la zona del paso anterior.
+  static bool needsMunicipality(AssetAction action) => action == AssetAction.receive || action == AssetAction.deliver;
+
+  static final _municipalityCode = RegExp(r'^[0-9]{5}$');
+
+  /// Valida y construye. Devuelve los nombres de los campos inválidos en [errors] (vacío si es válido). Para entregar
+  /// hace falta [evidenceRef] con la forma `sha256:<64 hex>`; si no, el error es `evidenceRef`. Para recibir y
+  /// entregar, [municipalityCode]; si no, el error es `municipalityCode`. Con [evidencePending] (entregar sin conexión,
+  /// Enmienda 4 de ADR-043, S4) la entrega se construye sin `evidenceRef`: lo añade la cola al subir la foto.
+  static AssetCommand? build(
+    AssetAction action,
+    String assetRef,
+    Map<String, String> input, {
+    String? evidenceRef,
+    String? municipalityCode,
+    bool evidencePending = false,
+    List<String>? errors,
+  }) {
     final spec = fields[action];
     if (spec == null) return null; // readOnly no tiene comando
     final values = <String, String>{};
@@ -42,7 +62,24 @@ class AssetCommand {
         values[f.key] = v;
       }
     }
-    if (values.length != spec.length) return null;
+    var valid = values.length == spec.length;
+    if (action == AssetAction.deliver && !evidencePending) {
+      if (evidenceRef == null || !DeliveryEvidenceApi.evidenceRefPattern.hasMatch(evidenceRef)) {
+        errors?.add('evidenceRef');
+        valid = false;
+      } else {
+        values['evidenceRef'] = evidenceRef;
+      }
+    }
+    if (needsMunicipality(action)) {
+      if (municipalityCode == null || !_municipalityCode.hasMatch(municipalityCode)) {
+        errors?.add('municipalityCode');
+        valid = false;
+      } else {
+        values['municipalityCode'] = municipalityCode;
+      }
+    }
+    if (!valid) return null;
     return AssetCommand._(action, assetRef, values);
   }
 

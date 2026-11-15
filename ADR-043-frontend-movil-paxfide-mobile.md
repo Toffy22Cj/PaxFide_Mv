@@ -10,6 +10,10 @@
 
 **Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-046 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
 
+**Enmiendas aprobadas** (prevalecen sobre este texto en lo que cambian):
+- `ADR-043-enmienda-2-empleado-y-navegacion.md`: navegación del empleado, Cuenta y dependencias nuevas; §6 estado de las funciones; §7 implementación del 2026-10-28 (Cuenta, Mi impacto, entrega con foto, seguimiento verificable); §8 fidelidad con el front web del 2026-10-29 (Inicio con la ciudad, tarjeta de convocatoria, seguimiento, movimiento y cargas, primeros pasos); §9 respuesta a la auditoría de Carlos del 2026-10-29 (correcciones, biometría y lo que queda por decidir); §10 rendimiento: causas del lag y correcciones (2026-10-29).
+- `ADR-043-enmienda-3-bienvenida.md`: bienvenida sin sesión (`/welcome`), login y registro, términos y condiciones, recuperación de contraseña y catálogo con portada, logo y sello.
+
 **Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
 
 **Origen de la obligación:** ADR-046 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
@@ -170,6 +174,8 @@ Reglas:
 ### D10 — Alcance funcional v1
 
 > **Actualizada (2026-10-07, §0 A4):** donar, consulta de la intención, registro de cuenta, `/me` y los comandos `dispatch`/`receive`/`deliver` ya existen en el backend y dejan de estar fuera de v1 o bloqueados.
+>
+> **Actualizada (2026-10-28):** el alcance real implementado, función por función, está en la §6 de la Enmienda 2. Los puntos de abajo sobre botón "Donar", registro y `/donations` vacía quedan superados: la app dona (M-11, M-12, M-14), registra cuentas con aceptación de términos (Enmienda 3) y lista las donaciones de la cuenta (M-15, M-16).
 
 (§12, §13)
 
@@ -304,3 +310,79 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 **Resolución (2026-10-07):** Carlos aprueba el ADR con la §0. La condición 3 se resuelve sustituyendo D11 por la decisión de H2 (A1); la 4, autorizando las dependencias de A2; la 5, por la convención "rige la copia más reciente" (ver DDM-02).
 
 Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revisión técnica. Hasta entonces, `front-fase1.md` §17 conserva sus pendientes y este ADR no los da por resueltos.
+
+---
+
+## 8. Sistema de diseño: paleta oficial y modo claro/oscuro (2026-10-20, rama `develop-Vprueba`)
+
+Pedido por el dueño del producto. Se hace en `develop-Vprueba`, creada desde `develop` (`6e16d72`); `develop` no se toca.
+
+**Antes:** la auditoría encontró que ningún color venía de la paleta oficial. El tema salía de una semilla (`ColorScheme.fromSeed(seedColor: #1B6E5A)`) y Flutter calculaba el resto. La app seguía el modo del teléfono y no tenía selector.
+
+### 8.1 Paleta oficial
+
+`lib/shared/theme/pax_tokens.dart` es el **único** archivo con colores escritos. **La paleta oficial es la del modo claro**; el modo oscuro tiene sus propios colores oscuros (§8.1 bis). Los 14 tokens:
+
+| Token | Hex | Token | Hex |
+|---|---|---|---|
+| `brand-green-900` | `#1B5141` | `brand-blue-50` | `#EBF5F9` |
+| `brand-green-800` | `#20604C` | `brand-yellow-900` | `#785008` |
+| `brand-green-500` | `#4E9155` | `brand-yellow-400` | `#F3B544` |
+| `brand-green-50` | `#EEF6EF` | `brand-yellow-50` | `#FDF4E2` |
+| `brand-blue-800` | `#255E79` | `brand-neutral-700` | `#405656` |
+| `brand-blue-700` | `#327DA2` | `white` | `#FFFFFF` |
+| `brand-blue-500` | `#3688B0` | `danger-700` | `#B42318` |
+
+`lib/shared/theme/pax_theme.dart` arma el **modo claro solo con esos tokens**. Donde hace falta un tono más suave se usa un token con transparencia, nunca un color nuevo.
+
+> **Actualizada (2026-10-29):** la tabla y la decisión de abajo sustituyen a las del 2026-10-20. El modo oscuro de
+> «grises neutros» se cambió por la **misma paleta invertida**; es lo que hay en el código y lo que comprueba
+> `test/architecture/design_tokens_test.dart`.
+
+| Papel | Modo claro (paleta oficial) | Modo oscuro (`PaxDarkTokens`, paleta invertida) |
+|---|---|---|
+| Fondo de pantalla | `white` con un 4 % de `brand-neutral-700` | `#09110A` (inverso de `brand-green-50`) |
+| Tarjetas, campos, barra inferior | `white`, borde `brand-neutral-700` al 16 % | `#111A15`; más elevadas `#19241E` |
+| Texto | `brand-neutral-700` | `brand-green-50`; secundario `#A9BFBF` (inverso de `brand-neutral-700`) |
+| Botón principal | `brand-green-800` con texto `white` | `#9FDFCB` (inverso de `brand-green-800`) con texto `brand-green-900` |
+| Enlaces y secundario | `brand-blue-700` | `#5DA8CD` (inverso de `brand-blue-700`) |
+| Tarjeta destacada y pestaña elegida | `brand-green-500` al 22 % | `brand-green-900` |
+| Acento | `brand-yellow-400` | `brand-yellow-400` |
+| Error | `danger-700` | `#E7564B` (inverso de `danger-700`); avisos con fondo `danger-700` y texto `white` |
+
+**Decisión vigente: el modo oscuro es la paleta oficial en contraste oscuro.** Cada color oscuro es un token oficial con su luminosidad invertida (HSL: mismo tono y saturación, `L → 1 − L`): el verde-800 de los botones pasa a un verde claro y el verde-50 de los fondos a casi negro. Los fondos de tarjetas y chips son los tonos oscuros de la paleta tal cual (verde-900, azul-800, amarillo-900, danger-700). La prueba de tokens comprueba cada inverso y que el texto principal cumpla contraste AA. La única excepción de colores es la ilustración de la ciudad de Inicio (Enmienda 2, §8).
+
+**Errores:** los avisos de error de las pantallas pasan a `ErrorMessage` (`lib/shared/widgets/error_message.dart`). En claro llevan fondo `danger-700` y texto `white`; en oscuro, fondo rojo oscuro y texto rojo claro. Cubre login, registro, donar (dos avisos), seguimiento y predicción.
+
+### 8.2 Modo claro, oscuro o "como el teléfono"
+
+- `ThemeController` (`lib/shared/theme/theme_controller.dart`): empieza en "como el teléfono" (lo que ya hacía `develop` sin selector; la opción la añadió Claude sin que se pidiera, pendiente de confirmar si se queda) y recuerda la elección en `flutter_secure_storage` (clave `paxfide.ui.theme`, sin dependencias nuevas). Se carga al arrancar (`startServices`).
+- `ThemeModeButton` (`lib/app/theme_mode_button.dart`): menú con Modo claro, Modo oscuro y Como el teléfono. Está en **todas** las pantallas:
+  - login y registro (`AuthLayout`, arriba a la derecha);
+  - las de la sesión (`AppShell`);
+  - las públicas (seguimiento y convocatoria);
+  - la pantalla de "todavía no disponible".
+- La pantalla de "falta configurar la API" (`main.dart`) también usa los dos temas.
+
+### 8.3 Verificación
+
+- `test/architecture/design_tokens_test.dart`:
+  - los 14 tokens con sus valores exactos;
+  - **ningún color escrito fuera de `pax_tokens.dart`** (falla si alguien escribe `Color(0x…)` o `Colors.*`, salvo `transparent`);
+  - el esquema claro solo usa la paleta oficial;
+  - el oscuro solo usa `PaxDarkTokens` (y la marca como acento), y **es oscuro de verdad**: fondo y superficies con luminancia < 0,03 y grises (sin tono verde), nunca `brand-green-900`;
+  - contraste AA (≥ 4,5) del texto principal, los botones, los errores y la pestaña elegida.
+- `test/shared/theme_controller_test.dart`: recuerda la elección; un valor desconocido vuelve a "como el teléfono".
+- `test/flows/theme_flow_test.dart`:
+  - el login pasa a oscuro con `brand-green-900` y lo recuerda;
+  - el modo guardado se aplica al abrir;
+  - el registro tiene el selector;
+  - con la sesión iniciada, el selector cambia toda la app.
+- Suite completa: 223 en verde (eran 210). `flutter analyze` sin avisos; `flutter build linux` compila. Fuera de `pax_tokens.dart` no hay ningún color escrito; el modo claro usa el 100 % de la paleta oficial.
+- Revisión visual con capturas del login, el registro y el inicio en los dos modos. Corrigió el marco del menú en modo claro, la pestaña elegida que casi no se veía y una fila del menú que se salía en pantallas angostas.
+
+### 8.4 Pendiente
+
+- **Paleta oficial:** si diseño quiere aprobar los colores del modo oscuro (`PaxDarkTokens`), que los agregue a la paleta. También faltan en el modo claro `danger-50` (fondo de error suave) y un gris claro para bordes (hoy `brand-neutral-700` con transparencia).
+- **Confirmar si se queda la opción "Como el teléfono"** del selector.
+- La biometría, el gráfico solo para la organización y los scripts de prueba siguen en `claude/focused-goodall-meb6sh` y aún no están en esta rama.

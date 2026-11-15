@@ -1,13 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/errors/app_exceptions.dart';
+import '../data/profile_store.dart';
 import '../../../core/storage/token_store.dart';
 import '../data/auth_api.dart';
 import 'principal.dart';
 import 'session_state.dart';
 
-/// Estado del perfil (`/me`) dentro de una sesión `AUTHENTICATED`.
-enum ProfileStatus { none, loading, loaded, unavailable }
+/// Estado del perfil (`/me`) dentro de una sesión `AUTHENTICATED`. `offline`: sin red, con el perfil guardado de la
+/// sesión recordada (Enmienda 4 de ADR-043, S1).
+enum ProfileStatus { none, loading, loaded, offline, unavailable }
 
 /// Máquina de sesión (ADR-043 D3, front-fase1.md §3):
 /// `UNKNOWN → RESTORING → AUTHENTICATED | LOGGED_OUT`; `AUTHENTICATED → LOGGED_OUT` por logout o T-1;
@@ -17,14 +19,34 @@ enum ProfileStatus { none, loading, loaded, unavailable }
 /// sigue `AUTHENTICATED` con el perfil `unavailable` y una salida explícita: [reloadProfile] (DDM-08).
 /// Nunca toca el Outbox (H2: las entradas sobreviven al logout).
 class SessionController extends ChangeNotifier {
-  SessionController({required this.tokenStore, required this.authApi});
+  SessionController({required this.tokenStore, required this.authApi, this.profileStore = const NoProfileStore()});
 
   final TokenStore tokenStore;
   final AuthApi authApi;
 
+  /// Perfil de la sesión recordada, para entrar sin conexión (Enmienda 4, S1).
+  final ProfileStore profileStore;
+
   SessionState _state = const SessionState.unknown();
+
+  /// Si el token de esta sesión se guarda en el teléfono ("Recordarme en este teléfono"). Una sesión restaurada al
+  /// abrir la app estaba guardada.
+  bool _remember = true;
   Principal? _principal;
   ProfileStatus _profile = ProfileStatus.none;
+
+  /// La cuenta se acaba de crear en este teléfono: al entrar por primera vez se muestran la bienvenida y «¿Cómo te
+  /// llamamos?» (web: `justRegistered`). Solo en memoria.
+  bool _justRegistered = false;
+
+  void markJustRegistered() => _justRegistered = true;
+
+  /// Lee y olvida la marca: los primeros pasos se muestran una sola vez.
+  bool consumeJustRegistered() {
+    final v = _justRegistered;
+    _justRegistered = false;
+    return v;
+  }
 
   SessionState get state => _state;
   Principal? get principal => _principal;
@@ -50,10 +72,30 @@ class SessionController extends ChangeNotifier {
   }
 
   /// `LOGGED_OUT → AUTHENTICATED`. Errores: [UnauthorizedException] (credenciales), [TransportException],
-  /// [ApiHttpException]. Sin efectos duplicables: reintentar es seguro (§13).
-  Future<void> login(String email, String password) async {
-    final token = await authApi.login(email, password);
+  /// [ApiHttpException], o [AcceptanceRequiredException] si la cuenta tiene aceptaciones legales pendientes.
+  /// Sin efectos duplicables: reintentar es seguro (§13).
+  Future<void> login(
+    String email,
+    String password, {
+    String? acceptedTermsVersion,
+    String? acceptedDataPolicyVersion,
+  }) async {
+    final token = await authApi.login(
+      email,
+      password,
+      acceptedTermsVersion: acceptedTermsVersion,
+      acceptedDataPolicyVersion: acceptedDataPolicyVersion,
+    );
+    _remember = true;
     await tokenStore.writeToken(token);
+    await _loadProfileAfterToken();
+    if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();
+  }
+
+  /// Entrar con un JWT ya obtenido (biometría, M-28). Mismas reglas que [login].
+  Future<void> loginWithToken(String token, {bool remember = true}) async {
+    _remember = remember;
+    await tokenStore.writeToken(token, remember: remember);
     await _loadProfileAfterToken();
     if (_state.status != SessionStatus.authenticated) throw const UnauthorizedException();
   }
@@ -61,14 +103,35 @@ class SessionController extends ChangeNotifier {
   Future<void> _loadProfileAfterToken() async {
     try {
       final me = await authApi.me();
+      if (_remember) await _quietly(() => profileStore.write(me));
       _set(const SessionState.authenticated(), principal: Principal.fromMe(me), profile: ProfileStatus.loaded);
     } on UnauthorizedException {
       // T-1 ya limpió el token (AuthResponseHandler) y llamó a onUnauthorized.
       if (_state.status != SessionStatus.loggedOut) _set(const SessionState.loggedOut());
+    } on TransportException {
+      // Sin red: con el perfil guardado de la sesión recordada, se entra igual (Enmienda 4, S1).
+      final saved = _remember ? await profileStore.read() : null;
+      _set(
+        const SessionState.authenticated(),
+        principal: saved == null ? null : Principal.fromMe(saved),
+        profile: saved == null ? ProfileStatus.unavailable : ProfileStatus.offline,
+      );
     } on AppException {
       _set(const SessionState.authenticated(), profile: ProfileStatus.unavailable);
     }
   }
+
+  static Future<void> _quietly(Future<void> Function() body) async {
+    try {
+      await body();
+    } on Object {
+      // el almacén no es imprescindible para seguir con la sesión
+    }
+  }
+
+  /// Sustituye el token de la sesión actual sin tocar el perfil, como lo pide `POST /account/password` (las demás
+  /// sesiones quedan revocadas). Se guarda igual que el anterior: en el teléfono o solo en memoria.
+  Future<void> replaceToken(String token) => tokenStore.writeToken(token, remember: _remember);
 
   /// Salida de `ProfileStatus.unavailable`.
   Future<void> reloadProfile() async {
@@ -80,11 +143,13 @@ class SessionController extends ChangeNotifier {
   /// Logout manual. No decide nada sobre el Outbox (invariante 4 de §10; H2).
   Future<void> logout() async {
     await tokenStore.clearToken();
+    await _quietly(profileStore.clear);
     _set(const SessionState.loggedOut());
   }
 
   /// T-1: lo invoca [AuthResponseHandler] tras limpiar el token.
   void onUnauthorized() {
+    _quietly(profileStore.clear);
     if (_state.status == SessionStatus.loggedOut) return;
     _set(const SessionState.loggedOut());
   }

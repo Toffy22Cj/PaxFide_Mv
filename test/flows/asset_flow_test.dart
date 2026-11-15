@@ -12,12 +12,25 @@ ApiResponse asset(String status) => ApiResponse(
   data: {
     'assetRef': 'A-1',
     'lifecycleStatus': status,
+    'assetType': 'BLANKET',
     'currentCustodianRef': 'bodega-1',
     'currentLocation': 'bodega-1',
     'quantity': '10',
     'unitOfMeasure': 'kg',
   },
 );
+
+/// Elige un municipio en el formulario (busca por [query] y toca el de [code]).
+Future<void> pickMunicipality(WidgetTester tester, String query, String code) async {
+  await tester.ensureVisible(find.byKey(const Key('form.municipality')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('form.municipality')));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const Key('municipality.search')), query);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(Key('municipality.$code')));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   late AppHarness h;
@@ -34,6 +47,11 @@ void main() {
   }
 
   Future<void> tap(WidgetTester tester, Finder f) async {
+    // Las listas largas (el formulario de Entregar) no construyen lo que queda debajo del pliegue.
+    if (f.evaluate().isEmpty) {
+      final list = find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first;
+      await tester.scrollUntilVisible(f, 200, scrollable: list);
+    }
     await tester.ensureVisible(f);
     await tester.pumpAndSettle();
     await tester.tap(f);
@@ -41,17 +59,38 @@ void main() {
 
   Iterable<dynamic> posts() => h.api.calls.where((c) => c.method == 'POST');
 
-  Future<void> fillDispatch(WidgetTester tester) async {
+  /// Formulario (E-04) → Revisión (E-05) → Resultado (E-06) → "Listo". Devuelve el resultado mostrado.
+  Future<String> confirmAndClose(WidgetTester tester) async {
+    await tester.pumpAndSettle();
+    expect(find.text('Esto queda registrado para siempre.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('review.confirm')));
+    await tester.pumpAndSettle();
+    final shown = [
+      'acknowledged',
+      'notSent',
+      'ambiguous',
+      'failed',
+    ].firstWhere((o) => find.byKey(Key('result.$o')).evaluate().isNotEmpty);
+    await tap(tester, find.byKey(const Key('result.close')));
+    await tester.pumpAndSettle();
+    return shown;
+  }
+
+  Future<String> fillDispatch(WidgetTester tester) async {
     await tap(tester, find.byKey(const Key('asset.action')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
     await tester.tap(find.byKey(const Key('form.submit')));
+    return confirmAndClose(tester);
   }
 
   testWidgets('muestra el activo y, a un EMPLOYEE, la acción que deriva ActionResolver', (tester) async {
     await openAsset(tester);
     expect(find.text('Registrado'), findsOneWidget);
     expect(find.text('10 kg'), findsOneWidget);
+    // E-03: el tipo registrado (R-6, G-4b).
+    expect(tester.widget<Text>(find.byKey(const Key('asset.title'))).data, 'Cobijas');
+    expect(find.byKey(const Key('asset.type')), findsNothing, reason: 'el tipo ya está en el título: no se repite');
     expect(find.widgetWithText(FilledButton, 'Despachar'), findsOneWidget);
   });
 
@@ -69,7 +108,7 @@ void main() {
     h.services.router.push('/assets/A-1');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('asset.action')), findsNothing);
-    expect(find.text('Este activo no tiene más acciones.'), findsOneWidget);
+    expect(find.text('Este activo ya fue entregado. Solo se puede consultar.'), findsOneWidget);
   });
 
   testWidgets('403 (también inexistente u otra organización) → estado de pantalla, sin redirect', (tester) async {
@@ -89,8 +128,7 @@ void main() {
       status = 'DISPATCHED';
       return const ApiResponse(statusCode: 200, data: {'assetRef': 'A-1', 'status': 'DISPATCHED'});
     };
-    await fillDispatch(tester);
-    await tester.pumpAndSettle();
+    expect(await fillDispatch(tester), 'acknowledged');
     final post = posts().single;
     expect(post.path, '/physical-assets/A-1/dispatch');
     expect(post.body, {'carrierRef': 'transportista-1'});
@@ -105,8 +143,7 @@ void main() {
   testWidgets('timeout → "no pudimos confirmar"; Verificar estado primero; nunca reintenta solo', (tester) async {
     await openAsset(tester);
     h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const NetworkTimeoutException();
-    await fillDispatch(tester);
-    await tester.pumpAndSettle();
+    expect(await fillDispatch(tester), 'ambiguous');
     expect(find.textContaining('No pudimos confirmar la operación'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Verificar estado'), findsOneWidget);
     // Mientras está AMBIGUOUS no se ofrece la acción original.
@@ -134,32 +171,40 @@ void main() {
     expect(find.textContaining('No pudimos confirmar'), findsOneWidget);
   });
 
-  testWidgets('reintento manual de AMBIGUOUS → mismo Command-Id', (tester) async {
+  testWidgets('AMBIGUOUS: solo "Verificar estado", nunca "Reintentar"', (tester) async {
     await openAsset(tester);
-    var n = 0;
-    h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) =>
-        n++ == 0 ? const NetworkTimeoutException() : const ApiResponse(statusCode: 200, data: {});
+    h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const NetworkTimeoutException();
     await fillDispatch(tester);
+    expect(find.text('Reintentar'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Verificar estado'), findsOneWidget);
+    expect(posts().length, 1);
+  });
+
+  testWidgets('el formulario avisa bajo cada campo que no se escriban nombres ni documentos', (tester) async {
+    await openAsset(tester);
+    await tap(tester, find.byKey(const Key('asset.action')));
     await tester.pumpAndSettle();
-    await tap(tester, find.widgetWithText(TextButton, 'Reintentar'));
+    expect(find.textContaining('nunca un nombre ni un número de documento'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-1');
+    await tester.tap(find.byKey(const Key('form.submit')));
     await tester.pumpAndSettle();
-    final ids = posts().map((c) => c.headers['Command-Id']).toList();
-    expect(ids.length, 2);
-    expect(ids[0], ids[1]);
+    await tester.tap(find.byKey(const Key('review.edit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('form.carrierRef')), findsOneWidget, reason: 'volver a editar');
+    expect(posts(), isEmpty, reason: 'nada se envía sin confirmar en la revisión');
   });
 
   testWidgets('409 → rechazada; "Nueva operación" usa un Command-Id nuevo', (tester) async {
     await openAsset(tester);
     h.api.routes['POST /physical-assets/A-1/dispatch'] = (_) => const ApiResponse(statusCode: 409);
-    await fillDispatch(tester);
-    await tester.pumpAndSettle();
+    expect(await fillDispatch(tester), 'failed');
     expect(find.textContaining('El servidor la rechazó'), findsOneWidget);
     expect(find.text('Reintentar'), findsNothing, reason: 'FAILED no se reintenta con el mismo Command-Id');
     await tap(tester, find.text('Nueva operación'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('form.carrierRef')), 'transportista-2');
     await tester.tap(find.byKey(const Key('form.submit')));
-    await tester.pumpAndSettle();
+    await confirmAndClose(tester);
     final ids = posts().map((c) => c.headers['Command-Id']).toList();
     expect(ids.length, 2);
     expect(ids[0], isNot(ids[1]));
@@ -198,13 +243,18 @@ void main() {
     expect(posts(), isEmpty);
   });
 
-  testWidgets('QR del activo: misma URL que la web (origen + /assets/{assetRef})', (tester) async {
+  testWidgets('E-11: QR del activo a pantalla completa, con la misma URL que la web y la referencia', (tester) async {
     await openAsset(tester);
     await tester.tap(find.byKey(const Key('asset.qr')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('qr.image')), findsOneWidget);
-    expect(find.text('$testOrigin/assets/A-1'), findsOneWidget);
-    expect(tester.widget(find.byKey(const Key('qr.image'))), isA<QrImageView>());
+    expect(h.location, '/assets/A-1/qr');
+    final qr = tester.widget<QrImageView>(find.byKey(const Key('assetqr.image')));
+    expect(qr, isNotNull);
+    expect(find.byKey(const Key('assetqr.ref')), findsOneWidget);
+    expect(find.text('A-1'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('assetqr.close')));
+    await tester.pumpAndSettle();
+    expect(h.location, '/assets/A-1');
   });
 
   testWidgets('sin acceso al activo (403) no se ofrece su QR', (tester) async {
@@ -234,8 +284,196 @@ void main() {
     h.services.router.push('/assets/A-1');
     await tester.pumpAndSettle();
     expect(find.text('Despachado'), findsOneWidget);
-    expect(find.text('Sin ubicación registrada'), findsOneWidget);
-    expect(find.text('1 UNITS'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
+    expect(find.text('Sin municipio registrado'), findsOneWidget);
+    expect(find.text('1 unidad'), findsOneWidget, reason: '"1.0000" sin ceros sobrantes');
     expect(find.widgetWithText(FilledButton, 'Recibir'), findsOneWidget);
+  });
+
+  group('Municipio DIVIPOLA obligatorio al recibir y entregar (enmienda 2 de ADR-029)', () {
+    Future<void> openDispatched(WidgetTester tester) async {
+      await openAsset(tester);
+      status = 'DISPATCHED';
+      h.services.router.go('/operator');
+      await tester.pumpAndSettle();
+      h.services.router.push('/assets/A-1');
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(const Key('asset.action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('form.facilityLocation')), 'bodega-norte');
+      await tester.enterText(find.byKey(const Key('form.receiverRef')), 'coordinador-1');
+    }
+
+    testWidgets('sin municipio no pasa a la revisión', (tester) async {
+      await openDispatched(tester);
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('form.municipality.error'), skipOffstage: false), findsOneWidget);
+      expect(find.byKey(const Key('review.confirm')), findsNothing);
+    });
+
+    testWidgets('se busca por nombre, se ve en la revisión y viaja en el cuerpo', (tester) async {
+      await openDispatched(tester);
+      h.api.routes['POST /physical-assets/A-1/receive'] = (_) {
+        status = 'RECEIVED';
+        return const ApiResponse(statusCode: 200, data: {'assetRef': 'A-1', 'status': 'RECEIVED'});
+      };
+      await pickMunicipality(tester, 'cartag', '13001');
+      expect(find.text('CARTAGENA DE INDIAS, BOLÍVAR'), findsOneWidget);
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('CARTAGENA DE INDIAS, BOLÍVAR'), findsOneWidget, reason: 'en la revisión');
+      expect(await confirmAndClose(tester), 'acknowledged');
+      final receive = posts().singleWhere((c) => c.path == '/physical-assets/A-1/receive');
+      expect(receive.body, {
+        'facilityLocation': 'bodega-norte',
+        'receiverRef': 'coordinador-1',
+        'municipalityCode': '13001',
+      });
+      expect(h.api.calls.where((c) => c.path == '/public/locations').single.credentialMode, CredentialMode.none);
+    });
+  });
+
+  group('Entregar con foto (ADR-051)', () {
+    final ref = 'sha256:${'c' * 64}';
+
+    Future<void> fillDeliver(WidgetTester tester, {bool photo = true}) async {
+      status = 'RECEIVED';
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(const Key('asset.action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('form.finalCustodianRef')), 'custodio-final');
+      await tester.enterText(find.byKey(const Key('form.beneficiaryRef')), 'beneficiario-1');
+      await tester.enterText(find.byKey(const Key('form.locationRef')), 'centro-1');
+      await pickMunicipality(tester, 'barran', '08001');
+      if (photo) {
+        await tap(tester, find.byKey(const Key('form.photo.take')));
+        await tester.pumpAndSettle();
+      }
+      await tap(tester, find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openReceived(WidgetTester tester) async {
+      await openAsset(tester);
+      status = 'RECEIVED';
+      h.services.router.go('/operator');
+      await tester.pumpAndSettle();
+      h.services.router.push('/assets/A-1');
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sin foto no pasa a la revisión ni sube nada', (tester) async {
+      await openReceived(tester);
+      expect(find.widgetWithText(FilledButton, 'Entregar'), findsOneWidget);
+      await fillDeliver(tester, photo: false);
+      expect(find.byKey(const Key('form.photo.error')), findsOneWidget);
+      expect(find.byKey(const Key('review.confirm')), findsNothing);
+      expect(posts(), isEmpty);
+    });
+
+    testWidgets('sube la foto primero y la entrega lleva su evidenceRef', (tester) async {
+      await openReceived(tester);
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) =>
+          ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) {
+        status = 'DELIVERED';
+        return const ApiResponse(statusCode: 200, data: {'assetRef': 'A-1', 'status': 'DELIVERED'});
+      };
+      await fillDeliver(tester);
+      expect(find.byKey(const Key('review.photo')), findsOneWidget);
+      expect(await confirmAndClose(tester), 'acknowledged');
+
+      final calls = posts().toList();
+      expect(calls.map((c) => c.path), ['/organizations/org-1/delivery-evidence', '/physical-assets/A-1/deliver']);
+      final upload = calls.first;
+      expect(upload.body, {'field': 'file', 'filename': 'entrega.jpg', 'contentType': 'image/jpeg', 'length': 4});
+      expect(upload.credentialMode, CredentialMode.jwt);
+      expect(upload.headers.containsKey('Command-Id'), isFalse, reason: 'la subida no lleva Command-Id');
+      final deliver = calls.last;
+      expect(deliver.body, {
+        'finalCustodianRef': 'custodio-final',
+        'beneficiaryRef': 'beneficiario-1',
+        'locationRef': 'centro-1',
+        'evidenceRef': ref,
+        'municipalityCode': '08001',
+      });
+      expect(deliver.headers['Command-Id'], isNotNull);
+    });
+
+    testWidgets('Enmienda 4, S4: sin conexión, la entrega se guarda con su foto cifrada y sale sola al volver la red', (
+      tester,
+    ) async {
+      await openReceived(tester);
+      var online = false;
+      var uploads = 0;
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) {
+        if (!online) return const ConnectionNotEstablishedException();
+        uploads++;
+        return ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      };
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) => const ApiResponse(statusCode: 200, data: {});
+      await fillDeliver(tester);
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('result.notSent')), findsOneWidget);
+      expect(find.textContaining('se enviará sola'), findsOneWidget);
+      expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
+      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
+      expect(saved.kind, 'DELIVER');
+      expect(saved.payload.containsKey('evidenceRef'), isFalse);
+      expect(h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')), hasLength(1));
+
+      online = true;
+      await h.services.autoSync.run();
+      await tester.pumpAndSettle();
+      expect(uploads, 1);
+      final deliver = posts().singleWhere((c) => c.path == '/physical-assets/A-1/deliver');
+      expect(deliver.body?['evidenceRef'], ref);
+      expect(deliver.body?['municipalityCode'], '08001');
+      expect(deliver.headers['Command-Id'], saved.commandId);
+      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+      expect(
+        h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')),
+        isEmpty,
+        reason: 'la foto se borra del teléfono al subirse',
+      );
+    });
+
+    testWidgets('foto demasiado grande (413): pide otra', (tester) async {
+      await openReceived(tester);
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) =>
+          const ApiResponse(statusCode: 413, data: {'title': 'ImageTooLarge', 'status': 413});
+      await fillDeliver(tester);
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.text('La foto es demasiado grande. Toma otra.'), findsOneWidget);
+      expect(posts().where((c) => c.path.endsWith('/deliver')), isEmpty);
+    });
+
+    testWidgets('foto subida pero la entrega sin red: queda en la cola con su huella y no vuelve a subir la foto', (
+      tester,
+    ) async {
+      await openReceived(tester);
+      var uploads = 0;
+      var online = false;
+      h.api.routes['POST /organizations/org-1/delivery-evidence'] = (_) {
+        uploads++;
+        return ApiResponse(statusCode: 201, data: {'evidenceRef': ref});
+      };
+      h.api.routes['POST /physical-assets/A-1/deliver'] = (_) =>
+          online ? const ApiResponse(statusCode: 200, data: {}) : const ConnectionNotEstablishedException();
+      await fillDeliver(tester);
+      await tester.tap(find.byKey(const Key('review.confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('result.notSent')), findsOneWidget);
+      final saved = (await h.services.syncEngine.entriesFor('acc-1')).single;
+      expect(saved.payload['evidenceRef'], ref);
+      expect(h.secure.values.keys.where((k) => k.startsWith('paxfide.outbox.file.')), isEmpty);
+      online = true;
+      await h.services.autoSync.run();
+      await tester.pumpAndSettle();
+      expect(uploads, 1, reason: 'la foto ya subida no se vuelve a subir');
+      expect(await h.services.syncEngine.entriesFor('acc-1'), isEmpty);
+    });
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/features/auth/domain/legal_versions.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/shared/widgets/state_views.dart';
 
@@ -9,11 +10,21 @@ import '../support/app_harness.dart';
 
 /// Flujos completos de front-fase1.md §14 (nivel 3) con backend falso.
 void main() {
-  testWidgets('arranque sin sesión → /login (sin ruta guardada)', (tester) async {
+  testWidgets('arranque sin sesión → /welcome (Enmienda 3); «Iniciar sesión» abre Entrar y «volver» regresa', (
+    tester,
+  ) async {
     final h = AppHarness();
-    await h.start(tester);
-    expect(h.location, AppRoutes.login);
+    await h.start(tester, stayOnWelcome: true);
+    expect(h.location, AppRoutes.welcome);
+    expect(h.services.router.stack, [AppRoutes.welcome]);
+    expect(find.byKey(const Key('welcome.login')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcome.login')));
+    await tester.pumpAndSettle();
+    expect(h.services.router.stack, [AppRoutes.welcome, AppRoutes.login]);
     expect(find.byKey(const Key('login.submit')), findsOneWidget);
+    await tester.tap(find.byTooltip('Volver'));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.welcome);
   });
 
   testWidgets('G-1: arranque en frío con ruta pública guardada → se muestra sin UI de espera', (tester) async {
@@ -29,6 +40,22 @@ void main() {
       },
     );
     expect(h.location, '/c/PUB1');
+    // Con la sesión resuelta, debajo queda la bienvenida: hay a dónde volver.
+    expect(h.services.router.stack, [AppRoutes.welcome, '/c/PUB1']);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.welcome);
+  });
+
+  testWidgets('ruta pública restaurada con sesión → debajo queda Inicio', (tester) async {
+    final h = AppHarness();
+    h.saveToken('jwt');
+    h.saveNavigation(AppRoutes.tracking);
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const [])));
+    expect(h.services.router.stack, [AppRoutes.home, AppRoutes.tracking]);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.home);
   });
 
   testWidgets('ruta autenticada durante RESTORING → UI de espera (no es una ruta)', (tester) async {
@@ -87,6 +114,8 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 401));
     await tester.enterText(find.byKey(const Key('login.email')), 'x@y');
     await tester.enterText(find.byKey(const Key('login.password')), 'mal');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Email o contraseña incorrectos.'), findsOneWidget);
@@ -120,7 +149,11 @@ void main() {
     await tester.pumpAndSettle();
     await h.services.session.logout();
     await tester.pumpAndSettle();
-    expect(h.services.router.stack, [AppRoutes.login]);
+    // Enmienda 3: queda Entrar, con la bienvenida debajo.
+    expect(h.services.router.stack, [AppRoutes.welcome, AppRoutes.login]);
+    h.services.router.back();
+    await tester.pumpAndSettle();
+    expect(h.location, AppRoutes.welcome);
     h.services.router.back();
     await tester.pumpAndSettle();
     expect(h.location, isNot('/assets/A-1'));
@@ -161,9 +194,9 @@ void main() {
   testWidgets('estado de navegación corrupto → se descarta → fallback', (tester) async {
     final h = AppHarness();
     h.secure.values['paxfide.navigation.restore'] = '{corrupto';
-    await h.start(tester);
-    expect(h.location, AppRoutes.login);
-    expect(h.secure.values.containsKey('paxfide.navigation.restore'), isFalse);
+    await h.start(tester, stayOnWelcome: true);
+    expect(h.location, AppRoutes.welcome);
+    expect(h.secure.values['paxfide.navigation.restore'], isNot('{corrupto'));
   });
 
   testWidgets('deep link no aprobado → no navega', (tester) async {
@@ -189,15 +222,27 @@ void main() {
   testWidgets('/register: crear cuenta no inicia sesión', (tester) async {
     final h = AppHarness();
     await h.start(tester);
-    await tester.tap(find.text('Crear una cuenta'));
+    await tester.ensureVisible(find.byKey(const Key('login.register')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('login.register')));
     await tester.pumpAndSettle();
     expect(h.location, AppRoutes.register);
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-9', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Cuenta creada'), findsOneWidget);
+    // ADR-050 Enmienda 2: la cuenta nace sin verificar; primero hay que confirmar el correo
+    expect(find.textContaining('Te enviamos un correo para confirmar'), findsOneWidget);
+    expect(find.textContaining('Ya puedes entrar'), findsNothing);
     expect(h.services.session.state.status, SessionStatus.loggedOut);
     expect(h.api.calls.last.path, '/auth/register');
     expect(h.api.calls.last.headers.containsKey('Command-Id'), isFalse);
@@ -211,9 +256,16 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 409));
     await tester.enterText(find.byKey(const Key('register.email')), 'ya@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Ya existe una cuenta con ese email.'), findsOneWidget);
+    expect(find.text('Ya existe una cuenta con ese correo electrónico.'), findsOneWidget);
   });
 
   testWidgets('inicio: Operaciones solo para EMPLOYEE; Predicción solo para ADMINISTRATOR/REPRESENTATIVE', (
@@ -244,10 +296,56 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
     await tester.enterText(find.byKey(const Key('register.password')), 'onceeeeeeee');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'onceeeeeeee');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     expect(find.text('La contraseña debe tener al menos 12 caracteres.'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('/register: hay que repetir la contraseña; si no coinciden → no se envía', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.email')), 'nuevo@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-charz');
+    await tester.pump();
+    // Aviso en el campo en cuanto se escribe distinta
+    expect(find.text('Las contraseñas no coinciden.'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Las dos contraseñas no coinciden.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+
+    // Sin repetirla tampoco se envía
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), '');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Repite la contraseña para confirmarla.'), findsOneWidget);
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('/register: los textos legales no muestran la versión interna (se sigue enviando)', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    expect(find.text('Acepto los términos y condiciones'), findsOneWidget);
+    expect(find.text('Autorizo el tratamiento de mis datos personales'), findsOneWidget);
+    expect(find.textContaining('versión'), findsNothing);
+    expect(find.textContaining(currentTermsVersion), findsNothing);
   });
 
   testWidgets('/register: 400 del backend (PasswordTooShort u email) → mensaje que nombra las dos reglas', (
@@ -260,9 +358,16 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 400));
     await tester.enterText(find.byKey(const Key('register.email')), 'raro');
     await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Revisa el email y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
+    expect(find.text('Revisa el correo electrónico y que la contraseña tenga al menos 12 caracteres.'), findsOneWidget);
   });
 
   testWidgets('login: el email se envía sin espacios en los extremos (el backend lo pasa a minúsculas, DD-74)', (
@@ -274,6 +379,8 @@ void main() {
     h.api.enqueue(meResponse());
     await tester.enterText(find.byKey(const Key('login.email')), '  Empleado@Demo.PaxFide.local \t');
     await tester.enterText(find.byKey(const Key('login.password')), ' contraseña con espacios ');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path == '/auth/login');
@@ -293,10 +400,117 @@ void main() {
     h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'a', 'status': 'ACTIVE'}));
     await tester.enterText(find.byKey(const Key('register.email')), ' nuevo@demo ');
     await tester.enterText(find.byKey(const Key('register.password')), ' doce-o-mas-chars ');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), ' doce-o-mas-chars ');
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
     final call = h.api.calls.firstWhere((c) => c.path == '/auth/register');
     expect(call.body?['email'], 'nuevo@demo');
     expect(call.body?['password'], ' doce-o-mas-chars ');
+    expect(call.body?['acceptedTermsVersion'], currentTermsVersion);
+    expect(call.body?['acceptedDataPolicyVersion'], currentDataPolicyVersion);
+  });
+
+  testWidgets('8. registro sin casillas: no hay llamada a /auth/register y se ve el mensaje', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.email')), 'test@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Para crear la cuenta debes aceptar los términos y autorizar el tratamiento de tus datos.'),
+      findsOneWidget,
+    );
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('9. registro con una sola casilla: tampoco hay llamada', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.email')), 'test@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+
+    // Solo términos
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Para crear la cuenta debes aceptar los términos y autorizar el tratamiento de tus datos.'),
+      findsOneWidget,
+    );
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+
+    // Desmarcar términos y marcar solo datos
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Para crear la cuenta debes aceptar los términos y autorizar el tratamiento de tus datos.'),
+      findsOneWidget,
+    );
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+  });
+
+  testWidgets('10. registro con las dos: el cuerpo lleva las dos versiones y se ve "Cuenta creada"', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    h.api.enqueue(const ApiResponse(statusCode: 201, data: {'accountId': 'acc-1', 'status': 'ACTIVE'}));
+    await tester.enterText(find.byKey(const Key('register.email')), 'valido@demo');
+    await tester.enterText(find.byKey(const Key('register.password')), 'contraseña-segura-123');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'contraseña-segura-123');
+    await tester.ensureVisible(find.byKey(const Key('register.acceptTerms')));
+    await tester.tap(find.byKey(const Key('register.acceptTerms')));
+    await tester.ensureVisible(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.tap(find.byKey(const Key('register.acceptDataPolicy')));
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cuenta creada'), findsOneWidget);
+    final call = h.api.calls.firstWhere((c) => c.path == '/auth/register');
+    expect(call.body, {
+      'email': 'valido@demo',
+      'password': 'contraseña-segura-123',
+      'acceptedTermsVersion': 'v1-2026-10',
+      'acceptedDataPolicyVersion': 'v1-2026-10',
+    });
+  });
+
+  testWidgets('registro: pantalla de teléfono (411 × 891) y texto al 200 % sin desbordes', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('register.submit')), findsOneWidget);
+    expect(find.byKey(const Key('register.acceptTerms')), findsOneWidget);
+    expect(find.byKey(const Key('register.acceptDataPolicy')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

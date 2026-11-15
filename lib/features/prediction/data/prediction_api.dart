@@ -55,8 +55,11 @@ class Prediction {
 
 /// Convocatoria elegible para la predicción (de `GET /organizations/{id}/campaigns` o `GET /me/campaigns`).
 class CampaignChoice {
-  const CampaignChoice({required this.campaignRef, required this.title, required this.status});
+  const CampaignChoice({required this.campaignRef, required this.title, required this.status, this.publicCode});
   final String campaignRef;
+
+  /// El código público de la convocatoria (`/c/:publicCode`); su ficha pública lleva el nombre de la organización.
+  final String? publicCode;
   final String title;
   final String status;
 
@@ -68,6 +71,7 @@ class CampaignChoice {
         if (i is Map && i['campaignRef'] is String && i['title'] is String)
           CampaignChoice(
             campaignRef: i['campaignRef'] as String,
+            publicCode: i['publicCode'] is String ? i['publicCode'] as String : null,
             title: i['title'] as String,
             status: '${i['status']}',
           ),
