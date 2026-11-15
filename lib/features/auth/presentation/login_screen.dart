@@ -359,8 +359,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = switch (e) {
           // El backend no dice si el idToken no valía o si la cuenta de Google no está vinculada (mismo 401).
           UnauthorizedException() =>
-            'Esa cuenta de Google no está vinculada a PaxFide. Entra con tu correo y tu contraseña y vincúlala en '
-                'Cuenta.',
+            'Esa cuenta de Google no está en PaxFide. Créala en «Regístrate gratis» con «Registrarse con Google», '
+                'o, si ya tienes cuenta, entra con tu correo y vincúlala en Cuenta.',
           // Solo puede faltar confirmar el correo si la cuenta de Google es otro correo.
           EmailNotVerifiedException() => _emailNotVerifiedText,
           AcceptanceRequiredException() => 'Las condiciones cambiaron mientras entrabas. Inténtalo de nuevo.',

@@ -6,6 +6,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../shared/error_messages.dart';
 import '../../../shared/theme/pax_tokens.dart';
 import '../domain/legal_versions.dart';
+import '../google/google_id_token_provider.dart';
 import 'auth_layout.dart';
 
 /// `/register`: `POST /auth/register` (`{email, password, acceptedTermsVersion, acceptedDataPolicyVersion}` → 201).
@@ -34,6 +35,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptDataPolicy = false;
   String? _error;
 
+  /// Registro con Google (ADR-050 Enmienda 3): la cuenta de Google elegida. Sustituye al correo escrito; el `idToken`
+  /// solo vive aquí, en memoria.
+  GoogleIdTokenObtained? _google;
+
+  Future<void> _chooseGoogle() async {
+    setState(() => _error = null);
+    final result = await AppScope.of(context).google.obtain();
+    if (!mounted) return;
+    switch (result) {
+      case GoogleIdTokenObtained():
+        setState(() => _google = result);
+      case GoogleIdTokenCanceled():
+        break;
+      case GoogleIdTokenFailed():
+        setState(() => _error = 'No se pudo usar Google en este teléfono. Crea la cuenta con tu correo.');
+    }
+  }
+
   @override
   void dispose() {
     _email.dispose();
@@ -45,8 +64,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     final email = _email.text.trim();
     final password = _password.text;
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Escribe un correo electrónico y una contraseña.');
+    final google = _google;
+    if ((google == null && email.isEmpty) || password.isEmpty) {
+      setState(
+        () => _error = google == null
+            ? 'Escribe un correo electrónico y una contraseña.'
+            : 'Escribe una contraseña para tu cuenta.',
+      );
       return;
     }
     if (password.length < minPasswordLength) {
@@ -72,6 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _sending = true;
       _error = null;
     });
+    if (google != null) return _submitWithGoogle(google, password);
     try {
       await AppScope.of(context).authApi.register(
         email,
@@ -99,6 +124,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  /// `POST /auth/google/register`: la cuenta nace verificada y vinculada, así que se entra directamente.
+  Future<void> _submitWithGoogle(GoogleIdTokenObtained google, String password) async {
+    final services = AppScope.of(context);
+    try {
+      final token = await services.authApi.googleRegister(
+        google.idToken,
+        password,
+        acceptedTermsVersion: currentTermsVersion,
+        acceptedDataPolicyVersion: currentDataPolicyVersion,
+      );
+      if (!mounted) return;
+      if (token != null) {
+        services.session.markJustRegistered(); // la bienvenida de primera vez, como el alta con correo
+        await services.session.loginWithToken(token);
+        return;
+      }
+      setState(() {
+        _sending = false;
+        _done = true;
+      });
+    } on AppException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        if (e is GoogleRegisterException && e.reason == 'GoogleIdTokenInvalid') _google = null;
+        _error = switch (e) {
+          GoogleRegisterException(reason: 'DuplicateEmail') =>
+            'Ya existe una cuenta con ese correo. Entra con tu contraseña y vincula Google en Cuenta.',
+          GoogleRegisterException(reason: 'GoogleAccountAlreadyLinked') =>
+            'Esa cuenta de Google ya tiene una cuenta de PaxFide. Usa «Entrar con Google».',
+          GoogleRegisterException(reason: 'GoogleIdTokenInvalid') => 'Google no confirmó la cuenta. Vuelve a elegirla.',
+          GoogleRegisterException(reason: 'PasswordTooShort') =>
+            'La contraseña debe tener al menos $minPasswordLength caracteres.',
+          GoogleRegisterException() => 'Revisa los datos y vuelve a intentarlo.',
+          GoogleSignInUnavailableException() =>
+            'Google no responde ahora. Inténtalo en un momento o crea la cuenta con tu correo.',
+          _ => describeError(e),
+        };
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
@@ -115,13 +182,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_done) {
       return AuthLayout(
         title: 'Cuenta creada',
-        subtitle: 'Te enviamos un correo para confirmar tu dirección. Ábrelo y después entra con tu correo y tu contraseña.',
+        subtitle: _google != null ? 'Tu cuenta ya está lista. Entra con Google o con tu correo y tu contraseña.' : 'Te enviamos un correo para confirmar tu dirección. Ábrelo y después entra con tu correo y tu contraseña.',
         back: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AuthNotice(
-              'Tu cuenta de donante está creada. Falta confirmar tu correo.',
+              _google != null
+                  ? 'Tu cuenta de donante está creada y vinculada a Google.'
+                  : 'Tu cuenta de donante está creada. Falta confirmar tu correo.',
               ink: ink,
               kind: AuthNoticeKind.success,
             ),
@@ -147,19 +216,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AuthField(
-            ink: ink,
-            label: 'Correo electrónico',
-            child: TextField(
-              key: const Key('register.email'),
-              controller: _email,
-              enabled: !_sending,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              style: TextStyle(color: ink.title, fontWeight: FontWeight.w500),
-              decoration: authInput(ink, icon: Icons.mail_outline, hint: 'tu@correo.com'),
+          if (services.google.isAvailable && _google == null) ...[
+            AuthOutlineButton(
+              key: const Key('register.google'),
+              ink: ink,
+              label: 'Registrarse con Google',
+              leading: Text(
+                'G',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: ink.title),
+              ),
+              onPressed: _sending ? null : _chooseGoogle,
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              'O crea la cuenta con tu correo electrónico',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: ink.body),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (_google case final g?)
+            AuthField(
+              ink: ink,
+              label: 'Correo electrónico',
+              child: Row(
+                key: const Key('register.googleEmail'),
+                children: [
+                  Icon(Icons.verified_user_outlined, size: 20, color: ink.title),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      g.email == null ? 'Te registras con tu cuenta de Google' : 'Te registras con ${g.email}',
+                      style: TextStyle(color: ink.title, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  TextButton(
+                    key: const Key('register.googleOther'),
+                    style: TextButton.styleFrom(foregroundColor: ink.link),
+                    onPressed: _sending ? null : () => setState(() => _google = null),
+                    child: const Text('Usar otro correo'),
+                  ),
+                ],
+              ),
+            )
+          else
+            AuthField(
+              ink: ink,
+              label: 'Correo electrónico',
+              child: TextField(
+                key: const Key('register.email'),
+                controller: _email,
+                enabled: !_sending,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                style: TextStyle(color: ink.title, fontWeight: FontWeight.w500),
+                decoration: authInput(ink, icon: Icons.mail_outline, hint: 'tu@correo.com'),
+              ),
+            ),
           const SizedBox(height: 14),
           AuthField(
             ink: ink,

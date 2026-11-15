@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paxfide_mobile/app/app_config.dart';
 import 'package:paxfide_mobile/app/app_routes.dart';
 import 'package:paxfide_mobile/core/network/api_response.dart';
+import 'package:paxfide_mobile/features/auth/domain/legal_versions.dart';
+import 'package:paxfide_mobile/core/network/credential_mode.dart';
 import 'package:paxfide_mobile/features/auth/domain/session_state.dart';
 import 'package:paxfide_mobile/features/auth/google/google_id_token_provider.dart';
 
@@ -64,7 +66,7 @@ void main() {
     await h.start(tester);
     h.api.routes['POST /auth/google'] = (_) => const ApiResponse(statusCode: 401);
     await tapGoogle(tester);
-    expect(find.textContaining('no está vinculada a PaxFide'), findsOneWidget);
+    expect(find.textContaining('no está en PaxFide'), findsOneWidget);
     expect(h.services.session.state.status, SessionStatus.loggedOut);
   });
 
@@ -174,4 +176,100 @@ void main() {
     expect(find.byKey(const Key('account.google.done')), findsOneWidget);
     expect(h.location, AppRoutes.account);
   });
+
+  // ---------------------------------------------------------------- crear la cuenta con Google (ADR-050 Enmienda 3)
+
+  Future<AppHarness> openRegister(WidgetTester tester, FakeGoogleIdTokenProvider google) async {
+    final h = AppHarness(google: google);
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    return h;
+  }
+
+  Future<void> fillPasswordAndAccept(WidgetTester tester) async {
+    await tester.enterText(find.byKey(const Key('register.password')), 'doce-o-mas-chars');
+    await tester.enterText(find.byKey(const Key('register.passwordRepeat')), 'doce-o-mas-chars');
+    for (final k in ['register.acceptTerms', 'register.acceptDataPolicy']) {
+      await tester.ensureVisible(find.byKey(Key(k)));
+      await tester.pump();
+      await tester.tap(find.byKey(Key(k)));
+    }
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('sin Google configurado, «Crear cuenta» no ofrece registrarse con Google', (tester) async {
+    final h = AppHarness();
+    await h.start(tester);
+    h.services.router.push(AppRoutes.register);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('register.google')), findsNothing);
+    expect(find.byKey(const Key('register.email')), findsOneWidget);
+  });
+
+  testWidgets('registrarse con Google: el correo lo pone Google, la contraseña la persona, y entra directamente', (
+    tester,
+  ) async {
+    final google = FakeGoogleIdTokenProvider()..next = const GoogleIdTokenObtained('id-nuevo', email: 'ana@gmail.com');
+    final h = await openRegister(tester, google);
+    await tester.tap(find.byKey(const Key('register.google')));
+    await tester.pumpAndSettle();
+    expect(find.text('Te registras con ana@gmail.com'), findsOneWidget);
+    expect(find.byKey(const Key('register.email')), findsNothing, reason: 'el correo no se escribe');
+
+    h.api.enqueue(
+      const ApiResponse(statusCode: 201, data: {'accountId': 'acc-9', 'status': 'ACTIVE', 'token': 'jwt-nuevo'}),
+    );
+    h.api.enqueue(meResponse(roles: const []));
+    await fillPasswordAndAccept(tester);
+
+    final call = h.api.calls.singleWhere((c) => c.path == '/auth/google/register');
+    expect(call.credentialMode, CredentialMode.none);
+    expect(call.body, {
+      'idToken': 'id-nuevo',
+      'password': 'doce-o-mas-chars',
+      'acceptedTermsVersion': currentTermsVersion,
+      'acceptedDataPolicyVersion': currentDataPolicyVersion,
+    });
+    expect(h.api.calls.where((c) => c.path == '/auth/register'), isEmpty);
+    expect(h.services.session.state.status, SessionStatus.authenticated);
+  });
+
+  testWidgets('registrarse con Google: el correo ya tiene cuenta (409) → entrar y vincular, sin crear nada', (
+    tester,
+  ) async {
+    final h = await openRegister(tester, FakeGoogleIdTokenProvider());
+    await tester.tap(find.byKey(const Key('register.google')));
+    await tester.pumpAndSettle();
+    h.api.routes['POST /auth/google/register'] = (_) => _problem(409, 'DuplicateEmail');
+    await fillPasswordAndAccept(tester);
+    expect(find.textContaining('Ya existe una cuenta con ese correo'), findsOneWidget);
+    expect(h.services.session.state.status, SessionStatus.loggedOut);
+  });
+
+  testWidgets('registrarse con Google: «Usar otro correo» vuelve al formulario con correo', (tester) async {
+    await openRegister(tester, FakeGoogleIdTokenProvider());
+    await tester.tap(find.byKey(const Key('register.google')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('register.googleOther')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('register.email')), findsOneWidget);
+    expect(find.byKey(const Key('register.google')), findsOneWidget);
+  });
+
+  testWidgets(
+    'registrarse con Google: idToken caducado (400 GoogleIdTokenInvalid) → hay que volver a elegir la cuenta',
+    (tester) async {
+      final h = await openRegister(tester, FakeGoogleIdTokenProvider());
+      await tester.tap(find.byKey(const Key('register.google')));
+      await tester.pumpAndSettle();
+      h.api.routes['POST /auth/google/register'] = (_) => _problem(400, 'GoogleIdTokenInvalid');
+      await fillPasswordAndAccept(tester);
+      expect(find.text('Google no confirmó la cuenta. Vuelve a elegirla.'), findsOneWidget);
+      expect(find.byKey(const Key('register.google')), findsOneWidget);
+    },
+  );
 }

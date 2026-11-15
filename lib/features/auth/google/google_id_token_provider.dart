@@ -9,8 +9,11 @@ sealed class GoogleIdTokenResult {
 }
 
 class GoogleIdTokenObtained extends GoogleIdTokenResult {
-  const GoogleIdTokenObtained(this.idToken);
+  const GoogleIdTokenObtained(this.idToken, {this.email});
   final String idToken;
+
+  /// El correo de la cuenta de Google, solo para mostrarlo («Te registras con …»). Quien lo prueba es el backend.
+  final String? email;
 }
 
 /// La persona cerró la ventana de Google: no se dice nada.
@@ -52,7 +55,9 @@ class GoogleSignInIdTokenProvider implements GoogleIdTokenProvider {
       final idToken = account.authentication.idToken;
       // No se mantiene la sesión de Google en la app: solo hacía falta el idToken.
       await GoogleSignIn.instance.signOut();
-      return idToken == null || idToken.isEmpty ? const GoogleIdTokenFailed() : GoogleIdTokenObtained(idToken);
+      return idToken == null || idToken.isEmpty
+          ? const GoogleIdTokenFailed()
+          : GoogleIdTokenObtained(idToken, email: account.email);
     } on GoogleSignInException catch (e) {
       _init = e.code == GoogleSignInExceptionCode.clientConfigurationError ? null : _init;
       return switch (e.code) {

@@ -97,6 +97,13 @@ class GoogleSignInUnavailableException extends ApiHttpException {
   const GoogleSignInUnavailableException() : super(503, 'Google no responde ahora');
 }
 
+/// `POST /auth/google/register` (ADR-050 Enmienda 3): un 400 o 409 con nombre. [reason] es el `title` del problema:
+/// `PasswordTooShort`, `GoogleIdTokenInvalid`, `GoogleAccountAlreadyLinked` o `DuplicateEmail`.
+class GoogleRegisterException extends ApiHttpException {
+  const GoogleRegisterException(int status, this.reason) : super(status, 'No se pudo crear la cuenta con Google');
+  final String reason;
+}
+
 /// 404.
 class NotFoundException extends ApiHttpException {
   const NotFoundException() : super(404, 'Recurso no encontrado');
