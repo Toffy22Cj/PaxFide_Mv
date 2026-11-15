@@ -74,6 +74,8 @@ flutter:
   # Logo oficial (M-35).
   assets:
     - assets/images/
+    # Emblema del logo oficial, sin texto ni fondo (scripts/marca/generar-iconos.py), con variantes 2.0x y 3.0x
+    - assets/marca/paxfide_emblema.png
     # Punto de cada zona pública DIVIPOLA para el mapa del recorrido (M-25): scripts/generar_zonas_mapa.py.
     - assets/map/zonas.json
   # assets:
