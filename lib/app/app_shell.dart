@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/domain/principal.dart';
 import '../features/auth/domain/session_controller.dart';
+import '../shared/widgets/brand_mark.dart';
 import 'app_routes.dart';
 import 'app_services.dart';
 
@@ -42,7 +43,14 @@ class AppShell extends StatelessWidget {
         final index = destinations.indexWhere((d) => d.route == top);
         void select(int i) => services.router.go(destinations[i].route);
         final appBar = AppBar(
-          title: Text(title),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BrandMark(size: 28),
+              const SizedBox(width: 10),
+              Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
           actions: [
             ...?actions,
             IconButton(tooltip: 'Salir', icon: const Icon(Icons.logout), onPressed: () => services.session.logout()),

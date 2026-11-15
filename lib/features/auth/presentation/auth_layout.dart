@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/brand_mark.dart';
+
 /// Pantalla partida en anchos grandes (panel de marca + formulario); una columna en el móvil.
+/// En el móvil, el emblema y el nombre van encima del formulario; en anchos grandes, en el panel de marca.
 class AuthLayout extends StatelessWidget {
   const AuthLayout({super.key, required this.title, required this.child});
 
@@ -10,7 +13,7 @@ class AuthLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final form = Center(
+    Widget form({required bool withBrand}) => Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
@@ -18,6 +21,17 @@ class AuthLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (withBrand) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const BrandMark(size: 56),
+                    const SizedBox(width: 12),
+                    Text('PaxFide', style: Theme.of(context).textTheme.headlineMedium),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 24),
               child,
@@ -30,7 +44,7 @@ class AuthLayout extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, c) {
-            if (c.maxWidth < 840) return form;
+            if (c.maxWidth < 840) return form(withBrand: true);
             return Row(
               children: [
                 Expanded(
@@ -42,7 +56,7 @@ class AuthLayout extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.volunteer_activism, size: 72, color: scheme.onPrimaryContainer),
+                            const BrandMark(size: 120),
                             const SizedBox(height: 16),
                             Text(
                               'PaxFide',
@@ -61,7 +75,7 @@ class AuthLayout extends StatelessWidget {
                     ),
                   ),
                 ),
-                Expanded(child: form),
+                Expanded(child: form(withBrand: false)),
               ],
             );
           },
