@@ -48,17 +48,19 @@ Si el llavero no está desbloqueado, la sesión no se puede guardar y el login f
 2. `flutter devices` debe listar el teléfono.
 3. Elegir cómo llega el teléfono al backend:
 
-### Opción recomendada: túnel `https` (Cloudflare quick tunnel)
+### Opción recomendada: el servidor del equipo con Tailscale Funnel
 
-El teléfono no necesita estar en la misma red y no hace falta HTTP sin cifrar.
+`scripts/servidor/paxfide.sh arrancar` (repositorio del backend) publica la web y la API con URLs **fijas**, que no
+cambian al reiniciar: la web en `https://<pc>.<red>.ts.net` y la API en `https://<pc>.<red>.ts.net:8443`. El mismo
+comando escribe la URL de la API en la web y la recompila si cambió. El teléfono no necesita estar en la misma red.
 
-```bash
-# en la máquina del backend (sin cuenta de Cloudflare; la URL cambia en cada arranque)
-cloudflared tunnel --url http://localhost:8080
-# → https://<algo>.trycloudflare.com
-```
+En `config/movil.json` (como en `config/movil.example.json`):
 
-Poner esa URL en `config/movil.json` como `PAXFIDE_API_BASE_URL` (`https://<algo>.trycloudflare.com/api/v1`). Si también se quieren QR que abra la web, otro túnel para la web (`--url http://localhost:3000`) en `PAXFIDE_PUBLIC_BASE_URL`.
+- `PAXFIDE_API_BASE_URL`: `https://<pc>.<red>.ts.net:8443/api/v1`
+- `PAXFIDE_PUBLIC_BASE_URL`: `https://<pc>.<red>.ts.net` (los QR abren la web)
+
+Como las URLs no cambian, el APK se compila una vez. Sin el servidor del equipo sigue sirviendo un Cloudflare quick
+tunnel (`cloudflared tunnel --url http://localhost:8080`), pero su URL cambia en cada arranque y hay que recompilar.
 
 ```bash
 flutter run --flavor normal --dart-define-from-file=config/movil.json      # depuración
