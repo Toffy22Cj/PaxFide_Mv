@@ -14,8 +14,11 @@ import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
 
-/// Etiqueta obligatoria (encargo §4.7). Siempre visible encima de cualquier cifra de la predicción.
-/// El único texto de la predicción (decisión de Adonis, 2026-11-11): si es probable o no alcanzar la meta.
+/// Advertencia obligatoria (ADR-044, Enmienda 1): siempre visible en la tarjeta, con cifra y sin ella. El mismo texto
+/// que la web. Decisión de Manuel del 2026-11-15, que revierte en esto la de Adonis del 2026-11-11.
+const predictionLabel = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
+
+/// La frase de la predicción (decisión de Adonis, 2026-11-11): si es probable o no alcanzar la meta.
 String likelihoodText(double probability) =>
     probability >= 0.5 ? 'Es probable alcanzar la meta' : 'No es probable alcanzar la meta';
 
@@ -38,31 +41,58 @@ class _PredictionScreenState extends State<PredictionScreen> {
   Object? _error;
   bool _loading = false;
 
-  /// `null` mientras se carga; vacío si no hay listado disponible (entonces se ofrece escribir la referencia).
+  /// `null` mientras se carga.
   List<CampaignChoice>? _choices;
   String? _selected;
   bool _listRequested = false;
 
-  /// ADMINISTRATOR o REPRESENTATIVE: listado de la organización. Si no lo hay (403 de un backend anterior o vacío):
-  /// `GET /me/campaigns` (DDM-38). Nunca se pide escribir una referencia interna.
+  /// El listado de la organización respondió 403 (hoy, el `REPRESENTATIVE`): no es lo mismo que no tener convocatorias.
+  bool _listForbidden = false;
+
+  /// El listado no se pudo leer (sin red, error del servidor): se ofrece reintentar.
+  Object? _listError;
+
+  /// ADMINISTRATOR o REPRESENTATIVE: listado de la organización. Si no lo hay (403 o vacío): `GET /me/campaigns`
+  /// (DDM-38). Nunca se pide escribir una referencia interna. Un 403 y un fallo se distinguen de un listado vacío:
+  /// «tu organización no tiene convocatorias» solo se dice cuando el backend lo confirmó.
   Future<void> _loadChoices(Principal p) async {
     _listRequested = true;
     var list = <CampaignChoice>[];
+    var forbidden = false;
+    Object? error;
     if (p.roles.contains(Principal.administrator) || p.roles.contains(Principal.representative)) {
       try {
         list = await _api.organizationCampaigns(p.organizationId!);
-      } on AppException {
-        list = [];
+      } on ForbiddenException {
+        forbidden = true;
+      } on AppException catch (e) {
+        error = e;
       }
     }
-    if (list.isEmpty) {
+    if (list.isEmpty && error == null) {
       try {
         list = await _api.myCampaigns();
-      } on AppException {
-        list = [];
+      } on ForbiddenException {
+        forbidden = true;
+      } on AppException catch (e) {
+        error = e;
       }
     }
-    if (mounted) setState(() => _choices = list);
+    if (!mounted) return;
+    setState(() {
+      _choices = list;
+      _listForbidden = list.isEmpty && error == null && forbidden;
+      _listError = list.isEmpty ? error : null;
+    });
+  }
+
+  void _retryList(Principal p) {
+    setState(() {
+      _choices = null;
+      _listForbidden = false;
+      _listError = null;
+    });
+    _loadChoices(p);
   }
 
   @override
@@ -153,7 +183,19 @@ class _PredictionScreenState extends State<PredictionScreen> {
                     ),
                   ),
               ],
-              if (choices != null && choices.isEmpty)
+              if (choices != null && choices.isEmpty && _listError != null)
+                ErrorRetryView(
+                  key: const Key('prediction.listError'),
+                  message: describeError(_listError!),
+                  onRetry: () => _retryList(p),
+                )
+              else if (choices != null && choices.isEmpty && _listForbidden)
+                const MessageView(
+                  key: Key('prediction.listForbidden'),
+                  icon: Icons.lock_outline,
+                  title: 'Tu cuenta todavía no puede ver el listado de convocatorias de tu organización.',
+                )
+              else if (choices != null && choices.isEmpty)
                 const MessageView(
                   key: Key('prediction.noCampaigns'),
                   icon: Icons.campaign_outlined,
@@ -202,6 +244,13 @@ class _PredictionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ADR-044, Enmienda 1: la advertencia es obligatoria; va arriba, separada de la cifra y del motivo.
+            Text(
+              predictionLabel,
+              key: const Key('prediction.label'),
+              style: theme.textTheme.labelLarge?.copyWith(color: ink, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
             // Sin estimación (incluido OUTSIDE_TRAINED_RANGE): solo el motivo, nunca una cifra.
             if (!p.available || p.unavailableReason != null || p.probabilityReachTarget == null)
               Text(

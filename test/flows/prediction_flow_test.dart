@@ -53,8 +53,10 @@ void main() {
       final call = h.api.calls.last;
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
-      expect(find.byKey(const Key('prediction.label')), findsNothing);
-      // Solo la predicción con su porcentaje y una línea de advertencia: sin modelo, fecha, ni otras cifras.
+      // ADR-044, Enmienda 1 (decisión de Manuel, 2026-11-15): la advertencia es obligatoria y siempre visible.
+      expect(find.byKey(const Key('prediction.label')), findsOneWidget);
+      expect(find.text('ESTIMACIÓN — modelo entrenado con datos sintéticos'), findsOneWidget);
+      // Solo la predicción con su porcentaje y la advertencia: sin modelo, fecha, ni otras cifras.
       expect(find.byKey(const Key('prediction.percent')), findsOneWidget);
       expect(find.text('85,2 %'), findsOneWidget);
       expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
@@ -85,7 +87,8 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.byKey(const Key('prediction.label')), findsNothing);
+    expect(find.byKey(const Key('prediction.label')), findsOneWidget);
+    expect(find.text(predictionLabel), findsOneWidget);
     expect(find.textContaining('La política STRICT'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
   });
@@ -196,7 +199,8 @@ void main() {
       },
     );
     await query(tester);
-    expect(find.byKey(const Key('prediction.label')), findsNothing);
+    expect(find.byKey(const Key('prediction.label')), findsOneWidget);
+    expect(find.text(predictionLabel), findsOneWidget);
     expect(find.textContaining('Fuera del rango del modelo'), findsOneWidget);
     expect(find.textContaining('Probabilidad'), findsNothing);
     expect(find.textContaining('Tiempo transcurrido'), findsNothing);
@@ -215,6 +219,51 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prediction.noCampaigns')), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
+  });
+
+  // Regresión (2026-11-15): un 403 o un fallo del listado se leían como «Tu organización todavía no tiene
+  // convocatorias», que era falso.
+  testWidgets('REPRESENTATIVE sin listado (403) y sin convocatorias asignadas → dice que no puede ver el listado', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 403);
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 200, data: {'items': []});
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['REPRESENTATIVE'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.listForbidden')), findsOneWidget);
+    expect(find.text('Tu cuenta todavía no puede ver el listado de convocatorias de tu organización.'), findsOneWidget);
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsNothing);
+    expect(find.textContaining('todavía no tiene convocatorias'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('el listado falla (500) → error con «Reintentar», nunca «no tiene convocatorias»', (tester) async {
+    final h = AppHarness();
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(statusCode: 500);
+    h.api.routes['GET /me/campaigns'] = (_) => const ApiResponse(statusCode: 500);
+    h.saveToken('jwt');
+    await h.start(tester, beforeSession: () async => h.api.enqueue(meResponse(roles: const ['ADMINISTRATOR'])));
+    h.services.router.go(AppRoutes.prediction);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.listError')), findsOneWidget);
+    expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.byKey(const Key('prediction.noCampaigns')), findsNothing);
+    expect(find.byKey(const Key('prediction.listForbidden')), findsNothing);
+
+    // Al reintentar con el listado ya disponible, aparecen las convocatorias.
+    h.api.routes['GET /organizations/org-1/campaigns'] = (_) => const ApiResponse(
+      statusCode: 200,
+      data: {
+        'items': [listItem],
+      },
+    );
+    await tester.tap(find.text('Reintentar'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction.choice.camp-9')), findsOneWidget);
+    expect(find.byKey(const Key('prediction.listError')), findsNothing);
   });
 
   test('el texto dice si es probable o no alcanzar la meta (corte en el 50 %)', () {
