@@ -95,6 +95,10 @@ void main() {
       expect(niceMax(73), 100);
       expect(niceMax(3751196301), 5000000000);
       expect(cumulative([null, 2, null, 3]), [null, 2, 2, 5]);
+      // Conteos: marcas enteras (nunca «2,5 lotes»); importes y porcentajes, tope redondo
+      expect(axisTop([4, 1, 2]), 4);
+      expect(ticks(axisTop([10, 3])), [0, 3, 6, 9, 12]);
+      expect(axisTop([12.5, 7]), 20);
     });
 
     test('lotes: se cuentan lotes por estado y tipo', () {

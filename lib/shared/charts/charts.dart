@@ -284,24 +284,26 @@ class _Axes {
   }
 }
 
-TextStyle _axisStyle(ColorScheme s) => TextStyle(fontSize: 10, color: s.onSurfaceVariant);
+/// El texto de los ejes hereda la fuente del tema (y su escala); solo cambian el tamaño y el color.
+TextStyle _axisStyle(ColorScheme s, TextStyle base) => base.copyWith(fontSize: 10, color: s.onSurfaceVariant);
+
+TextStyle _baseText(BuildContext context) => Theme.of(context).textTheme.bodySmall ?? const TextStyle();
 
 // ---------------------------------------------------------------------------------------------------------------
 // Tipos
 
 class _BarsPainter extends CustomPainter {
-  _BarsPainter(this.data, this.scheme, {this.stacked = false});
+  _BarsPainter(this.data, this.scheme, this.base, {this.stacked = false});
   final CategoryChartData data;
   final ColorScheme scheme;
+  final TextStyle base;
   final bool stacked;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final style = _axisStyle(scheme);
-    final max = stacked
-        ? data.stackTotals.whereType<double>().fold<double>(0, math.max)
-        : data.values.fold<double>(0, math.max);
-    final ax = _Axes(size, niceMax(max), data.format, style)..paint(canvas, scheme.outlineVariant);
+    final style = _axisStyle(scheme, base);
+    final top = axisTop(stacked ? data.stackTotals.whereType<double>() : data.values);
+    final ax = _Axes(size, top, data.format, style)..paint(canvas, scheme.outlineVariant);
     final band = ax.plotW / data.categories.length;
     double cx(int i) => ax.left + band * (i + 0.5);
     final n = data.series.length;
@@ -343,13 +345,14 @@ class _BarsPainter extends CustomPainter {
 }
 
 class _HBarsPainter extends CustomPainter {
-  _HBarsPainter(this.data, this.scheme);
+  _HBarsPainter(this.data, this.scheme, this.base);
   final CategoryChartData data;
   final ColorScheme scheme;
+  final TextStyle base;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final style = _axisStyle(scheme);
+    final style = _axisStyle(scheme, base);
     final strong = style.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w600);
     final n = data.series.length;
     final row = 14.0 * n + 14;
@@ -358,7 +361,7 @@ class _HBarsPainter extends CustomPainter {
       data.categories.map((c) => _text(c, strong).width).fold<double>(0, math.max) + 8,
     );
     const right = 90.0;
-    final top = niceMax(data.values.fold<double>(0, math.max));
+    final top = axisTop(data.values);
     double x(double v) => left + v / top * (size.width - left - right);
     for (var i = 0; i < data.categories.length; i++) {
       final t = _text(data.categories[i], strong, maxWidth: left - 8);
@@ -391,16 +394,16 @@ class _HBarsPainter extends CustomPainter {
 }
 
 class _LinePainter extends CustomPainter {
-  _LinePainter(this.data, this.scheme, {this.area = false});
+  _LinePainter(this.data, this.scheme, this.base, {this.area = false});
   final CategoryChartData data;
   final ColorScheme scheme;
+  final TextStyle base;
   final bool area;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final style = _axisStyle(scheme);
-    final ax = _Axes(size, niceMax(data.values.fold<double>(0, math.max)), data.format, style)
-      ..paint(canvas, scheme.outlineVariant);
+    final style = _axisStyle(scheme, base);
+    final ax = _Axes(size, axisTop(data.values), data.format, style)..paint(canvas, scheme.outlineVariant);
     final n = data.categories.length;
     double cx(int i) => n == 1 ? ax.left + ax.plotW / 2 : ax.left + i / (n - 1) * ax.plotW;
     for (var si = 0; si < data.series.length; si++) {
@@ -454,7 +457,8 @@ class _LinePainter extends CustomPainter {
 }
 
 class _DonutPainter extends CustomPainter {
-  _DonutPainter(this.values, this.total, this.centerText, this.scheme);
+  _DonutPainter(this.values, this.total, this.centerText, this.scheme, this.base);
+  final TextStyle base;
   final List<double> values;
   final double total;
   final String centerText;
@@ -476,7 +480,7 @@ class _DonutPainter extends CustomPainter {
       canvas.drawArc(Rect.fromCircle(center: c, radius: r - stroke / 2), a, sweep, false, paint);
       a += sweep;
     }
-    final t = _text(centerText, TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: scheme.onSurface));
+    final t = _text(centerText, base.copyWith(fontSize: 13, fontWeight: FontWeight.w700, color: scheme.onSurface));
     t.paint(canvas, c - Offset(t.width / 2, t.height / 2));
   }
 
@@ -485,15 +489,15 @@ class _DonutPainter extends CustomPainter {
 }
 
 class _ComboPainter extends CustomPainter {
-  _ComboPainter(this.data, this.scheme);
+  _ComboPainter(this.data, this.scheme, this.base);
   final CategoryChartData data;
   final ColorScheme scheme;
+  final TextStyle base;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final style = _axisStyle(scheme);
-    final ax = _Axes(size, niceMax(data.values.fold<double>(0, math.max)), data.format, style)
-      ..paint(canvas, scheme.outlineVariant);
+    final style = _axisStyle(scheme, base);
+    final ax = _Axes(size, axisTop(data.values), data.format, style)..paint(canvas, scheme.outlineVariant);
     final band = ax.plotW / data.categories.length;
     double cx(int i) => ax.left + band * (i + 0.5);
     final bw = math.max(3.0, math.min(30.0, band * 0.6));
@@ -566,7 +570,7 @@ class VerticalBarsChart extends StatelessWidget {
           label: data.describe(),
           legend: _seriesLegend(data),
           caption: caption,
-          painter: _BarsPainter(data, Theme.of(context).colorScheme),
+          painter: _BarsPainter(data, Theme.of(context).colorScheme, _baseText(context)),
         );
 }
 
@@ -588,7 +592,7 @@ class StackedBarsChart extends StatelessWidget {
       label: label,
       legend: [for (var i = 0; i < data.series.length; i++) LegendItem(data.series[i].labelWithNature, i)],
       caption: caption,
-      painter: _BarsPainter(data, Theme.of(context).colorScheme, stacked: true),
+      painter: _BarsPainter(data, Theme.of(context).colorScheme, _baseText(context), stacked: true),
     );
   }
 }
@@ -609,7 +613,7 @@ class HorizontalBarsChart extends StatelessWidget {
           legend: _seriesLegend(data),
           caption: caption,
           height: data.categories.length * (14.0 * data.series.length + 14) + 4,
-          painter: _HBarsPainter(data, Theme.of(context).colorScheme),
+          painter: _HBarsPainter(data, Theme.of(context).colorScheme, _baseText(context)),
         );
 }
 
@@ -629,7 +633,7 @@ class LineChartView extends StatelessWidget {
           label: data.describe(),
           legend: _seriesLegend(data, line: true),
           caption: caption,
-          painter: _LinePainter(data, Theme.of(context).colorScheme, area: area),
+          painter: _LinePainter(data, Theme.of(context).colorScheme, _baseText(context), area: area),
         );
 }
 
@@ -657,7 +661,7 @@ class DonutChart extends StatelessWidget {
       legend: [for (var i = 0; i < parts.length; i++) LegendItem(parts[i], i)],
       caption: caption,
       height: 180,
-      painter: _DonutPainter(vals, total, data.format(total), Theme.of(context).colorScheme),
+      painter: _DonutPainter(vals, total, data.format(total), Theme.of(context).colorScheme, _baseText(context)),
     );
   }
 }
@@ -681,7 +685,7 @@ class ComboBarsLineChart extends StatelessWidget {
             if (data.series.length > 1) LegendItem(data.series[1].labelWithNature, 1, line: true),
           ],
           caption: caption,
-          painter: _ComboPainter(data, Theme.of(context).colorScheme),
+          painter: _ComboPainter(data, Theme.of(context).colorScheme, _baseText(context)),
         );
 }
 

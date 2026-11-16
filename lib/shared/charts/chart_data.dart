@@ -63,6 +63,16 @@ double niceMax(double max) {
 
 List<double> ticks(double top, [int n = 4]) => [for (var i = 0; i <= n; i++) top * i / n];
 
+/// Tope del eje. Con conteos (todos los valores enteros), un múltiplo de 4 para que las cuatro marcas sean enteras:
+/// un eje de lotes o de eventos nunca marca «2,5 lotes» (ni lo redondea a «3»).
+double axisTop(Iterable<double> values) {
+  final max = values.fold<double>(0, math.max);
+  final counts = values.every((v) => v == v.roundToDouble());
+  if (!counts) return niceMax(max);
+  final step = math.max(1, (max / 4).ceil());
+  return step * 4.0;
+}
+
 /// Acumulado de una serie (línea del combinado): sigue `null` mientras no hay datos.
 List<double?> cumulative(List<double?> series) {
   double? acc;
