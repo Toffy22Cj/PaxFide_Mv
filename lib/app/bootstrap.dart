@@ -31,6 +31,7 @@ import 'pending_intent.dart';
 import 'qr_scanner_sheet.dart';
 import 'router/app_router_delegate.dart';
 import '../shared/city/city_pause_controller.dart';
+import '../shared/charts/chart_preference_store.dart';
 
 /// Construye las dependencias. [apiClientFactory] permite inyectar un `ApiClient` falso en los tests.
 AppServices buildServices({
@@ -67,6 +68,7 @@ AppServices buildServices({
     theme: ThemeController(secureStore),
     textSize: TextSizeController(secureStore),
     cityPause: CityPauseController(secureStore),
+    chartPreferences: ChartPreferenceStore(secureStore),
     linkOpener: linkOpener,
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),

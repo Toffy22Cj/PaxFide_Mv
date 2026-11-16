@@ -13,6 +13,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
 import '../data/prediction_api.dart';
+import 'prediction_charts.dart';
 
 /// Advertencia obligatoria (ADR-044, Enmienda 1): siempre visible en la tarjeta, con cifra y sin ella. El mismo texto
 /// que la web. Decisión de Manuel del 2026-11-15, que revierte en esto la de Adonis del 2026-11-11.
@@ -39,6 +40,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
   final _campaignRef = TextEditingController();
   Prediction? _prediction;
   Object? _error;
+
+  /// Paso 3: la evolución por cortes (`…/prediction/history`). Un error aquí no tapa la estimación de hoy.
+  PredictionHistory? _history;
+  bool _historyFailed = false;
   bool _loading = false;
 
   /// `null` mientras se carga.
@@ -112,10 +117,19 @@ class _PredictionScreenState extends State<PredictionScreen> {
       _loading = true;
       _error = null;
       _prediction = null;
+      _history = null;
+      _historyFailed = false;
     });
     try {
       final p = await _api.get(organizationId, ref);
       if (mounted) setState(() => _prediction = p);
+      try {
+        final h = await _api.history(organizationId, ref);
+        if (mounted) setState(() => _history = h);
+      } catch (_) {
+        // Como en la web: cualquier fallo del historial deja la estimación de hoy a la vista
+        if (mounted) setState(() => _historyFailed = true);
+      }
     } on AppException catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
@@ -205,7 +219,11 @@ class _PredictionScreenState extends State<PredictionScreen> {
               const SizedBox(height: 16),
               if (_loading) const LoadingView(label: 'Cargando predicción…'),
               if (_error != null) _errorView(_error!),
-              if (_prediction != null) ...[_PredictionCard(prediction: _prediction!)],
+              if (_prediction != null) ...[
+                _PredictionCard(prediction: _prediction!),
+                const SizedBox(height: 20),
+                _HistorySection(history: _history, failed: _historyFailed, principal: p, services: _services),
+              ],
             ],
           );
         },
@@ -293,6 +311,47 @@ class _PredictionCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Paso 3: la evolución en los cortes de entrenamiento, con su par de gráficos. Muestra los avisos del backend tal
+/// cual; sin cortes con cifra, su texto. Un error del historial no tapa la estimación de hoy.
+class _HistorySection extends StatelessWidget {
+  const _HistorySection({required this.history, required this.failed, required this.principal, required this.services});
+  final PredictionHistory? history;
+  final bool failed;
+  final Principal principal;
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = history;
+    final theme = Theme.of(context);
+    return Column(
+      key: const Key('prediction.history'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Evolución en los cortes de entrenamiento', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        if (failed)
+          const Text('No pudimos cargar la evolución de la estimación.', key: Key('prediction.history.error'))
+        else if (h == null)
+          const LinearProgressIndicator()
+        else if (!h.available)
+          Text(
+            h.unavailableText ?? 'Sin estimaciones por corte para esta convocatoria.',
+            key: const Key('prediction.history.unavailable'),
+          )
+        else ...[
+          for (final w in h.warnings) Text(w, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          if (h.cuts.isEmpty)
+            const Text('No hay cortes para esta convocatoria.')
+          else
+            PredictionChartsPanel(cuts: h.cuts, principal: principal, store: services.chartPreferences),
+        ],
+      ],
     );
   }
 }

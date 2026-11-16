@@ -50,7 +50,8 @@ void main() {
         },
       );
       await query(tester);
-      final call = h.api.calls.last;
+      // Paso 3: después de la predicción se pide también el historial por cortes
+      final call = h.api.calls.lastWhere((c) => c.path == path);
       expect(call.path, path);
       expect(call.credentialMode, CredentialMode.jwt);
       // ADR-044, Enmienda 1 (decisión de Manuel, 2026-11-15): la advertencia es obligatoria y siempre visible.
@@ -66,7 +67,9 @@ void main() {
       expect(find.textContaining('p3-v1'), findsNothing);
       expect(find.textContaining('calculado'), findsNothing);
       expect(find.textContaining('⚠'), findsNothing);
-      expect(find.byKey(const Key('prediction.history'), skipOffstage: false), findsNothing);
+      // Paso 3 (plan aprobado por Manuel el 2026-11-16): el móvil consume `/prediction/history`, en una sección
+      // aparte de la tarjeta; aquí el historial no está programado y la sección dice que no se pudo cargar.
+      expect(find.byKey(const Key('prediction.history.error'), skipOffstage: false), findsOneWidget);
       expect(find.textContaining('confianza'), findsNothing);
     });
   }
@@ -144,7 +147,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
-    expect(h.api.calls.last.path, path);
+    expect(h.api.calls.map((c) => c.path), contains(path));
     expect(find.text('50,0 %'), findsOneWidget);
     expect(find.text('Es probable alcanzar la meta'), findsOneWidget);
     expect(h.api.calls.where((c) => c.path == '/me/campaigns'), isEmpty);
@@ -177,7 +180,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abrigo para el invierno'));
     await tester.pumpAndSettle();
-    expect(h.api.calls.last.path, path);
+    expect(h.api.calls.map((c) => c.path), contains(path));
   });
 
   testWidgets('OUTSIDE_TRAINED_RANGE → el motivo, sin ninguna cifra (aunque llegaran)', (tester) async {

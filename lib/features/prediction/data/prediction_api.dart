@@ -53,6 +53,76 @@ class Prediction {
   }
 }
 
+/// Un corte de `GET …/prediction/history` (S-17; consumido por el móvil desde el paso 3). Las fracciones vienen entre 0
+/// y 1. Un corte sin cifra (`FUTURE_CUT`, `CAMPAIGN_ENDED`, `CONFIGURATION_CHANGED_AFTER_CUT`, `TARGET_ALREADY_REACHED`)
+/// lleva su texto y nunca se rellena; `pctRaisedAtCut` (lo recaudado entonces, un hecho) puede venir sin estimación.
+class PredictionCut {
+  const PredictionCut({
+    required this.t,
+    required this.available,
+    this.unavailableText,
+    this.probabilityReachTarget,
+    this.estimatedFinalPctOfTarget,
+    this.pctRaisedAtCut,
+  });
+
+  final double t;
+  final bool available;
+  final String? unavailableText;
+  final double? probabilityReachTarget;
+  final double? estimatedFinalPctOfTarget;
+  final double? pctRaisedAtCut;
+}
+
+class PredictionHistory {
+  const PredictionHistory({
+    required this.available,
+    this.unavailableText,
+    this.cuts = const [],
+    this.warnings = const [],
+  });
+
+  final bool available;
+  final String? unavailableText;
+  final List<PredictionCut> cuts;
+  final List<String> warnings;
+
+  static double? _d(Object? v) => v is num ? v.toDouble() : null;
+
+  static PredictionHistory fromJson(Map<String, dynamic> j) {
+    if (j['kind'] != 'ESTIMATE' || j['available'] is! bool) throw const MalformedResponseException();
+    final cuts = <PredictionCut>[];
+    if (j['cuts'] is List) {
+      for (final c in j['cuts'] as List) {
+        if (c is! Map || c['t'] is! num) continue;
+        final prob = _d(c['probabilityReachTarget']);
+        final fin = _d(c['estimatedFinalPctOfTarget']);
+        // Un corte «disponible» sin las dos cifras se trata como sin cifra en vez de inventarla
+        final ok = c['available'] == true && prob != null && fin != null;
+        cuts.add(
+          PredictionCut(
+            t: (c['t'] as num).toDouble(),
+            available: ok,
+            unavailableText: ok
+                ? null
+                : (c['unavailableText'] is String ? c['unavailableText'] as String : 'Sin cifra en este corte.'),
+            probabilityReachTarget: ok ? prob : null,
+            estimatedFinalPctOfTarget: ok ? fin : null,
+            pctRaisedAtCut: _d(c['pctRaisedAtCut']),
+          ),
+        );
+      }
+    }
+    cuts.sort((a, b) => a.t.compareTo(b.t));
+    return PredictionHistory(
+      available: j['available'] as bool,
+      unavailableText: j['unavailableText'] is String ? j['unavailableText'] as String : null,
+      cuts: cuts,
+      warnings: j['warnings'] is List ? [for (final w in j['warnings'] as List) '$w'] : const [],
+    );
+  }
+}
+
 /// Convocatoria elegible para la predicción (de `GET /organizations/{id}/campaigns` o `GET /me/campaigns`).
 class CampaignChoice {
   const CampaignChoice({required this.campaignRef, required this.title, required this.status, this.publicCode});
@@ -96,6 +166,15 @@ class PredictionApi {
   Future<List<CampaignChoice>> myCampaigns() async {
     final r = await _api.get('/me/campaigns', credentialMode: CredentialMode.jwt);
     return CampaignChoice.listFrom(r.requireData());
+  }
+
+  /// Estimaciones por corte (S-17), con lo recaudado en cada corte según el event store. Mismo 403 que [get].
+  Future<PredictionHistory> history(String organizationId, String campaignRef) async {
+    final r = await _api.get(
+      '/organizations/${Uri.encodeComponent(organizationId)}/campaigns/${Uri.encodeComponent(campaignRef)}/prediction/history',
+      credentialMode: CredentialMode.jwt,
+    );
+    return PredictionHistory.fromJson(r.requireData());
   }
 
   /// 403 uniforme: sin permiso, otra organización o convocatoria inexistente.
