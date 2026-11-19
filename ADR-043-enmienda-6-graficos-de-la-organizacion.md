@@ -1,6 +1,6 @@
 # Enmienda 6 de ADR-043 — Gráficos de fondos mensuales y actividad de la organización
 
-**Estado:** PROPUESTA — espera aprobación (Manuel; ADR-043 es del front móvil y A3 la fijó Carlos: **[Falta: quién aprueba esta enmienda (Carlos o Manuel), fecha y medio.]**). Redactada el 2026-11-16 por Manuel, con asistencia de Claude, por su decisión del mismo día: «Fondos y actividad van con una enmienda de ADR-043 que redacta ya y que apruebas aparte, porque querías los gráficos en las dos apps».
+**Estado:** **APROBADA — Adonis, 2026-11-19** (comunicado por Manuel el 2026-11-19, junto con la revisión de PaxFide_Mv#17). *Texto original del estado, que se conserva:* PROPUESTA — espera aprobación (Manuel; ADR-043 es del front móvil y A3 la fijó Carlos: **[Falta: quién aprueba esta enmienda (Carlos o Manuel), fecha y medio.]**). Redactada el 2026-11-16 por Manuel, con asistencia de Claude, por su decisión del mismo día: «Fondos y actividad van con una enmienda de ADR-043 que redacta ya y que apruebas aparte, porque querías los gráficos en las dos apps».
 
 **No autoriza código.** El código va en su propio plan, después de la aprobación y después de fusionar `Toffy22Cj/PaxFide_Mv#16` (decisión del 2026-11-16: no apilar ramas).
 

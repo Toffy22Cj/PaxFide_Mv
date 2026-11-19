@@ -1,6 +1,6 @@
 # Enmienda 7 de ADR-043 — Foto opcional al despachar y al recibir
 
-**Estado:** PROPUESTA — espera aprobación. Redactada el 2026-11-16 por Manuel, con asistencia de Claude. Depende de la **Enmienda 2 de ADR-051** (backend, `Documentos/ADR-051-enmienda-2-fotos-de-los-pasos-y-copia-para-el-donante.md`), también PROPUESTA: sin ella no hay dónde subir la foto ni campo en el comando. **[Falta: quién aprueba (Carlos o Manuel), fecha y medio.]** No autoriza código.
+**Estado:** **APROBADA — Adonis, 2026-11-19** (comunicado por Manuel el 2026-11-19, junto con la revisión de PaxFide_Mv#17). *Texto original del estado, que se conserva:* PROPUESTA — espera aprobación. Redactada el 2026-11-16 por Manuel, con asistencia de Claude. Depende de la **Enmienda 2 de ADR-051** (backend, `Documentos/ADR-051-enmienda-2-fotos-de-los-pasos-y-copia-para-el-donante.md`), también PROPUESTA: sin ella no hay dónde subir la foto ni campo en el comando. **[Falta: quién aprueba (Carlos o Manuel), fecha y medio.]** No autoriza código.
 
 ## Por qué
 
