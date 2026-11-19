@@ -27,6 +27,7 @@ import '../shared/city/city_pause_controller.dart';
 import '../shared/location/location_catalog.dart';
 import '../shared/theme/text_size_controller.dart';
 import '../shared/theme/theme_controller.dart';
+import '../shared/charts/chart_preference_store.dart';
 import 'app_config.dart';
 import 'deep_link_parser.dart';
 import 'pending_intent.dart';
@@ -54,6 +55,7 @@ class AppServices {
     ThemeController? theme,
     TextSizeController? textSize,
     CityPauseController? cityPause,
+    ChartPreferenceStore? chartPreferences,
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
     this.mapTileProvider,
@@ -67,6 +69,7 @@ class AppServices {
        photoPicker = photoPicker ?? ImagePickerPhotoPicker(),
        textSize = textSize ?? TextSizeController(),
        cityPause = cityPause ?? CityPauseController(),
+       chartPreferences = chartPreferences ?? const ChartPreferenceStore(),
        locationCatalog = LocationCatalogApi(apiClient),
        biometricLogin = BiometricLogin(
          api: authApi,
@@ -111,6 +114,9 @@ class AppServices {
 
   /// Pausa de la ciudad de Inicio, recordada entre aperturas.
   final CityPauseController cityPause;
+
+  /// Qué tipo de gráfico eligió cada cuenta en cada panel (plan del paso 3).
+  final ChartPreferenceStore chartPreferences;
   late final AppRouterDelegate router;
 
   /// Entrar con Google y vincularlo en Cuenta (ADR-050 D9). Sin ID de cliente configurado, no está.

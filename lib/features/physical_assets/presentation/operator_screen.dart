@@ -11,6 +11,7 @@ import '../../auth/domain/session_controller.dart';
 import '../data/physical_asset_api.dart';
 import '../domain/asset_labels.dart';
 import 'asset_screen.dart';
+import 'assets_charts.dart';
 
 /// `/operator` → **Mi día** (E-01): cuántos activos de la organización hay por despachar, en tránsito y entregados
 /// (`GET /organizations/{id}/physical-assets`, máx. 200); tocar una tarjeta muestra la lista filtrada. Escanear y
@@ -162,6 +163,11 @@ class _MyDayState extends State<_MyDay> {
                   onTap: () => setState(() => _filter = _filter == g ? null : g),
                 ),
               ),
+            // Paso 3: el estado de los lotes en gráficos (los mismos datos de arriba)
+            if (_services.session.principal case final principal?) ...[
+              const SizedBox(height: 16),
+              AssetsChartsPanel(items: assets, principal: principal, store: _services.chartPreferences),
+            ],
             if (_filter != null) ...[
               const SizedBox(height: 8),
               Text(_filter!.label, style: Theme.of(context).textTheme.titleMedium),
