@@ -887,6 +887,7 @@ class _BiometricTilesState extends State<_BiometricTiles> {
   }
 
   void _notice(String text) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(key: const Key('account.biometric.notice'), content: Text(text)));
   }
 
