@@ -2,6 +2,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/storage/device_credential_store.dart';
 import '../data/auth_api.dart';
 import 'biometric_authenticator.dart';
+import 'biometric_lock_preference.dart';
 
 /// Resultado de entrar con biometría.
 sealed class BiometricLoginResult {
@@ -49,14 +50,21 @@ enum BiometricEnableResult { enabled, tooManyDevices, networkError }
 /// Entrar con biometría (M-28, enmienda 2 de ADR-043). El teléfono comprueba la huella o el rostro; si es correcta, envía el token
 /// de este dispositivo y recibe un JWT como en el login normal. Nunca se guarda la contraseña.
 class BiometricLogin {
-  BiometricLogin({required this._api, required this._store, required this._authenticator});
+  BiometricLogin({
+    required this._api,
+    required this._store,
+    required this._authenticator,
+    BiometricLockPreference? lock,
+  }) : _lock = lock ?? MemoryBiometricLockPreference();
 
   final AuthApi _api;
   final DeviceCredentialStore _store;
   final BiometricAuthenticator _authenticator;
+  final BiometricLockPreference _lock;
 
   static const loginReason = 'Usa tu huella o tu rostro para entrar a PaxFide';
   static const enableReason = 'Usa tu huella o tu rostro para activar la entrada con biometría';
+  static const unlockReason = 'Usa tu huella o tu rostro para abrir PaxFide';
 
   Future<StoredDeviceCredential?> _stored() async {
     try {
@@ -141,5 +149,34 @@ class BiometricLogin {
 
   /// Desde el login, sin sesión: deja de usar la huella en este teléfono. Se borra el token del teléfono, así que la
   /// credencial del backend queda sin uso (nadie más tiene el token); se anula del todo al cambiar la contraseña.
-  Future<void> forget() => _store.clear();
+  ///
+  /// También apaga «pedir la huella al abrir la app»: sin credencial no hay a qué pedírsela.
+  Future<void> forget() async {
+    await _store.clear();
+    await _lock.clear();
+  }
+
+  // --- Desde Cuenta, con la sesión iniciada (enmienda 8 de ADR-043, PROPUESTA) ---
+
+  /// Activar la entrada con biometría cuando el usuario quiera, no solo justo tras la contraseña: confirma con la
+  /// huella o el rostro y da de alta este teléfono. `null`: no se confirmó (no se llamó al backend). Si se activó,
+  /// también queda activado «pedir la huella al abrir la app» (se puede apagar aparte).
+  Future<BiometricEnableResult?> enableWithConfirmation({String? deviceName}) async {
+    if (!await _authenticator.isAvailable()) return null;
+    if (!await confirmEnrollment()) return null;
+    final result = await register(deviceName: deviceName);
+    if (result == BiometricEnableResult.enabled) await _lock.set(true);
+    return result;
+  }
+
+  /// «Pedir la huella al abrir la app» está encendido y hay credencial en este teléfono.
+  Future<bool> lockEnabled() async => await _lock.isEnabled() && await isEnabled();
+
+  Future<void> setLock(bool enabled) => _lock.set(enabled);
+
+  /// Al abrir la app con la sesión recordada: hay que pedir la huella antes de mostrar nada.
+  Future<bool> shouldLockOnOpen() async => await lockEnabled() && await _authenticator.isAvailable();
+
+  /// Pide la huella o el rostro para abrir la app. Nunca llama al backend: la sesión ya está iniciada.
+  Future<BiometricCheck> unlock() => _authenticator.authenticate(unlockReason);
 }

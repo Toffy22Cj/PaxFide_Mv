@@ -10,6 +10,7 @@ import '../core/offline/sync_engine.dart';
 import '../core/storage/device_credential_store.dart';
 import '../core/storage/outbox_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
+import '../features/auth/biometrics/biometric_lock_preference.dart';
 import '../features/auth/biometrics/biometric_login.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/google/google_id_token_provider.dart';
@@ -58,6 +59,7 @@ class AppServices {
     ChartPreferenceStore? chartPreferences,
     DeviceCredentialStore? deviceCredentialStore,
     BiometricAuthenticator biometricAuthenticator = const UnavailableBiometricAuthenticator(),
+    BiometricLockPreference? biometricLockPreference,
     this.mapTileProvider,
     this.google = const UnavailableGoogleIdTokenProvider(),
     ValueListenable<bool>? offline,
@@ -75,6 +77,7 @@ class AppServices {
          api: authApi,
          store: deviceCredentialStore ?? MemoryDeviceCredentialStore(),
          authenticator: biometricAuthenticator,
+         lock: biometricLockPreference,
        );
 
   final AppConfig config;
@@ -122,7 +125,7 @@ class AppServices {
   /// Entrar con Google y vincularlo en Cuenta (ADR-050 D9). Sin ID de cliente configurado, no está.
   final GoogleIdTokenProvider google;
 
-  /// Entrar con huella o rostro, solo desde el login (M-28).
+  /// Entrar con huella o rostro (M-28): desde el login, activarla desde Cuenta y pedirla al abrir la app (enmienda 8).
   final BiometricLogin biometricLogin;
 
   /// Catálogo DIVIPOLA del backend, para elegir el municipio al recibir y entregar (enmienda 2 de ADR-029).

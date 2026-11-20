@@ -16,6 +16,7 @@ import '../features/auth/data/profile_store.dart';
 import '../core/storage/secure_key_value_store.dart';
 import '../core/storage/token_store.dart';
 import '../features/auth/biometrics/biometric_authenticator.dart';
+import '../features/auth/biometrics/biometric_lock_preference.dart';
 import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/session_controller.dart';
 import '../features/donations/data/donation_intent_api.dart';
@@ -72,6 +73,7 @@ AppServices buildServices({
     linkOpener: linkOpener,
     photoPicker: photoPicker,
     deviceCredentialStore: SecureDeviceCredentialStore(secureStore),
+    biometricLockPreference: SecureBiometricLockPreference(secureStore),
     mapTileProvider: mapTileProvider,
     google:
         google ??
