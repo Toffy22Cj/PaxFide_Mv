@@ -11,6 +11,7 @@ import '../../../shared/error_messages.dart';
 import '../../../shared/theme/text_size_controller.dart';
 import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../auth/biometrics/biometric_login.dart';
 import '../../auth/google/google_id_token_provider.dart';
 import '../../auth/domain/principal.dart';
 import '../../auth/domain/session_controller.dart';
@@ -117,6 +118,8 @@ class AccountScreen extends StatelessWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _changePassword(context, services),
                     ),
+                    // Enmienda 8 de ADR-043 (PROPUESTA): activar la huella o el rostro cuando se quiera.
+                    const _BiometricTiles(),
                     if (services.google.isAvailable)
                       ListTile(
                         key: const Key('account.google'),
@@ -840,4 +843,111 @@ class _OrganizationTileState extends State<_OrganizationTile> {
       ),
     ),
   );
+}
+
+/// «Entrar con huella o rostro» y «Pedir la huella al abrir la app» (enmienda 8 de ADR-043, PROPUESTA). Solo se
+/// muestran si el teléfono tiene biometría configurada o ya estaba activada aquí. Activarla confirma con la huella y
+/// da de alta este teléfono; desactivarla la olvida solo en este teléfono (como «No usar la biometría» del login).
+class _BiometricTiles extends StatefulWidget {
+  const _BiometricTiles();
+
+  @override
+  State<_BiometricTiles> createState() => _BiometricTilesState();
+}
+
+class _BiometricTilesState extends State<_BiometricTiles> {
+  bool _loaded = false;
+  bool _available = false;
+  bool _enabled = false;
+  bool _lock = false;
+  bool _busy = false;
+  late final BiometricLogin _biometric = AppScope.of(context).biometricLogin;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_started) {
+      _started = true;
+      _refresh();
+    }
+  }
+
+  Future<void> _refresh() async {
+    final available = await _biometric.isAvailable();
+    final enabled = await _biometric.isEnabled();
+    final lock = enabled && await _biometric.lockEnabled();
+    if (!mounted) return;
+    setState(() {
+      _loaded = true;
+      _available = available;
+      _enabled = enabled;
+      _lock = lock;
+    });
+  }
+
+  void _notice(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(key: const Key('account.biometric.notice'), content: Text(text)));
+  }
+
+  Future<void> _toggle(bool on) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      if (on) {
+        final result = await _biometric.enableWithConfirmation();
+        switch (result) {
+          case null:
+            break; // no se confirmó con la huella: no se cambia nada
+          case BiometricEnableResult.enabled:
+            _notice('Listo: la próxima vez puedes entrar con tu huella o tu rostro.');
+          case BiometricEnableResult.tooManyDevices:
+            _notice('No se activó la biometría: ya está activada en 10 teléfonos con esta cuenta.');
+          case BiometricEnableResult.networkError:
+            _notice('No se pudo activar la biometría. Inténtalo de nuevo cuando tengas conexión.');
+        }
+      } else {
+        await _biometric.forget();
+        _notice('La huella o el rostro ya no sirven para entrar en este teléfono.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _refresh();
+    }
+  }
+
+  Future<void> _setLock(bool on) async {
+    await _biometric.setLock(on);
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded || (!_available && !_enabled)) return const SizedBox.shrink();
+    return Column(
+      children: [
+        SwitchListTile(
+          key: const Key('account.biometric'),
+          secondary: const Icon(Icons.fingerprint),
+          title: const Text('Entrar con huella o rostro'),
+          subtitle: Text(
+            _enabled
+                ? 'Activada en este teléfono. Tu contraseña no se guarda.'
+                : 'No tendrás que escribir la contraseña. Se confirma con tu huella o tu rostro.',
+          ),
+          value: _enabled,
+          onChanged: _busy ? null : _toggle,
+        ),
+        if (_enabled)
+          SwitchListTile(
+            key: const Key('account.biometricLock'),
+            secondary: const Icon(Icons.lock_outline),
+            title: const Text('Pedir la huella al abrir la app'),
+            subtitle: const Text('Al abrir PaxFide con tu sesión guardada, primero se pide tu huella o tu rostro.'),
+            value: _lock,
+            onChanged: _busy ? null : _setLock,
+          ),
+      ],
+    );
+  }
 }

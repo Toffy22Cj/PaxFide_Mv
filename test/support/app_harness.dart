@@ -162,6 +162,9 @@ class AppHarness {
   void saveDeviceCredential() =>
       secure.values['paxfide.biometric.device'] = '{"credentialId":"cred-1","deviceToken":"tok-1"}';
 
+  /// «Pedir la huella al abrir la app» encendido (enmienda 8 de ADR-043, PROPUESTA).
+  void saveBiometricLock() => secure.values['paxfide.biometric.lock'] = '1';
+
   /// Lo que "leerá" la cámara falsa en el próximo escaneo.
   String? nextScan;
   final api = FakeApiClient();
