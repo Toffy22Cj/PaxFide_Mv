@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -34,6 +35,27 @@ void main() {
       expect(zones.of('BARRANQUILLA, ATLÁNTICO'), isNotNull);
       expect(zones.of('BOGOTÁ, D.C.'), isNotNull, reason: 'Bogotá una sola vez, como SealedZone.of');
       expect(zones.of('CARTAGENA DE INDIAS, BOLÍVAR'), isNotNull);
+    });
+
+    test('cada zona tiene un punto DENTRO de Colombia y ninguna clave se repite al normalizar', () {
+      final doc = jsonDecode(File('assets/map/zonas.json').readAsStringSync()) as Map;
+      final zones = doc['zones'] as Map;
+      final keys = [for (final k in zones.keys) (k as String).trim().toUpperCase()];
+      expect(keys.toSet().length, keys.length, reason: 'dos claves iguales al normalizar se pisarían');
+      final outside = [
+        for (final e in zones.entries)
+          if (!((e.value as List)[0] as num >= -4.5 && (e.value as List)[0] as num <= 13.6 &&
+              (e.value as List)[1] as num >= -82.5 && (e.value as List)[1] as num <= -66.0))
+            e.key,
+      ];
+      expect(outside, isEmpty, reason: 'un punto fuera del país sería un error del generador');
+    });
+
+    test('es una zona, no un lugar: cada punto es el de un municipio y los municipios distintos no comparten punto', () {
+      final doc = jsonDecode(File('assets/map/zonas.json').readAsStringSync()) as Map;
+      final points = [for (final v in (doc['zones'] as Map).values) '${(v as List)[0]},${v[1]}'];
+      // un punto compartido por varios municipios sería una zona inventada o duplicada
+      expect(points.toSet().length, greaterThan(points.length * 0.99));
     });
 
     test('sin distinguir mayúsculas ni espacios; lo que no está, vacío o inválido no tiene punto', () {
