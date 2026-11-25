@@ -13,7 +13,8 @@ class CommandField {
 /// contrato. No incluye `organizationRef`, `donorRef` ni `deliveredAt` (los pone el servidor). Recibir y entregar
 /// llevan además el `municipalityCode` elegido del catálogo DIVIPOLA.
 ///
-/// Entregar lleva además el `evidenceRef` que devolvió la subida de la foto (ADR-051 F3): no se escribe a mano.
+/// Entregar lleva además el `evidenceRef` que devolvió la subida de la foto (ADR-051 F3): no se escribe a mano. Despachar y
+/// recibir lo llevan solo si la persona añadió una foto (opcional; enmienda 7 de ADR-043).
 class AssetCommand {
   AssetCommand._(this.action, this.assetRef, this.values);
 
@@ -69,6 +70,18 @@ class AssetCommand {
         valid = false;
       } else {
         values['evidenceRef'] = evidenceRef;
+      }
+    }
+    // Despachar y recibir: la foto es OPCIONAL (enmienda 7 de ADR-043). Sin foto, la clave no existe en el cuerpo (nunca
+    // `evidenceRef: null`); con foto, la forma tiene que ser `sha256:<64 hex>`.
+    if (action == AssetAction.dispatch || action == AssetAction.receive) {
+      if (evidenceRef != null) {
+        if (DeliveryEvidenceApi.evidenceRefPattern.hasMatch(evidenceRef)) {
+          values['evidenceRef'] = evidenceRef;
+        } else {
+          errors?.add('evidenceRef');
+          valid = false;
+        }
       }
     }
     if (needsMunicipality(action)) {

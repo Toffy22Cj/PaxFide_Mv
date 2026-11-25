@@ -42,7 +42,7 @@ abstract class ApiClient {
     required CredentialMode credentialMode,
   });
 
-  /// `multipart/form-data` con un único archivo en el campo [field]. Sin reintentos ni Outbox: quien llama decide.
+  /// `multipart/form-data` con un único archivo en el campo [field] y, si hace falta, campos de texto ([fields], p. ej. el `step` de la foto de un paso). Sin reintentos ni Outbox: quien llama decide.
   Future<ApiResponse> postFile(
     String path, {
     required String field,
@@ -50,5 +50,6 @@ abstract class ApiClient {
     required String contentType,
     required List<int> bytes,
     required CredentialMode credentialMode,
+    Map<String, String> fields = const {},
   });
 }

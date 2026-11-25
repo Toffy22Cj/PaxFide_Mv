@@ -77,11 +77,19 @@ class HttpApiClient implements ApiClient {
     required String contentType,
     required List<int> bytes,
     required CredentialMode credentialMode,
+    Map<String, String> fields = const {},
   }) {
     // Límite aleatorio que no puede aparecer en los bytes de una imagen por casualidad práctica.
     final boundary = 'paxfide-${DateTime.now().microsecondsSinceEpoch}-${bytes.length}';
     final safeName = filename.replaceAll(RegExp(r'["\r\n]'), '_');
     final body = <int>[
+      // Los campos de texto van antes del archivo (nombres y valores sin saltos de línea ni comillas)
+      for (final e in fields.entries)
+        ...utf8.encode(
+          '--$boundary\r\n'
+          'Content-Disposition: form-data; name="${e.key.replaceAll(RegExp(r'["\r\n]'), '_')}"\r\n\r\n'
+          '${e.value.replaceAll(RegExp(r'[\r\n]'), ' ')}\r\n',
+        ),
       ...utf8.encode(
         '--$boundary\r\n'
         'Content-Disposition: form-data; name="$field"; filename="$safeName"\r\n'

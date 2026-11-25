@@ -134,6 +134,36 @@ void main() {
       expect(errors, ['facilityLocation', 'receiverRef']);
     });
 
+    test('despachar y recibir: la foto es OPCIONAL; sin ella no hay clave evidenceRef (enmienda 7 de ADR-043)', () {
+      final ref = 'sha256:${'a' * 64}';
+      final plain = AssetCommand.build(AssetAction.dispatch, 'A-1', {'carrierRef': 'T-1'})!;
+      expect(plain.body.containsKey('evidenceRef'), isFalse, reason: 'nunca evidenceRef: null');
+      expect(plain.body, {'carrierRef': 'T-1'});
+      final withPhoto = AssetCommand.build(AssetAction.dispatch, 'A-1', {'carrierRef': 'T-1'}, evidenceRef: ref)!;
+      expect(withPhoto.body, {'carrierRef': 'T-1', 'evidenceRef': ref});
+      final receive = AssetCommand.build(
+        AssetAction.receive,
+        'A-1',
+        {'facilityLocation': 'bodega', 'receiverRef': 'R-1'},
+        evidenceRef: ref,
+        municipalityCode: '05001',
+      )!;
+      expect(receive.body, {
+        'facilityLocation': 'bodega',
+        'receiverRef': 'R-1',
+        'evidenceRef': ref,
+        'municipalityCode': '05001',
+      });
+    });
+
+    test('despachar con una huella que no es sha256:<64 hex> → inválido, con su nombre; nunca se manda a medias', () {
+      for (final bad in ['', 'sha256:abc', 'SHA256:${'a' * 64}', 'sha256:${'A' * 64}', 'x' * 71]) {
+        final errors = <String>[];
+        expect(AssetCommand.build(AssetAction.dispatch, 'A-1', {'carrierRef': 'T-1'}, evidenceRef: bad, errors: errors), isNull);
+        expect(errors, ['evidenceRef'], reason: bad);
+      }
+    });
+
     test('solo lectura no tiene comando', () {
       expect(AssetCommand.build(AssetAction.readOnly, 'A-1', const {}), isNull);
     });
