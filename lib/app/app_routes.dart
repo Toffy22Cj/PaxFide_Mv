@@ -32,6 +32,9 @@ class AppRoutes {
   static const String asset = '/assets/:assetRef';
   static const String prediction = '/prediction';
 
+  /// Enmienda 6 de ADR-043 (E6-1): «Datos de la organización», se abre desde Inicio; no es una pestaña (E6-5).
+  static const String organizationData = '/organization-data';
+
   // Enmienda 2 de ADR-043 (aprobada 2026-10-21). Mi día sigue en `/operator`.
   static const String account = '/account';
   static const String myCampaigns = '/employee/campaigns';
@@ -52,6 +55,7 @@ class AppRoutes {
     operator,
     operatorPending,
     prediction,
+    organizationData,
     account,
     myCampaigns,
     scan,

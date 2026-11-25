@@ -198,3 +198,5 @@ Se revisó la app pantalla por pantalla y se midió el coste de pintar el mundo 
 **Para que no vuelva:** `test/architecture/performance_rules_test.dart` falla si aparece un `BackdropFilter`, un `ImageFiltered`, un `ImageFilter.blur` o una `Image.memory` creada dentro de `build`.
 
 **Cómo medirlo:** en un teléfono, con un APK de *release* o `flutter run --profile` (en modo depuración todo va mucho más lento y no sirve para juzgar la fluidez).
+
+*Nota (2026-11-25, Enmienda 6; plan 5a):* la pantalla «Datos de la organización» se abre desde una **tarjeta en Inicio** (`/organization-data`) para `ADMINISTRATOR`, `EMPLOYEE` y `REPRESENTATIVE`; no es una pestaña y la barra del empleado queda como en esta §1 (Inicio · Mi día · Escanear · Cuenta). Con ello, «el panel de la organización sigue siendo de la web» tiene la excepción de esas dos lecturas de solo lectura y ninguna otra.

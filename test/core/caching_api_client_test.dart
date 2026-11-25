@@ -38,6 +38,31 @@ void main() {
     expect(api.offline.value, isFalse);
   });
 
+  test('Enmienda 6 de ADR-043 (E6-6): lo servido sin conexión lleva la fecha en que se guardó', () async {
+    inner.enqueue(ok);
+    final before = DateTime.now().toUtc().subtract(const Duration(seconds: 1));
+    await api.get('/account/donations', credentialMode: CredentialMode.jwt);
+    inner.enqueue(const NetworkTimeoutException());
+    final cached = await api.get('/account/donations', credentialMode: CredentialMode.jwt);
+
+    final at = DateTime.parse(cached.headers['x-paxfide-cached-at']!);
+    expect(at.isBefore(before), isFalse);
+    expect(at.isAfter(DateTime.now().toUtc().add(const Duration(seconds: 1))), isFalse);
+    // el cuerpo no cambia por llevar la fecha aparte
+    expect(cached.data, ok.data);
+  });
+
+  test('sin fecha guardada (o con el almacén roto) lo guardado se sirve igual, sin cabecera de fecha', () async {
+    inner.enqueue(ok);
+    await api.get('/account/donations', credentialMode: CredentialMode.jwt);
+    secure.values.removeWhere((k, _) => k.endsWith(CachingApiClient.savedAtSuffix));
+    inner.enqueue(const NetworkTimeoutException());
+    final cached = await api.get('/account/donations', credentialMode: CredentialMode.jwt);
+    expect(cached.data, ok.data);
+    expect(cached.headers['x-paxfide-cached'], 'true');
+    expect(cached.headers.containsKey('x-paxfide-cached-at'), isFalse);
+  });
+
   test('por cuenta: otra cuenta no ve lo guardado de la primera', () async {
     inner.enqueue(ok);
     await api.get('/account/donations', credentialMode: CredentialMode.jwt);
