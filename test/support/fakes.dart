@@ -58,6 +58,9 @@ class FakeApiClient implements ApiClient {
   /// Si se da, cada respuesta pasa por él, como en el cliente real (T-1).
   AuthResponseHandler? authHandler;
   final List<RecordedCall> calls = [];
+
+  /// Los parámetros de consulta de cada `GET`, en el orden de las llamadas (`null` si no llevó).
+  final List<Map<String, String>?> getQueries = [];
   final List<Object> _queue = [];
 
   /// Respuestas por ruta para las pruebas de flujo (se usan si la cola está vacía).
@@ -104,7 +107,10 @@ class FakeApiClient implements ApiClient {
     Map<String, String>? queryParams,
     Map<String, String>? headers,
     required CredentialMode credentialMode,
-  }) => _next(RecordedCall('GET', path, headers ?? const {}, null, credentialMode, null));
+  }) {
+    getQueries.add(queryParams);
+    return _next(RecordedCall('GET', path, headers ?? const {}, null, credentialMode, null));
+  }
 
   @override
   Future<ApiResponse> post(

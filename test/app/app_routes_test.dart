@@ -20,7 +20,7 @@ void main() {
     });
 
     test('autenticadas', () {
-      for (final r in ['/home', '/donations', '/operator', '/operator/pending', '/prediction', '/assets/A-1']) {
+      for (final r in ['/home', '/donations', '/operator', '/operator/pending', '/prediction', '/organization-data', '/assets/A-1']) {
         expect(AppRoutes.categorize(r), RouteCategory.authenticated, reason: r);
       }
     });

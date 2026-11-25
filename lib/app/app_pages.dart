@@ -6,6 +6,7 @@ import '../features/campaigns/presentation/campaign_public_screen.dart';
 import '../features/campaigns/presentation/my_campaigns_screen.dart';
 import '../features/donations/presentation/donate_sheet.dart';
 import '../features/donations/presentation/my_donations_screen.dart';
+import '../features/organization_data/presentation/organization_data_screen.dart';
 import '../features/prediction/presentation/prediction_screen.dart';
 import '../features/tracking/presentation/tracking_screen.dart';
 import '../features/welcome/presentation/welcome_screen.dart';
@@ -46,6 +47,8 @@ Widget buildPage(BuildContext context, String location) {
       return const MyDonationsScreen();
     case AppRoutes.prediction:
       return const PredictionScreen();
+    case AppRoutes.organizationData:
+      return const OrganizationDataScreen();
     case AppRoutes.account:
       return const AccountScreen();
     case AppRoutes.myCampaigns:

@@ -139,6 +139,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const _TrackCard(),
             const _SealCard(),
             if (p?.showsPrediction ?? false) const _PredictionCard(),
+            // Enmienda 6 de ADR-043 (E6-5): solo para los roles que ven al menos un panel; el donante, nada
+            if (p?.showsOrganizationData ?? false) const _OrganizationDataCard(),
             _CampaignsCard(key: _campaignsKey, now: _now),
             _DonationsCard(key: _donationsKey),
           ];
@@ -928,6 +930,28 @@ class _OperationsCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class _OrganizationDataCard extends StatelessWidget {
+  const _OrganizationDataCard();
+
+  @override
+  Widget build(BuildContext context) => _HomeCard(
+    key: const Key('home.organizationData'),
+    children: [
+      const _CardHead(icon: Icons.bar_chart_outlined, title: 'Datos de la organización'),
+      const SizedBox(height: 4),
+      Text(
+        'Fondos por mes y actividad, en gráficos',
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 12),
+      OutlinedButton(
+        onPressed: () => AppScope.of(context).router.go(AppRoutes.organizationData),
+        child: const Text('Ver datos'),
+      ),
+    ],
+  );
 }
 
 class _PredictionCard extends StatelessWidget {

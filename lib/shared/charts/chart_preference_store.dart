@@ -4,7 +4,7 @@ import '../../core/storage/secure_key_value_store.dart';
 
 /// Los paneles con gráficos (plan del paso 3). En el móvil, por ahora, predicción y lotes; fondos y actividad
 /// esperan a la Enmienda 6 de ADR-043.
-enum ChartPanelId { prediction, assets }
+enum ChartPanelId { prediction, assets, funds, activity }
 
 class ChartChoice {
   const ChartChoice({this.simple, this.advanced});

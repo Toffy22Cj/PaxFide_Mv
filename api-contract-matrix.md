@@ -138,4 +138,6 @@ Las filas de arriba no se reescriben. Contrato: `referencia-api-v1.md` del backe
 | `POST /organizations/{id}/delivery-evidence` | Subir la foto de entrega (multipart, sin `Command-Id`) | HECHO |
 | `POST /physical-assets/{assetRef}/deliver` | Ahora con el `evidenceRef` (`sha256:<64 hex>`) de la foto subida | HECHO |
 | `GET /donations/tracking/integrity` y, en el historial, `anchorStatus`, `eventHash`, `anchorProof`, `evidenceRegistered` | Integridad visible y sello por paso | HECHO |
+| `GET /organizations/{id}/funds/monthly?months=12` (Enmienda 6 de ADR-043, E6-1) | «Datos de la organización»: fondos por mes, para `ADMINISTRATOR` y `EMPLOYEE` | HECHO (2026-11-25) — escrito sin ejecutar; lo corre Adonis |
+| `GET /organizations/{id}/activity?cursor=` (Enmienda 6, E6-1) | «Datos de la organización»: actividad (hasta 100 eventos, 5 páginas), para `ADMINISTRATOR`, `REPRESENTATIVE` y `EMPLOYEE` | HECHO (2026-11-25) — escrito sin ejecutar; lo corre Adonis |
 | `assetType` en `GET /physical-assets/{assetRef}` y en la lista de la organización | Tipo del activo en la ficha | HECHO |

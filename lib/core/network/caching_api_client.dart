@@ -25,6 +25,9 @@ class CachingApiClient implements ApiClient {
 
   static const prefix = 'paxfide.cache.';
 
+  /// La fecha en que se guardó cada respuesta, junto a ella (misma clave más este sufijo; sigue bajo [prefix]).
+  static const savedAtSuffix = '#savedAt';
+
   /// Tamaño máximo de un cuerpo guardado (el almacén seguro no es para cargas grandes).
   static const maxBytes = 256 * 1024;
 
@@ -52,7 +55,11 @@ class CachingApiClient implements ApiClient {
       offline.value = false;
       if (key != null && r.isSuccess && r.data != null) {
         final body = jsonEncode(_withoutSecrets(r.data));
-        if (body.length <= maxBytes) await _quietly(() => _store.write(key, body));
+        if (body.length <= maxBytes) {
+          await _quietly(() => _store.write(key, body));
+          // Enmienda 6 de ADR-043 (E6-6): cuándo se guardó, para decirlo si luego se muestra sin conexión
+          await _quietly(() => _store.write('$key$savedAtSuffix', DateTime.now().toUtc().toIso8601String()));
+        }
       }
       return r;
     } on TransportException catch (e) {
@@ -61,7 +68,12 @@ class CachingApiClient implements ApiClient {
       final saved = await _read(key);
       if (saved == null) rethrow;
       offline.value = true;
-      return ApiResponse(statusCode: 200, data: saved, headers: const {'x-paxfide-cached': 'true'});
+      final savedAt = await _readText('$key$savedAtSuffix');
+      return ApiResponse(
+        statusCode: 200,
+        data: saved,
+        headers: {'x-paxfide-cached': 'true', 'x-paxfide-cached-at': ?savedAt},
+      );
     }
   }
 
@@ -82,6 +94,14 @@ class CachingApiClient implements ApiClient {
       final raw = await _store.read(key);
       final j = raw == null ? null : jsonDecode(raw);
       return j is Map<String, dynamic> ? j : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<String?> _readText(String key) async {
+    try {
+      return await _store.read(key);
     } on Object {
       return null;
     }
