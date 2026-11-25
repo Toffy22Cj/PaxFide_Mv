@@ -105,6 +105,8 @@ void main() {
     expect(tester.widget<PolylineLayer>(find.byType(PolylineLayer)).polylines.single.points, hasLength(2));
     expect(tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers, hasLength(2));
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
+    // Lo que el mapa dice de sí mismo: una zona, no un lugar exacto ni a quién se entregó (ADR del mapa, D3)
+    expect(find.textContaining('nunca el lugar exacto'), findsOneWidget);
     // Las teselas llevan el identificador de la app y nada del seguimiento
     final tiles = tester.widget<TileLayer>(find.byType(TileLayer));
     expect(tiles.urlTemplate, isNot(contains('CODIGO-MAPA')));
@@ -115,6 +117,7 @@ void main() {
     await follow(tester, map: false);
     expect(find.byKey(const Key('tracking.map'), skipOffstage: false), findsNothing);
     expect(find.byType(FlutterMap, skipOffstage: false), findsNothing);
+    expect(find.textContaining('nunca el lugar exacto', skipOffstage: false), findsNothing);
   });
 
   testWidgets('con zonas que no están en la tabla (texto libre antiguo) no hay mapa: la línea de tiempo sigue igual', (
