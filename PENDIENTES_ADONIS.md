@@ -90,3 +90,8 @@ Esperando decisión de Carlos (no se tocan hasta que decida):
 - **S-07** (capturas de pantalla): aceptarlo como deuda o protegerlo; protegerlo pide código nativo o una dependencia.
 - **Prueba contra el backend real (§6.7):** volver a ejecutarla con el backend local y pegar la salida literal en el PR.
 - **Ramas (§6):** Carlos pide cada corrección en su rama `fix/`. Esta sesión solo puede subir a `claude/…`; las correcciones van en commits separados para poder pasarlas a ramas `fix/`.
+
+## Biometría desde Cuenta y al abrir la app (2026-11-20)
+
+- **Enmienda 8 de ADR-043** (`ADR-043-enmienda-8-biometria-desde-cuenta-y-al-abrir.md`), PROPUESTA: espera tu firma. El código (`BiometricLockGate`, interruptores en Cuenta, `BiometricLockPreference`) y sus pruebas (`test/features/auth/biometric_lock_test.dart`) están escritos **sin haberlos ejecutado** (el entorno no tiene Flutter): corre `flutter analyze` y `flutter test`, pega la salida en el PR y dime qué falla.
+
