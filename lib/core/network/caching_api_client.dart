@@ -128,6 +128,7 @@ class CachingApiClient implements ApiClient {
     required String contentType,
     required List<int> bytes,
     required CredentialMode credentialMode,
+    Map<String, String> fields = const {},
   }) => _inner.postFile(
     path,
     field: field,
@@ -135,5 +136,6 @@ class CachingApiClient implements ApiClient {
     contentType: contentType,
     bytes: bytes,
     credentialMode: credentialMode,
+    fields: fields,
   );
 }

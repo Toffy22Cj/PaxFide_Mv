@@ -16,6 +16,7 @@ import '../../../shared/widgets/error_message.dart';
 import '../../../shared/widgets/pax_ui.dart';
 import '../../../shared/widgets/loaders.dart';
 import '../data/delivery_evidence_api.dart';
+import '../data/step_evidence_api.dart';
 import '../domain/asset_action.dart';
 import '../domain/asset_command.dart';
 import '../domain/asset_operations.dart';
@@ -43,6 +44,20 @@ String evidenceUploadError(AppException e) => switch (e) {
     'El almacenamiento de fotos no está disponible. Inténtalo en un momento.',
   ForbiddenException() => 'Tu cuenta no puede subir fotos de entrega de esta organización.',
   _ => describeError(e),
+};
+
+/// Mensaje para un rechazo de la foto OPCIONAL de despachar o recibir (enmienda 7 de ADR-043): dice por qué y la
+/// pantalla ofrece seguir sin foto. El paso nunca se bloquea por ella.
+String stepPhotoError(AppException e) => switch (e) {
+  EvidenceUploadException(code: 'ImageTooLarge') => 'La foto es demasiado grande (más de 5 MB). Toma otra o sigue sin foto.',
+  EvidenceUploadException(code: 'UnsupportedImageFormat') =>
+    'La foto tiene que ser JPEG o PNG. Toma otra o sigue sin foto.',
+  EvidenceUploadException(code: 'EvidenceRemoved') =>
+    'Esa foto fue retirada por la plataforma. Toma otra o sigue sin foto.',
+  EvidenceUploadException(code: 'MediaStorageUnavailable') =>
+    'El almacenamiento de fotos no está disponible ahora. Inténtalo en un momento o sigue sin foto.',
+  ForbiddenException() => 'Tu cuenta no puede subir fotos de esta organización. Puedes seguir sin foto.',
+  _ => '${describeError(e)} Puedes seguir sin foto.',
 };
 
 /// Aviso fijo bajo cada campo: lo escrito termina en un registro que no se puede borrar.
@@ -113,6 +128,15 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
   String? _photoError;
 
   bool get _isDeliver => widget.action == AssetAction.deliver;
+
+  /// Despachar y recibir: foto OPCIONAL (enmienda 7 de ADR-043, PROPUESTA). Entregar la exige (arriba).
+  bool get _hasOptionalPhoto => widget.action == AssetAction.dispatch || widget.action == AssetAction.receive;
+
+  /// La subida de la foto opcional falló y la persona decide: reintentar al confirmar o seguir sin foto.
+  bool _photoUploadFailed = false;
+
+  /// Sin red al confirmar: el paso salió SIN la foto (la cola nunca guarda bytes de estos pasos).
+  bool _photoDroppedOffline = false;
 
   /// Municipio DIVIPOLA del paso (recibir y entregar; enmienda 2 de ADR-029).
   Municipality? _municipality;
@@ -204,6 +228,8 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         );
         _evidenceRef = null; // otra foto, otra huella
         _photoMissing = false;
+        _photoUploadFailed = false;
+        _error = null;
       });
     } on UnsupportedPhotoException {
       if (mounted) setState(() => _photoError = 'La foto tiene que ser JPEG o PNG. Prueba con otra.');
@@ -252,13 +278,70 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
     );
   }
 
+  /// Despachar o recibir con foto: se sube ANTES del comando, con conexión (una sola vez por foto: un reintento por
+  /// respuesta perdida usa el mismo `evidenceRef`). Sin red, el paso sale SIN foto y se dice. Si el servidor rechaza la
+  /// foto (413, 415, 410, 503, 403), el comando NO sale: se dice por qué y la persona elige reintentar o seguir sin foto.
+  Future<AssetCommand?> _stepCommand() async {
+    final organizationId = _services.session.principal?.organizationId;
+    final photo = _photo;
+    if (photo == null) return _command;
+    if (organizationId == null) {
+      setState(() {
+        _error = 'Tu cuenta no pertenece a una organización. Puedes seguir sin foto.';
+        _photoUploadFailed = true;
+      });
+      return null;
+    }
+    try {
+      _evidenceRef ??= await StepEvidenceApi(_services.apiClient).upload(
+        organizationId: organizationId,
+        step: widget.action == AssetAction.dispatch ? StepEvidenceApi.dispatched : StepEvidenceApi.received,
+        bytes: photo.bytes,
+        contentType: photo.contentType,
+        filename: photo.filename,
+      );
+    } on TransportException {
+      // Sin red: el paso se guarda en la cola SIN foto (enmienda 7, F3); nunca se guardan bytes de imagen de estos pasos.
+      _photoDroppedOffline = true;
+      return AssetCommand.build(widget.action, widget.assetRef, _input, municipalityCode: _municipality?.code);
+    } on AppException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = stepPhotoError(e);
+          _photoUploadFailed = true;
+        });
+      }
+      return null;
+    }
+    return AssetCommand.build(
+      widget.action,
+      widget.assetRef,
+      _input,
+      evidenceRef: _evidenceRef,
+      municipalityCode: _municipality?.code,
+    );
+  }
+
+  /// «Seguir sin foto»: se quita la foto (y su huella) y el paso se confirma como si nunca la hubiera habido.
+  void _removePhoto() => setState(() {
+    _photo = null;
+    _preview = null;
+    _evidenceRef = null;
+    _photoError = null;
+    _photoUploadFailed = false;
+    _error = null;
+    _photoDroppedOffline = false;
+  });
+
   Future<void> _confirm() async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final command = _isDeliver ? await _deliverCommand() : _command;
+      final command = _isDeliver
+          ? await _deliverCommand()
+          : (_hasOptionalPhoto && _photo != null ? await _stepCommand() : _command);
       if (command == null) return;
       _command = command;
       final (item, outcome) = await widget.ops.submit(
@@ -381,7 +464,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       const SizedBox(height: 14),
     ],
     if (_needsMunicipality) ..._municipalitySection(context),
-    if (_isDeliver) ..._photoSection(context),
+    if (_isDeliver) ..._photoSection(context) else if (_hasOptionalPhoto) ..._optionalPhotoSection(context),
     const SizedBox(height: 4),
     FilledButton(key: const Key('form.submit'), onPressed: _toReview, child: const Text('Revisar operación')),
   ];
@@ -471,6 +554,78 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
     ];
   }
 
+  /// Foto OPCIONAL de despachar o recibir (enmienda 7 de ADR-043, PROPUESTA): cámara o galería, vista previa y quitarla.
+  /// Sin conexión, el botón lo dice y el paso se guardará sin foto. El mismo aviso fijo que la entrega.
+  List<Widget> _optionalPhotoSection(BuildContext context) {
+    final photo = _photo;
+    return [
+      Text('Foto (opcional)', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 6),
+      const NoticeBanner('Fotografía el lote o el acta, nunca a personas.', tone: Tone.info),
+      const SizedBox(height: 10),
+      if (photo != null) ...[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image(
+            image: _preview!,
+            key: const Key('form.photo.preview'),
+            height: 180,
+            fit: BoxFit.cover,
+            semanticLabel: 'Foto del paso',
+            errorBuilder: (_, _, _) => const SizedBox(height: 60, child: Center(child: Text('Foto lista'))),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+      ValueListenableBuilder<bool>(
+        valueListenable: _services.offline,
+        builder: (context, offline, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (offline)
+              const NoticeBanner(
+                'Sin conexión: la foto necesita señal. El paso se puede guardar sin ella.',
+                textKey: Key('form.photo.offline'),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('form.photo.take'),
+                    onPressed: offline ? null : () => _pickPhoto(camera: true),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: Text(photo == null ? 'Añadir foto (opcional)' : 'Tomar otra'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextButton.icon(
+                    key: const Key('form.photo.choose'),
+                    onPressed: offline ? null : () => _pickPhoto(camera: false),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Galería'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      if (photo != null)
+        TextButton.icon(
+          key: const Key('form.photo.remove'),
+          onPressed: _removePhoto,
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Quitar foto'),
+        ),
+      if (_photoError != null) ...[
+        const SizedBox(height: 6),
+        ErrorMessage(_photoError!, textKey: const Key('form.photo.error')),
+      ],
+      const SizedBox(height: 14),
+    ];
+  }
+
   List<Widget> _review(BuildContext context) {
     final values = {for (final f in AssetCommand.fields[widget.action]!) f.key: _controllers[f.key]!.text.trim()};
     final photo = _photo;
@@ -492,7 +647,7 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
                   key: const Key('review.photo'),
                   height: 140,
                   fit: BoxFit.cover,
-                  semanticLabel: 'Foto de la entrega',
+                  semanticLabel: _isDeliver ? 'Foto de la entrega' : 'Foto del paso',
                   errorBuilder: (_, _, _) => const SizedBox(height: 40, child: Center(child: Text('Foto lista'))),
                 ),
               ),
@@ -504,9 +659,24 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
         const SizedBox(height: 12),
         const NoticeBanner('La foto se sube al confirmar: necesitas conexión.', tone: Tone.info),
       ],
+      if (_hasOptionalPhoto && photo != null) ...[
+        const SizedBox(height: 12),
+        const NoticeBanner(
+          'La foto se sube al confirmar. Sin conexión, el paso se guarda sin ella.',
+          tone: Tone.info,
+        ),
+      ],
       const SizedBox(height: 12),
       const NoticeBanner('Esto queda registrado para siempre.', textKey: Key('review.permanent')),
       if (_error != null) ...[const SizedBox(height: 12), ErrorMessage(_error!)],
+      if (_photoUploadFailed) ...[
+        const SizedBox(height: 8),
+        OutlinedButton(
+          key: const Key('review.skipPhoto'),
+          onPressed: _busy ? null : _removePhoto,
+          child: const Text('Seguir sin foto'),
+        ),
+      ],
       const SizedBox(height: 16),
       FilledButton(
         key: const Key('review.confirm'),
@@ -554,6 +724,10 @@ class _FieldActionFlowState extends State<_FieldActionFlow> {
       ),
     };
     return [
+      if (_photoDroppedOffline) ...[
+        const NoticeBanner('El paso salió sin la foto: no había conexión para subirla.', textKey: Key('result.photoDropped')),
+        const SizedBox(height: 12),
+      ],
       // Se anuncia en el lector de pantalla en cuanto aparece (M-04).
       Semantics(
         liveRegion: true,

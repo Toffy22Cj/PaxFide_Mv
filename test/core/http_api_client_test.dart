@@ -78,6 +78,25 @@ void main() {
     expect(jsonDecode(r.body), {'givenName': 'Ana'});
   });
 
+  test('postFile con campos de texto (step de la foto de un paso): van antes del archivo', () async {
+    await tokens.writeToken('jwt-1');
+    await client.postFile(
+      '/organizations/org-1/asset-evidence',
+      field: 'file',
+      filename: 'paso.jpg',
+      contentType: 'image/jpeg',
+      bytes: utf8.encode('BYTES'),
+      fields: const {'step': 'DISPATCHED'},
+      credentialMode: CredentialMode.jwt,
+    );
+    final r = srv.requests.single;
+    final boundary = ContentType.parse(r.headers['content-type']!).parameters['boundary']!;
+    expect(r.body, startsWith('--$boundary\r\nContent-Disposition: form-data; name="step"\r\n\r\nDISPATCHED\r\n--$boundary\r\n'));
+    expect(r.body, contains('name="file"; filename="paso.jpg"'));
+    expect(r.body.indexOf('name="step"'), lessThan(r.body.indexOf('name="file"')));
+    expect(r.body, endsWith('BYTES\r\n--$boundary--\r\n'));
+  });
+
   test('postFile: multipart/form-data con un solo archivo en el campo pedido', () async {
     await tokens.writeToken('jwt-1');
     await client.postFile(

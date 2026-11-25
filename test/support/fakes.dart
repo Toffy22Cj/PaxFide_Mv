@@ -140,12 +140,20 @@ class FakeApiClient implements ApiClient {
     required String contentType,
     required List<int> bytes,
     required CredentialMode credentialMode,
+    Map<String, String> fields = const {},
   }) => _next(
     RecordedCall(
       'POST',
       path,
       const {},
-      {'field': field, 'filename': filename, 'contentType': contentType, 'length': bytes.length},
+      {
+        'field': field,
+        'filename': filename,
+        'contentType': contentType,
+        'length': bytes.length,
+        // solo si los hay: las pruebas de la entrega comparan el mapa entero
+        if (fields.isNotEmpty) 'fields': fields,
+      },
       credentialMode,
       null,
       bytes: bytes,
